@@ -4,3 +4,7 @@ It provides a generic success message ("If an account exists...") for security r
 Email Template: You might want to customize the password reset email template in your Supabase project settings (Authentication -> Email Templates) to match your app's branding.
 
 ---
+
+google Oauth
+Go to https://console.cloud.google.com/.
+Add your domain (e.g., localhost:3000 for local testing, and your production domain later) to "Authorized domains".
