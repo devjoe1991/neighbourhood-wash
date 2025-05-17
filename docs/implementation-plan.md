@@ -68,11 +68,13 @@
 
 #### Week 3: Additional Landing Pages
 
-- [ ] Create "Our Washers" page with:
-  - [ ] Washer vetting process explanation
-  - [ ] Featured Washer profiles (placeholder content)
-  - [ ] Benefits of becoming a Washer section
-  - [ ] Washer sign-up call-to-action
+- [x] Create "Our Washers" page with:
+  - [x] Washer vetting process explanation
+  - [x] Featured Washer profiles (placeholder content & images, e.g., /images/placeholder-washer-*.jpg)
+  - [x] Benefits of becoming a Washer section
+  - [x] Washer sign-up call-to-action
+  - [x] Application process overview
+  - [x] Washer testimonials (placeholder content)
 - [ ] Build "Reviews" showcase page with:
   - [ ] Overall rating display
   - [ ] Rating distribution visualization
