@@ -70,7 +70,7 @@
 
 - [x] Create "Our Washers" page with:
   - [x] Washer vetting process explanation
-  - [x] Featured Washer profiles (placeholder content & images, e.g., /images/placeholder-washer-*.jpg)
+  - [x] Featured Washer profiles (placeholder content & images, e.g., /images/placeholder-washer-\*.jpg)
   - [x] Benefits of becoming a Washer section
   - [x] Washer sign-up call-to-action
   - [x] Application process overview
@@ -100,8 +100,8 @@
 
 #### Week 4: Authentication System
 
-- [ ] Set up Supabase for authentication
-- [ ] Implement email/password registration with role selection
+- [x] Set up Supabase for authentication _(Notes: Installed @supabase/supabase-js, configured .env.local with Supabase URL & anon key, created lib/supabaseClient.ts utility.)_
+- [~] Implement email/password registration with role selection _(Notes: Created app/signup/page.tsx with UI for email, password, confirm password, and role (User/Washer). Added client-side validation and Supabase signUp call. Includes success/error messaging and redirect placeholder. Shadcn components input, label, radio-group, alert added. Corrected /join links to /signup.)_
 - [ ] Create login form and functionality
 - [ ] Add password reset functionality
 - [ ] Implement Google OAuth integration
