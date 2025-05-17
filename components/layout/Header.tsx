@@ -9,11 +9,7 @@ const navLinks = [
   { href: '/our-washers', label: 'Our Washers' },
   { href: '/reviews', label: 'Reviews' },
   { href: '/faqs', label: 'FAQs' },
-  // Links below might be for logged-in users, but including for now as per screenshot
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/bookings', label: 'Bookings' },
-  { href: '/services', label: 'Services' },
-  { href: '/profile', label: 'Profile' },
+  { href: '/about', label: 'About Us' },
 ];
 
 export default function Header() {

@@ -93,8 +93,8 @@
   - [ ] Link to support resources (implicitly via contact)
   - [x] Common troubleshooting section (covered by general/user/washer FAQs)
   - [x] Privacy and security FAQ section
-- [ ] Create Contact page with form
-- [ ] Implement About Us page
+- [ ] Create Contact page with form _(Note: Deferred by user request)_
+- [~] Implement About Us page _(Notes: Initial page structure created with Hero, Story, Values, and CTA. Team section removed by user request. Placeholder images used. Navigation link added.)_
 
 ### Phase 2: Authentication & User Profiles (2 weeks)
 

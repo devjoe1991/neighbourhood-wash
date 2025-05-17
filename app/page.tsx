@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Star, ShieldCheck, CalendarDays, Award, Users, DollarSign, Zap } from 'lucide-react';
+import { Star, ShieldCheck, CalendarDays, Award, Users, PoundSterling, Zap } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -89,7 +89,7 @@ export default function HomePage() {
                 description: 'Support local entrepreneurs while getting exceptional service.',
               },
               {
-                icon: <DollarSign className="w-8 h-8 text-blue-600" />,
+                icon: <PoundSterling className="w-8 h-8 text-blue-600" />,
                 title: 'Competitive Pricing',
                 description: 'Average earnings of £1500+/month for washers, great value for users.',
               },
