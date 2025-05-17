@@ -34,12 +34,12 @@ After completing any implementation task:
 
 ### Phase 1: Project Setup & Landing Pages
 
-- [ ] Next.js with TypeScript setup _(Notes: ...)_
-- [ ] TailwindCSS configuration _(Notes: ...)_
-- [ ] Dependencies installation _(Notes: ...)_
-- [ ] Project structure _(Notes: ...)_
-- [ ] Main landing page implementation _(Notes: ...)_
-- [ ] How It Works page _(Notes: ...)_
+- [x] Next.js with TypeScript setup _(Notes: Initialized Next.js 14 project with TypeScript. Configured ESLint, Prettier, and Playwright. Set up GitHub repository for version control.)_
+- [x] TailwindCSS configuration _(Notes: Configured TailwindCSS with custom blue theme - Primary: #3498db, Secondary: #85c1e9, Accent: #2980b9, and darkMode: 'class'.)_
+- [x] Dependencies installation _(Notes: Installed core dependencies for Next.js, TypeScript, TailwindCSS, Shadcn/ui, lucide-react, next-themes, and testing utilities.)_
+- [x] Project structure _(Notes: Established initial project directory structure and foundational component architecture, including components/layout, components/ui, components/ThemeToggle.tsx, components/theme-provider.tsx.)_
+- [x] Main landing page implementation _(Notes: Created app/page.tsx with Header and Footer. Implemented Hero section (with family-wash.jpg), 'Why Choose Us' section with feature blocks and icons, a CTA section, and a placeholder Testimonials section. Light/dark mode toggle functionality was built but temporarily disabled due to React 19/next-themes compatibility issues. Files: app/page.tsx, components/layout/Header.tsx, components/layout/Footer.tsx, public/images/family-wash.jpg)_
+- [x] How It Works page _(Notes: Created app/how-it-works/page.tsx. Implemented detailed step-by-step sections for Users and Washers with descriptions and lucide-react icons. Added a visual process flow section (basic). Included a placeholder Benefits section and a functional FAQ section using Shadcn/ui Accordion. Resolved routing conflict by deleting app/(landing)/how-it-works/page.tsx. Files: app/how-it-works/page.tsx, components/ui/accordion.tsx)_
 - [ ] Our Washers page _(Notes: ...)_
 - [ ] Reviews page _(Notes: ...)_
 - [ ] FAQs page _(Notes: ...)_

@@ -43,29 +43,28 @@
 
 #### Week 1: Project Initialization
 
-- [ ] Set up Next.js project with TypeScript
-- [ ] Configure TailwindCSS with custom theme
-- [ ] Install and set up necessary dependencies
-- [ ] Create project structure and component architecture
-- [ ] Set up version control (GitHub repository)
-- [ ] Configure ESLint and Prettier
-- [ ] Set up automated testing environment (Playwright)
+- [x] Set up Next.js project with TypeScript
+- [x] Configure TailwindCSS with custom theme
+- [x] Install and set up necessary dependencies
+- [x] Create project structure and component architecture
+- [x] Set up version control (GitHub repository)
+- [x] Configure ESLint and Prettier
+- [x] Set up automated testing environment (Playwright)
 
 #### Week 2: Core Landing Pages
 
-- [ ] Create responsive layout with header and footer
-- [ ] Implement light/dark mode toggle
-- [ ] Develop main landing page with:
-  - [ ] Hero section with clear value proposition
-  - [ ] Service explanation section
-  - [ ] User/Washer benefits section
-  - [ ] Call-to-action buttons
-  - [ ] Testimonials section (placeholder content)
-- [ ] Build "How It Works" page with:
-  - [ ] Step-by-step process explanation for both Users and Washers
-  - [ ] Visual process flow diagram
-  - [ ] Benefits section highlighting convenience and community aspects
-  - [ ] FAQ section specific to the service process
+- [x] Create responsive layout with header and footer
+- [~] Implement light/dark mode toggle _(Note: Temporarily disabled due to React 19/next-themes compatibility issues. To be revisited.)_
+- [x] Develop main landing page with:
+  - [x] Hero section with clear value proposition
+  - [x] Service explanation section
+  - [x] Call-to-action buttons
+  - [x] Testimonials section (placeholder content)
+- [x] Build "How It Works" page with:
+  - [x] Step-by-step process explanation for both Users and Washers
+  - [x] Visual process flow diagram _(Note: Basic version implemented; can be enhanced later)_
+  - [x] Benefits section highlighting convenience and community aspects _(Note: Initial placeholder content added)_
+  - [x] FAQ section specific to the service process _(Note: Implemented with Accordion component)_
 
 #### Week 3: Additional Landing Pages
 
