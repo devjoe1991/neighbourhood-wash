@@ -41,8 +41,8 @@ After completing any implementation task:
 - [x] Main landing page implementation _(Notes: Created app/page.tsx with Header and Footer. Implemented Hero section (with family-wash.jpg), 'Why Choose Us' section with feature blocks and icons, a CTA section, and a placeholder Testimonials section. Light/dark mode toggle functionality was built but temporarily disabled due to React 19/next-themes compatibility issues. Files: app/page.tsx, components/layout/Header.tsx, components/layout/Footer.tsx, public/images/family-wash.jpg)_
 - [x] How It Works page _(Notes: Created app/how-it-works/page.tsx. Implemented detailed step-by-step sections for Users and Washers with descriptions and lucide-react icons. Added a visual process flow section (basic). Expanded Benefits section including eco-friendly aspect and PoundSterling icon. Implemented a functional FAQ section using Shadcn/ui Accordion. Resolved routing conflict by deleting app/(landing)/how-it-works/page.tsx. Files: app/how-it-works/page.tsx, components/ui/accordion.tsx)_
 - [x] Our Washers page _(Notes: Created app/our-washers/page.tsx. Implemented sections for: Hero, Vetting Process, Featured Washer Profiles (with placeholder images like /images/placeholder-washer-*.jpg and data), Benefits of Becoming a Washer, Application Process Overview (timeline style), Washer Testimonials (placeholder), and a final CTA. Used Heroicons and Lucide icons. Files: app/our-washers/page.tsx)_
-- [ ] Reviews page _(Notes: ...)_
-- [ ] FAQs page _(Notes: ...)_
+- [~] Reviews page _(Notes: Created app/reviews/page.tsx. Implemented Hero section, Overall Rating display, Rating Distribution chart, and a static grid of Featured Review cards with placeholder data. Included verified badges and placeholders for filters and loading more reviews. Resolved routing conflict by deleting app/(landing)/reviews/page.tsx. Files: app/reviews/page.tsx, components/layout/Header.tsx (verified link exists))_
+- [ ] FAQs page _(Notes: ...)
 
 ### Phase 2: Authentication & User Profiles
 
@@ -51,6 +51,8 @@ After completing any implementation task:
 - [ ] Google OAuth integration _(Notes: ...)_
 - [ ] User profile creation _(Notes: ...)_
 - [ ] Washer profile creation _(Notes: ...)_
+- [~] Reviews page _(Notes: Created app/reviews/page.tsx. Implemented Hero section, Overall Rating display, Rating Distribution chart, and a static grid of Featured Review cards with placeholder data. Included verified badges and placeholders for filters and loading more reviews. Resolved routing conflict by deleting app/(landing)/reviews/page.tsx. Files: app/reviews/page.tsx, components/layout/Header.tsx (verified link exists))_
+- [~] FAQs page _(Notes: Created app/faqs/page.tsx. Implemented Hero section with placeholder search. Used Shadcn/ui Accordion for categorized FAQs: General, User, Washer, and Privacy & Security, populated with placeholder Q&As. Added a Contact Support section with a mailto link. Resolved routing conflict by deleting app/(landing)/faqs/page.tsx. Corrected key prop syntax in FAQ item mapping. Files: app/faqs/page.tsx, components/ui/accordion.tsx (reused))_
 
 ### Phase 3: User Dashboard & Experience
 

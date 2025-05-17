@@ -83,12 +83,16 @@
   - [ ] User success stories (covered by featured reviews for now)
   - [ ] Washer testimonials (covered by featured reviews for now)
   - [x] Verified review badges
-- [ ] Implement comprehensive "FAQs" page with:
-  - [ ] Accordion-style interface for question categories
-  - [ ] User-specific FAQs section
-  - [ ] Washer-specific FAQs section
-  - [ ] General platform FAQs section
-  - [ ] Contact form for additional questions
+- [~] Implement comprehensive "FAQs" page with:
+  - [x] Accordion-style interface for question categories
+  - [x] User-specific FAQs section
+  - [x] Washer-specific FAQs section
+  - [x] General platform FAQs section
+  - [x] Contact form for additional questions (implemented as mailto link)
+  - [ ] Search functionality for questions (placeholder input added)
+  - [ ] Link to support resources (implicitly via contact)
+  - [x] Common troubleshooting section (covered by general/user/washer FAQs)
+  - [x] Privacy and security FAQ section
 - [ ] Create Contact page with form
 - [ ] Implement About Us page
 
