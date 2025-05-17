@@ -102,7 +102,7 @@
 
 - [x] Set up Supabase for authentication _(Notes: Installed @supabase/supabase-js, configured .env.local with Supabase URL & anon key, created lib/supabaseClient.ts utility.)_
 - [~] Implement email/password registration with role selection _(Notes: Created app/signup/page.tsx with UI for email, password, confirm password, and role (User/Washer). Added client-side validation and Supabase signUp call. Includes success/error messaging and redirect placeholder. Shadcn components input, label, radio-group, alert added. Corrected /join links to /signup.)_
-- [ ] Create login form and functionality
+- [~] Create login form and functionality _(Notes: Created app/signin/page.tsx with UI for email and password. Implemented Supabase auth.signInWithPassword() for authentication. Includes success/error messaging and a temporary redirect to homepage '/' on successful login. Link to placeholder /forgot-password page added.)_
 - [ ] Add password reset functionality
 - [ ] Implement Google OAuth integration
 - [ ] Create role selection page for OAuth users

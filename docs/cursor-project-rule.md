@@ -46,8 +46,9 @@ After completing any implementation task:
 
 ### Phase 2: Authentication & User Profiles
 
-- [x] Supabase authentication _(Notes: Initial setup complete. Installed @supabase/supabase-js. Configured NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local. Created lib/supabaseClient.ts to instantiate and export the Supabase client. Added .env.local to .gitignore.)_
-- [~] Email/password registration _(Notes: Created app/signup/page.tsx with UI for email, password, confirm password, and role selection (User/Washer). Implemented client-side validation (password match, length) and Supabase auth.signUp() call with role in user_metadata. Handles success (with redirect to /signin) and error messages using Shadcn Alert. Missing Shadcn components (Input, Label, RadioGroup, Alert) installed. Corrected /join links on landing page and header to point to /signup. Husky pre-commit hook made executable. Files: app/signup/page.tsx, lib/supabaseClient.ts, .env.local, components/ui/input.tsx, components/ui/label.tsx, components/ui/radio-group.tsx, components/ui/alert.tsx)_
+- [x] Supabase authentication _(Notes: Initial setup - Installed @supabase/supabase-js, configured .env.local with Supabase URL & anon key, created lib/supabaseClient.ts utility.)_
+- [~] Email/password registration _(Notes: Created app/signup/page.tsx with UI for email, password, confirm password, and role (User/Washer). Added client-side validation and Supabase auth.signUp() call. Includes success/error messaging. Installed missing Shadcn components: input, label, radio-group, alert. Corrected /join links to /signup in app/page.tsx and components/layout/Header.tsx. Resolved ESLint errors in app/page.tsx related to unescaped characters.)_
+- [~] Login form and functionality _(Notes: Created app/signin/page.tsx with UI for email and password. Implemented Supabase auth.signInWithPassword() for authentication. Includes success/error messaging and a temporary redirect to homepage '/' on successful login. Link to placeholder /forgot-password page added.)_
 - [ ] Google OAuth integration _(Notes: ...)_
 - [ ] User profile creation _(Notes: ...)_
 - [ ] Washer profile creation _(Notes: ...)_
