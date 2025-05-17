@@ -75,11 +75,14 @@
   - [x] Washer sign-up call-to-action
   - [x] Application process overview
   - [x] Washer testimonials (placeholder content)
-- [ ] Build "Reviews" showcase page with:
-  - [ ] Overall rating display
-  - [ ] Rating distribution visualization
-  - [ ] Featured review cards with user location
-  - [ ] Success stories from both users and washers
+- [x] Build "Reviews" showcase page with:
+  - [x] Overall rating display
+  - [x] Rating distribution visualization
+  - [x] Featured review cards with user location (static grid with placeholders)
+  - [ ] Filter options for review categories (placeholder button added)
+  - [ ] User success stories (covered by featured reviews for now)
+  - [ ] Washer testimonials (covered by featured reviews for now)
+  - [x] Verified review badges
 - [ ] Implement comprehensive "FAQs" page with:
   - [ ] Accordion-style interface for question categories
   - [ ] User-specific FAQs section
