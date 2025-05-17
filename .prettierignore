@@ -1,0 +1,17 @@
+# Ignore artifacts:
+build
+dist
+.next
+node_modules
+
+# Ignore generated files:
+*.lock
+
+# Ignore misc:
+.DS_Store
+.env
+.env.*
+!eslintrc.js
+
+# Ignore specific files if needed
+# public/some-generated-file.js 

@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Neighbourhood Wash
+
+Neighbourhood Wash is a Next.js-based community marketplace connecting individuals seeking laundry services with local "Washers" who offer their laundry facilities. The platform enables users without laundry facilities to find local washers, while allowing washers to monetize their underutilized equipment.
+
+## Project Overview
+
+This project is built with:
+
+- Next.js 14 (App Router)
+- TypeScript
+- TailwindCSS (with a custom blue theme)
+- Supabase (planned for backend services)
 
 ## Getting Started
 
-First, run the development server:
+First, ensure you have Node.js (version 20.x or later recommended) and pnpm installed.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1.  **Clone the repository (if you haven't already):**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    ```bash
+    git clone https://github.com/devjoe1991/neighbourhood-wash.git
+    cd neighbourhood-wash
+    ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2.  **Install dependencies:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    ```bash
+    pnpm install
+    ```
 
-## Learn More
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root of the project by copying the example file (if one exists, typically `.env.example` - to be created later if needed).
 
-To learn more about Next.js, take a look at the following resources:
+    ```bash
+    cp .env.example .env.local
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+    Update `.env.local` with your specific configuration (e.g., Supabase keys when integrated).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4.  **Run the development server:**
+    ```bash
+    pnpm dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Deploy on Vercel
+## Available Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+In the project directory, you can run:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `pnpm dev`: Runs the app in development mode.
+- `pnpm build`: Builds the app for production.
+- `pnpm start`: Starts a production server.
+- `pnpm lint`: Lints the codebase using Next.js's ESLint configuration.
+- `pnpm format`: Formats the code using Prettier.
+
+## Branching Strategy (Initial)
+
+- `main`: This branch is for production-ready code. All development should happen in feature branches.
+- `develop`: (Optional, for larger teams) A pre-production branch where features are merged before going to `main`.
+- Feature branches: `feature/name-of-feature` (e.g., `feature/user-auth`)
+- Bugfix branches: `bugfix/fix-description` (e.g., `bugfix/login-error`)
+
+All pull requests should be reviewed before merging into `main` (or `develop`).
+
+## Technology Choices & Setup
+
+- **Framework**: Next.js 14 with App Router for server-side rendering, static site generation, and modern React features.
+- **Language**: TypeScript for type safety and improved developer experience.
+- **Styling**: TailwindCSS for utility-first CSS, with a custom theme configured in `tailwind.config.ts`.
+- **UI Components**: Radix UI and shadcn/ui (to be integrated for pre-built, accessible components).
+- **Backend**: Supabase (planned) for database, authentication, and other backend services.
+- **Code Quality**: ESLint for linting, Prettier for code formatting.
+- **Version Control**: Git and GitHub.
+- **Package Manager**: pnpm.
+
+## Project Structure
+
+(A brief overview of the main directories as per the initial setup will be here. You can expand this later.)
+
+- `app/`: Next.js 14 App Router structure (route groups for auth, landing, dashboard).
+- `components/`: Reusable UI components (ui, layout, landing, forms, dashboard subdirectories).
+- `lib/`: Utility functions (`utils.ts`) and shared code/constants (`constants.ts`).
+- `public/`: Static assets (images, icons).
+- `styles/`: Global stylesheets (`globals.css`) and TailwindCSS configuration.
+- `types/`: TypeScript type definitions (`index.ts`).
+
+## Next Steps
+
+With the project initialized, the next phase involves developing the core landing pages and further UI components.
