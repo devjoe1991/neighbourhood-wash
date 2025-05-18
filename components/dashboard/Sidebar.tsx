@@ -1,6 +1,15 @@
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/server_new'
 
-const Sidebar = () => {
+const Sidebar = async () => {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const userRole = user?.user_metadata?.selected_role
+  const isWasher = userRole === 'washer'
+
   return (
     <aside className='fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-gray-800 p-4 text-white'>
       <nav className='mt-4'>
@@ -26,14 +35,16 @@ const Sidebar = () => {
               Referrals
             </Link>
           </li>
-          <li className='mb-2'>
-            <Link
-              href='/dashboard/become-washer'
-              className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-            >
-              Become a Washer
-            </Link>
-          </li>
+          {!isWasher && (
+            <li className='mb-2'>
+              <Link
+                href='/dashboard/become-washer'
+                className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
+              >
+                Become a Washer
+              </Link>
+            </li>
+          )}
           <li className='mb-2'>
             <Link
               href='/dashboard/settings'
