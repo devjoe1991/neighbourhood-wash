@@ -17,6 +17,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole] = useState('user') // Default role
+  const [referralCode, setReferralCode] = useState('') // State for referral code
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -37,14 +38,22 @@ export default function SignUpPage() {
 
     setIsLoading(true)
 
+    const metadata: {
+      selected_role: string
+      submitted_referral_code?: string
+    } = {
+      selected_role: role,
+    }
+
+    if (referralCode.trim() !== '') {
+      metadata.submitted_referral_code = referralCode.trim().toUpperCase()
+    }
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          // This is user_metadata
-          selected_role: role,
-        },
+        data: metadata, // Pass the constructed metadata
       },
     })
 
@@ -169,6 +178,22 @@ export default function SignUpPage() {
                   </Label>
                 </div>
               </RadioGroup>
+            </div>
+
+            <div>
+              <Label htmlFor='referral-code'>Referral Code (Optional)</Label>
+              <div className='mt-1'>
+                <Input
+                  id='referral-code'
+                  name='referral-code'
+                  type='text'
+                  value={referralCode}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setReferralCode(e.target.value)
+                  }
+                  placeholder='Enter referral code'
+                />
+              </div>
             </div>
 
             {error && (
