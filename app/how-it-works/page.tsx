@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { CheckCircle, Users, Zap, Handshake, MessageSquare, Smile, Search, CalendarCheck, WashingMachine, Briefcase, CreditCard, Leaf, Clock, Home as HomeIcon, Award, PoundSterling } from 'lucide-react'; // Changed DollarSignIcon to PoundSterling
+import { Users, Handshake, Smile, Search, CalendarCheck, WashingMachine, Briefcase, CreditCard, Leaf, Clock, Home as HomeIcon, Award, PoundSterling } from 'lucide-react'; // Changed DollarSignIcon to PoundSterling
 
 const userSteps = [
   {

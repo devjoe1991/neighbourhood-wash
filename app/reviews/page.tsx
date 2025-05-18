@@ -1,8 +1,6 @@
-import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { StarIcon as SolidStarIcon, CheckBadgeIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/solid';
-import { StarIcon as OutlineStarIcon, AdjustmentsHorizontalIcon, TagIcon } from '@heroicons/react/24/outline';
+import { AdjustmentsHorizontalIcon, TagIcon } from '@heroicons/react/24/outline';
 
 // Placeholder data for reviews
 const sampleReviews = [
@@ -158,7 +156,7 @@ export default function ReviewsPage() {
                     <div className="flex items-start space-x-3">
                       <ChatBubbleLeftEllipsisIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-blue-600">Washer's Reply:</p>
+                        <p className="text-sm font-semibold text-blue-600">Washer&apos;s Reply:</p>
                         <p className="text-sm text-gray-600 italic">{review.washerReply}</p>
                       </div>
                     </div>

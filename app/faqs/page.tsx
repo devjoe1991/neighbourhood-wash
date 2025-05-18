@@ -26,7 +26,7 @@ const generalFaqs = [
 const userFaqs = [
   {
     q: "How do I book a laundry service?",
-    a: "Once you've signed up and found a Washer you like, you can select their available time slots, choose your service preferences (detergents, fabric softeners, etc.), and confirm your booking. You'll receive a confirmation and a PIN for drop-off."
+    a: "Once you&apos;ve signed up and found a Washer you like, you can select their available time slots, choose your service preferences (detergents, fabric softeners, etc.), and confirm your booking. You&apos;ll receive a confirmation and a PIN for drop-off."
   },
   {
     q: "What if I have allergies or specific detergent preferences?",
@@ -34,7 +34,7 @@ const userFaqs = [
   },
   {
     q: "How is payment handled?",
-    a: "Payments are handled securely through our platform. You'll pay when you book the service, and the Washer receives their payment after the service is completed successfully."
+    a: "Payments are handled securely through our platform. You&apos;ll pay when you book the service, and the Washer receives their payment after the service is completed successfully."
   }
 ];
 
@@ -184,7 +184,7 @@ export default function FAQsPage() {
           <MailIcon className="w-16 h-16 text-blue-500 mx-auto mb-6" />
           <h2 className="text-3xl font-bold text-gray-900">Still Have Questions?</h2>
           <p className="mt-4 text-lg text-gray-600">
-            If you couldn't find the answer you were looking for in our FAQs, please don't hesitate to reach out to our support team.
+            If you couldn&apos;t find the answer you were looking for in our FAQs, please don&apos;t hesitate to reach out to our support team.
           </p>
           <div className="mt-8">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>

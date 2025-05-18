@@ -49,10 +49,10 @@ export default function AboutUsPage() {
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Story: More Than Just Laundry</h2>
               <p className="text-lg text-gray-700 mb-4">
-                Neighbourhood Wash was born from a simple idea: what if we could make laundry less of a chore and more of a community-building opportunity? In today's fast-paced world, time is precious, and local connections matter more than ever.
+                Neighbourhood Wash was born from a simple idea: what if we could make laundry less of a chore and more of a community-building opportunity? In today&apos;s fast-paced world, time is precious, and local connections matter more than ever.
               </p>
               <p className="text-gray-600 mb-4">
-                We envisioned a platform where people could easily find trusted neighbours to help with their laundry, and where individuals with underused washing machines could earn a little extra by offering a valuable service. It's about sharing resources, supporting local economies, and fostering a sense of belonging right in your own neighbourhood.
+                We envisioned a platform where people could easily find trusted neighbours to help with their laundry, and where individuals with underused washing machines could earn a little extra by offering a valuable service. It&apos;s about sharing resources, supporting local economies, and fostering a sense of belonging right in your own neighbourhood.
               </p>
               <p className="text-gray-600">
                 From busy professionals and families to students and anyone looking for a convenient laundry solution, Neighbourhood Wash aims to lighten your load and strengthen community ties.
@@ -93,7 +93,7 @@ export default function AboutUsPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-6">Join the Neighbourhood Wash Movement!</h2>
           <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-8">
-            Whether you need a helping hand with your laundry or you're looking to offer your services and earn, become a part of our growing community today.
+            Whether you need a helping hand with your laundry or you&apos;re looking to offer your services and earn, become a part of our growing community today.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto" asChild>

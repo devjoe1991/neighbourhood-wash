@@ -110,7 +110,7 @@ export default function OurWashersPage() {
                     <span className="ml-2 text-sm text-gray-600">{washer.rating.toFixed(1)} ({washer.reviews} reviews)</span>
                   </div>
                   <p className="text-sm text-gray-700 mb-3 font-medium">Specialty: {washer.specialty}</p>
-                  <p className="text-gray-600 text-sm mb-4 flex-grow"><em>"{washer.story}"</em></p>
+                  <p className="text-gray-600 text-sm mb-4 flex-grow"><em>&quot;{washer.story}&quot;</em></p>
                   <Button variant="outline" size="sm" className="mt-auto w-full border-blue-500 text-blue-500 hover:bg-blue-50">
                     View Profile (Coming Soon)
                   </Button>
@@ -157,7 +157,7 @@ export default function OurWashersPage() {
             <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center">
               <CheckBadgeIcon className="w-12 h-12 text-indigo-500 mb-3" />
               <h3 className="text-xl font-semibold text-gray-800 mb-2">Minimal Startup</h3>
-              <p className="text-gray-600 text-sm">No major investment needed. If you have a washing machine and dryer, you're almost set!</p>
+              <p className="text-gray-600 text-sm">No major investment needed. If you have a washing machine and dryer, you&apos;re almost set!</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center">
               <RocketLaunchIcon className="w-12 h-12 text-red-500 mb-3" />
@@ -187,14 +187,14 @@ export default function OurWashersPage() {
                   <UserGroupIcon className="w-5 h-5 text-blue-600 dark:text-blue-300" />
                 </span>
                 <h3 className="flex items-center mb-1 text-xl font-semibold text-gray-900">1. Sign Up & Create Profile</h3>
-                <p className="text-gray-600">Fill out our simple application form. Tell us about yourself, your equipment, and the services you'll offer.</p>
+                <p className="text-gray-600">Fill out our simple application form. Tell us about yourself, your equipment, and the services you&apos;ll offer.</p>
               </li>
               <li className="mb-10 ml-10">
                 <span className="absolute flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full -left-5 ring-4 ring-white dark:ring-gray-900 dark:bg-blue-900">
                   <ShieldCheckIcon className="w-5 h-5 text-blue-600 dark:text-blue-300" />
                 </span>
                 <h3 className="mb-1 text-xl font-semibold text-gray-900">2. Verification Process</h3>
-                <p className="text-gray-600">We'll review your application and guide you through our quick identity and address verification.</p>
+                <p className="text-gray-600">We&apos;ll review your application and guide you through our quick identity and address verification.</p>
               </li>
               <li className="mb-10 ml-10">
                 <span className="absolute flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full -left-5 ring-4 ring-white dark:ring-gray-900 dark:bg-blue-900">
@@ -231,7 +231,7 @@ export default function OurWashersPage() {
             {[1, 2].map((i) => (
               <blockquote key={i} className="p-6 bg-white rounded-lg shadow-lg">
                 <p className="text-gray-600 italic mb-4">
-                  "Joining Neighbourhood Wash was the best decision! I love the flexibility and earning extra money doing something I enjoy. Placeholder testimonial {i}."
+                  &quot;Joining Neighbourhood Wash was the best decision! I love the flexibility and earning extra money doing something I enjoy. Placeholder testimonial {i}.&quot;
                 </p>
                 <footer className="text-sm">
                   <p className="font-semibold text-gray-900">Washer Name {i}</p>
@@ -249,10 +249,10 @@ export default function OurWashersPage() {
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
             Ready to Join Our Network of Washers?
           </h2>
-          <p className="mt-6 text-lg text-blue-100 max-w-xl mx-auto">
-            Start your journey as a Neighbourhood Washer today. It's simple to sign up and begin offering your services.
+          <p className="mt-4 text-lg text-blue-100 max-w-xl mx-auto">
+            It&apos;s simple to get started and offers a rewarding way to connect with your community and earn.
           </p>
-          <div className="mt-10">
+          <div className="mt-8">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 px-10 py-3 text-lg" asChild>
               <Link href="/join?role=washer">Become a Washer Today &rarr;</Link>
             </Button>
