@@ -30,3 +30,11 @@ The ESLint no-unused-vars error for the cookies import was fixed by removing the
 The leftover comment was manually removed by you.
 
 ---
+
+local development to a hosted production environment (like Vercel) relatively straightforward, but there are key areas and configurations you'll need to pay attention to.
+In Summary, Bruv:
+The transition is mostly about configuration, not rewriting your app. The main steps are:
+Set environment variables in Vercel.
+Update Supabase URL configurations (Site URL, Redirect URLs) to use your production domain.
+Configure your custom domain in Vercel and your DNS provider.
+Your Next.js and Supabase code is largely built to adapt, provided these configurations are correct. It's always a good idea to deploy to a Vercel preview environment first, connect it to your Supabase project (perhaps a staging Supabase project if you have one, or your production one with careful testing), and thoroughly test all authentication flows and functionalities using the preview URL before going live with your custom domain.
