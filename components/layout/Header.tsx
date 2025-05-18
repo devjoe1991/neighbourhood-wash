@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Moon } from 'lucide-react'
+import { type User } from '@supabase/supabase-js'
+import { signOut } from '@/app/auth/actions'
 // import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navLinks = [
@@ -12,7 +14,11 @@ const navLinks = [
   { href: '/about', label: 'About Us' },
 ]
 
-export default function Header() {
+interface HeaderProps {
+  user: User | null
+}
+
+export default function Header({ user }: HeaderProps) {
   return (
     <header className='sticky top-0 z-50 border-b bg-white shadow-sm'>
       <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
@@ -38,16 +44,31 @@ export default function Header() {
             <Button variant='ghost' size='icon' disabled>
               <Moon className='h-5 w-5 text-gray-400' />
             </Button>
-            <Button variant='outline' size='sm' asChild>
-              <Link href='/signin'>Sign In</Link>
-            </Button>
-            <Button
-              size='sm'
-              className='bg-blue-600 text-white hover:bg-blue-700'
-              asChild
-            >
-              <Link href='/signup'>Join Neighbourhood Wash</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button variant='outline' size='sm' asChild>
+                  <Link href='/dashboard'>Dashboard</Link>
+                </Button>
+                <form action={signOut as (formData: FormData) => void}>
+                  <Button type='submit' variant='destructive' size='sm'>
+                    Sign Out
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Button variant='outline' size='sm' asChild>
+                  <Link href='/signin'>Sign In</Link>
+                </Button>
+                <Button
+                  size='sm'
+                  className='bg-blue-600 text-white hover:bg-blue-700'
+                  asChild
+                >
+                  <Link href='/signup'>Join Neighbourhood Wash</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

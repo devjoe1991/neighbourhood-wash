@@ -2,23 +2,24 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'; // No longer needed for router.push or .refresh
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createClient } from '@/utils/supabase/client'
+// import { createClient } from '@/utils/supabase/client'; // No longer needed for direct Supabase calls here for email/password signin
+import { signInWithEmailPassword } from '@/app/auth/actions' // Import the server action
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 export default function SignInPage() {
-  const router = useRouter()
+  // const router = useRouter(); // No longer needed
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null) // For general messages if needed
+  const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const supabase = createClient()
+  // const supabase = createClient(); // No longer calling Supabase client-side for this form
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -26,22 +27,17 @@ export default function SignInPage() {
     setMessage(null)
     setIsLoading(true)
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword(
-      {
-        email,
-        password,
-      }
-    )
+    const result = await signInWithEmailPassword({ email, password })
 
     setIsLoading(false)
 
-    if (signInError) {
-      setError(signInError.message)
-    } else if (data.user) {
-      setMessage('Sign in successful! Redirecting to dashboard...')
-      router.push('/dashboard')
+    if (result?.error) {
+      setError(result.error.message)
     } else {
-      setError('An unexpected error occurred. Please try again.')
+      // If there was no error, the server action should have redirected.
+      // We can set a success message, though it might only flash briefly before redirect.
+      setMessage('Sign in successful! Redirecting...')
+      // The redirect is handled by the server action.
     }
   }
 
