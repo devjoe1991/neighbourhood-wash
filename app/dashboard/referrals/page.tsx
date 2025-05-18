@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/utils/supabase/server_new'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
+import { getOrCreateReferralCode } from '@/lib/referral'
 
 export default async function ReferralsPage() {
   const supabase = createClient()
@@ -15,10 +16,11 @@ export default async function ReferralsPage() {
     return redirect('/signin?message=Please sign in to view your referrals.')
   }
 
-  // Placeholder: Fetch referral data for the user here later
-  const userReferralCode = 'YOUR-UNIQUE-CODE' // Replace with actual logic
-  const referralCount = 0 // Replace with actual logic
-  const referralRewardsEarned = 0 // Replace with actual logic
+  const userReferralCode = await getOrCreateReferralCode(user.id)
+
+  // Placeholder: Fetch actual referral stats later
+  const referralCount = 0
+  const referralRewardsEarned = 0
 
   return (
     <div className='flex min-h-screen bg-gray-100 pt-16'>
@@ -31,18 +33,27 @@ export default async function ReferralsPage() {
             <h2 className='mb-2 text-xl font-semibold text-blue-700'>
               Share Your Referral Code!
             </h2>
-            <p className='mb-3 text-gray-600'>
-              Invite friends to Neighbourhood Wash and earn rewards. Share your
-              unique code:
-            </p>
-            <div className='rounded-md border border-dashed border-blue-400 bg-white p-3 text-center'>
-              <p className='font-mono text-2xl text-blue-600'>
-                {userReferralCode}
+            {userReferralCode ? (
+              <>
+                <p className='mb-3 text-gray-600'>
+                  Invite friends to Neighbourhood Wash and earn rewards. Share
+                  your unique code:
+                </p>
+                <div className='rounded-md border border-dashed border-blue-400 bg-white p-3 text-center'>
+                  <p className='font-mono text-2xl text-blue-600'>
+                    {userReferralCode}
+                  </p>
+                </div>
+                <button className='mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm hover:bg-blue-700'>
+                  Copy Code & Share (Coming Soon)
+                </button>
+              </>
+            ) : (
+              <p className='text-red-600'>
+                Could not retrieve your referral code at this time. Please try
+                again later or contact support.
               </p>
-            </div>
-            <button className='mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm hover:bg-blue-700'>
-              Copy Code & Share (Coming Soon)
-            </button>
+            )}
           </div>
 
           <div className='mb-8 grid grid-cols-1 gap-6 md:grid-cols-2'>
