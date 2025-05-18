@@ -57,7 +57,7 @@ After completing any implementation task:
 ### Phase 2: Authentication & User Profiles
 
 - [x] Supabase authentication _(Notes: Implemented core Supabase authentication using email/password. Set up sign-in (`app/signin/page.tsx` via Server Action), sign-up (`app/signup/page.tsx`), and sign-out (`app/auth/actions.ts`) functionalities. Created a protected dashboard page (`app/dashboard/page.tsx`) with middleware (`middleware.ts` and `utils/supabase/middleware.ts`) for route protection. Encountered and resolved a significant server-side cookie handling issue with `next/headers` and `@supabase/ssr` by renaming `utils/supabase/server.ts` to `utils/supabase/server_new.ts` to overcome a persistent Next.js dev server cache. The client is configured in `utils/supabase/client.ts` (for client components) and `utils/supabase/server_new.ts` (for server components/actions). Implemented basic auth state in the global header (`components/layout/Header.tsx`) by fetching user data in `app/layout.tsx` and conditionally rendering UI elements; sign-in flow via Server Action ensures immediate header updates.)_
-- [x] Email/password registration _(Notes: Successfully implemented email and password registration functionality via `app/signup/page.tsx`. Users can create accounts, which are stored in Supabase `auth.users` table. Basic form validation and error handling are in place.)_
+- [x] Email/password registration _(Notes: Successfully implemented email and password registration functionality via `app/signup/page.tsx`. Users can create accounts, which are stored in Supabase `auth.users` table. Basic form validation and error handling are in place. Added optional 'Referral Code' input, storing `submitted_referral_code` in `user_metadata`.)_
 - [~] Login form and functionality _(Notes: Created app/signin/page.tsx with UI for email and password. Implemented Supabase auth.signInWithPassword() for authentication. Includes success/error messaging and a temporary redirect to homepage '/' on successful login. Link to placeholder /forgot-password page added.)_
 - [x] Password reset functionality _(Notes: Created app/forgot-password/page.tsx for users to request a password reset link (calls Supabase auth.resetPasswordForEmail). Created app/reset-password/page.tsx which reads the recovery token from the URL hash, allows users to set a new password, and updates it via Supabase auth.updateUser(). The redirect URL (e.g., http://localhost:3000/reset-password) must be configured in Supabase Authentication URL Configuration. Resolved an issue where explicit supabase.auth.setSession was interfering with the recovery flow; removed it to allow Supabase client to handle context implicitly. Files: app/forgot-password/page.tsx, app/reset-password/page.tsx)_
 - [x] Set up protected routes and authentication middleware _(Notes: Installed @supabase/ssr. Created Supabase client utilities in utils/supabase/client.ts, utils/supabase/server.ts, and utils/supabase/middleware.ts. Implemented middleware.ts to protect routes like /dashboard and redirect unauthenticated users to /signin, and authenticated users from auth pages to /dashboard. Updated app/signin/page.tsx to use the SSR-compatible Supabase client, resolving redirect loops. Created placeholder app/dashboard/page.tsx for testing. Key files: middleware.ts, utils/supabase/, app/dashboard/page.tsx)_
@@ -70,10 +70,10 @@ After completing any implementation task:
 
 ### Phase 3: User Dashboard & Experience
 
-- [ ] Dashboard layout _(Notes: ...)_
+- [~] Dashboard layout _(Notes: Implemented a two-column dashboard layout with a fixed sidebar (`components/dashboard/Sidebar.tsx`) and main content area. Includes 'Beta Version' notice and welcome message. Sidebar links (`Overview`, `Referrals`, `Become a Washer`, `Settings`) are present. 'Become a Washer' link is now conditional based on user role (`user_metadata.selected_role`). Placeholder pages `app/dashboard/referrals/page.tsx` and `app/dashboard/become-washer/page.tsx` created, along with `app/dashboard/washer-application/page.tsx`.)_
 - [ ] Washer discovery interface _(Notes: ...)_
 - [ ] Booking system _(Notes: ...)_
-- [ ] Referral system _(Notes: ...)_
+- [~] Referral system _(Notes: Foundational elements in place. User can see their unique referral code on `app/dashboard/referrals/page.tsx` (generated via `lib/referral.ts` and stored in `referrals` table). New users can input a referral code at signup. Backend processing via `process-referral` Edge Function is set up to link referrer and referred in `referral_events` table. Basic RLS added to `referrals` table. TODOs: RLS for `referral_events`, full end-to-end testing, UI for tracking, reward logic.)_
 
 ### Phase 4: Washer Dashboard & Experience
 
@@ -90,8 +90,8 @@ After completing any implementation task:
 
 ### Phase 6: Backend Integration & API Development
 
-- [ ] Supabase schema setup _(Notes: ...)_
-- [ ] API endpoints implementation _(Notes: ...)_
+- [~] Supabase schema setup _(Notes: `referrals` and `referral_events` tables created to support the referral system.)_
+- [~] API endpoints implementation _(Notes: `process-referral` Supabase Edge Function created to handle backend logic for new user referrals.)_
 - [ ] Real-time chat functionality _(Notes: ...)_
 
 ### Phase 7: Testing, Optimisation & Launch Preparation
@@ -115,10 +115,10 @@ After completing any implementation task:
 
 ### Referral System Implementation
 
-- User referral system with unique codes
-- Washer referral system with enhanced rewards
-- Referral analytics and tracking
-- Reward distribution automation
+- [x] User referral system with unique codes _(Notes: Codes generated by `lib/referral.ts`, stored in `referrals` table, displayed on dashboard.)_
+- [~] Washer referral system with enhanced rewards _(Notes: User referral code system can be leveraged; specific washer rewards/tracking TBD.)_
+- [~] Referral analytics and tracking _(Notes: `referral_events` table created for tracking. `process-referral` Edge Function populates it. Analytics/UI display is TODO.)_
+- [ ] Reward distribution automation _(Notes: TODO)_
 
 ## Design Guidelines
 
@@ -126,6 +126,8 @@ After completing any implementation task:
 - Light/dark mode toggle
 - Blue theme consistency across pages
 - Accessible UI following WCAG 2.1 AA compliance
+- Referral Model _(Notes: `referrals` table for codes, `referral_events` table for tracking relationships. `user_metadata.submitted_referral_code` for initial capture.)_
+- Referral tracking and reward system _(Notes: Core tracking via `referral_events` table and `process-referral` Edge Function in place. Reward system and detailed UI/UX for tracking are future tasks.)_
 
 ## Database Schema Reminder
 

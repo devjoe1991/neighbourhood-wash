@@ -5,6 +5,15 @@ import { redirect } from 'next/navigation'
 import Sidebar from '@/components/dashboard/Sidebar'
 import { getOrCreateReferralCode } from '@/lib/referral'
 
+// Define an interface for the shape of a referral event
+interface ReferralEvent {
+  id: string
+  referred_user_id: string // Assuming this is the ID of the user who was referred
+  referral_code_used: string
+  signup_timestamp: string
+  status: string
+}
+
 export default async function ReferralsPage() {
   const supabase = createClient()
 
@@ -18,8 +27,24 @@ export default async function ReferralsPage() {
 
   const userReferralCode = await getOrCreateReferralCode(user.id)
 
-  // Placeholder: Fetch actual referral stats later
-  const referralCount = 0
+  // Fetch actual referral events
+  const { data: referralEvents, error: referralEventsError } = await supabase
+    .from('referral_events')
+    .select('*')
+    .eq('referrer_user_id', user.id)
+    .order('signup_timestamp', { ascending: false })
+
+  if (referralEventsError) {
+    console.error(
+      'Error fetching referral events:',
+      referralEventsError.message
+    )
+    // Optionally, you could show an error message to the user
+  }
+
+  const typedReferralEvents = (referralEvents || []) as ReferralEvent[]
+  const referralCount = typedReferralEvents.length
+  // Placeholder for rewards earned, can be calculated later based on status
   const referralRewardsEarned = 0
 
   return (
@@ -85,6 +110,75 @@ export default async function ReferralsPage() {
               <li>You both get a reward! (Details coming soon)</li>
             </ol>
           </div>
+
+          {/* New Section: Referral Activity */}
+          <div className='mt-10'>
+            <h2 className='mb-4 text-xl font-semibold text-gray-700'>
+              Your Referral Activity
+            </h2>
+            {typedReferralEvents.length > 0 ? (
+              <div className='overflow-x-auto rounded-lg border border-gray-200'>
+                <table className='min-w-full divide-y divide-gray-200'>
+                  <thead className='bg-gray-50'>
+                    <tr>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
+                      >
+                        Referred User ID
+                      </th>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
+                      >
+                        Date Joined
+                      </th>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
+                      >
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-200 bg-white'>
+                    {typedReferralEvents.map((event) => (
+                      <tr key={event.id}>
+                        <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
+                          {event.referred_user_id}
+                        </td>
+                        <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
+                          {new Date(
+                            event.signup_timestamp
+                          ).toLocaleDateString()}
+                        </td>
+                        <td className='px-6 py-4 text-sm whitespace-nowrap'>
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs leading-tight font-semibold capitalize ${
+                              event.status === 'joined'
+                                ? 'bg-blue-100 text-blue-700'
+                                : event.status === 'first_wash_completed'
+                                  ? 'bg-green-100 text-green-700'
+                                  : event.status === 'reward_issued'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {event.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className='text-gray-500'>
+                No referral activity yet. Share your code to get started!
+              </p>
+            )}
+          </div>
+          {/* End New Section */}
 
           <p className='mt-8 text-sm text-gray-500'>
             Note: Full referral program details and functionality are coming

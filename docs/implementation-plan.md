@@ -111,7 +111,7 @@
 #### Week 4: Authentication System
 
 - [x] Set up Supabase for authentication _(Notes: Installed @supabase/supabase-js and @supabase/ssr. Configured .env.local with Supabase URL & anon key. Created Supabase client utilities in `utils/supabase/client.ts` (for client-side), `utils/supabase/server_new.ts` (for server-side, formerly server.ts - renamed to fix a persistent Next.js dev cache issue related to cookie handling), and `utils/supabase/middleware.ts` (for middleware operations).)_
-- [x] Implement email/password registration with role selection _(Notes: Created `app/signup/page.tsx` with UI for email, password, confirm password, and role selection (User/Washer). Added client-side validation and Supabase `signUp` call. Includes success/error messaging. Resolved various ESLint and styling issues. Corrected /join links to /signup.)_
+- [x] Implement email/password registration with role selection _(Notes: Created `app/signup/page.tsx` with UI for email, password, confirm password, and role selection (User/Washer). Added client-side validation and Supabase `signUp` call. Includes success/error messaging. Resolved various ESLint and styling issues. Corrected /join links to /signup. **Added an optional 'Referral Code' input field that stores the `submitted_referral_code` in user_metadata.**)_
 - [x] Create login form and functionality _(Notes: Created `app/signin/page.tsx` with UI for email and password. Implemented Supabase `auth.signInWithPassword()` for authentication. Includes success/error messaging and redirect to `/dashboard` on successful login. Link to `/forgot-password` page added.)_
 - [x] Add password reset functionality _(Notes: Created `app/forgot-password/page.tsx` to request reset link via Supabase `auth.resetPasswordForEmail()`. Created `app/reset-password/page.tsx` to handle token from URL hash, allow new password input, and update via Supabase `auth.updateUser()`. Ensured Supabase redirect URL for `http://localhost:3000/reset-password` is configured. Debugged and resolved token validation issue.)_
 - [ ] Implement Google OAuth integration _(Notes: Paused/Deferred. UI elements removed from signup/signin pages (`app/signup/page.tsx`, `app/signin/page.tsx`) due to complexities with Supabase metadata handling (`selected_role` placement) for new OAuth users and to simplify the initial auth flow. The `set-default-role` Edge Function logic related to Google users is now dormant. Can be revisited.)_
@@ -134,8 +134,8 @@
 
 #### Week 6: User Dashboard Layout & Core Features
 
-- [ ] Create responsive dashboard layout with navigation
-- [ ] Implement dashboard overview page
+- [x] Create responsive dashboard layout with navigation _(Notes: Implemented a two-column dashboard layout with a fixed sidebar (`components/dashboard/Sidebar.tsx`) and main content area for pages like `app/dashboard/page.tsx`, `app/dashboard/referrals/page.tsx`, `app/dashboard/become-washer/page.tsx`. Includes 'Beta Version' notice in sidebar and welcome message on main dashboard. Resolved header overlap issues.)_
+- [x] Implement dashboard overview page _(Notes: Basic overview page at `app/dashboard/page.tsx` created with welcome message and beta notice.)_
 - [ ] Build Washer discovery interface with:
   - [ ] Search functionality
   - [ ] Filtering options (services, price, ratings)
@@ -149,12 +149,12 @@
     - [ ] Verified status indicator
 - [ ] Implement distance-based sorting algorithm
 - [ ] Add favourites functionality
-- [ ] **Create referral section on dashboard with:**
-  - [ ] Unique referral code generation
-  - [ ] Referral status tracking
-  - [ ] Promotional copy for sharing
-  - [ ] Social media sharing links
-  - [ ] Referral reward explanation
+- [~] **Create referral section on dashboard with:** _(Notes: Created placeholder page `app/dashboard/referrals/page.tsx`.)_
+  - [~] Unique referral code generation _(Notes: Implemented backend logic in `lib/referral.ts` to generate and store unique codes in a new `referrals` table. The `app/dashboard/referrals/page.tsx` now displays this code. RLS policy added for users to read their own codes.)_
+  - [ ] Referral status tracking _(Notes: TODO - Requires linking `referral_events` table data to dashboard UI.)_
+  - [ ] Promotional copy for sharing _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
+  - [ ] Social media sharing links _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
+  - [ ] Referral reward explanation _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
 
 #### Week 7: Booking System (User Side)
 
@@ -170,7 +170,7 @@
 #### Week 8: User Experience Enhancements
 
 - [ ] Build reviews and ratings input interface
-- [ ] Implement referral system with code generation
+- [~] Implement referral system with code generation _(Notes: Partially implemented. See Week 6 for dashboard UI & code generation. See Phase 6 for backend.)_
 - [ ] Create user notification center
 - [ ] Add user settings page
 - [ ] Build allergies and preferences management
@@ -246,19 +246,19 @@
 
 #### Week 14-15: Core Functionality APIs
 
-- [ ] Set up Supabase database schema
+- [x] Set up Supabase database schema _(Notes: This is an ongoing process. Specific tables added include `referrals` and `referral_events`.)_
 - [ ] Implement user and Washer profile APIs
 - [ ] Create booking system backend logic
 - [ ] Build service management APIs
 - [ ] Implement review and rating backend
 - [ ] Add location-based search and filtering
 - [ ] Create notification system backend
-- [ ] Build referral system backend logic
+- [~] Build referral system backend logic _(Notes: Created `referrals` table for storing unique user codes and `referral_events` table for tracking referred signups. Implemented `lib/referral.ts` utility for code generation/retrieval. Deployed `process-referral` Supabase Edge Function (`supabase/functions/process-referral/index.ts`) to validate `submitted_referral_code` from new user signups (via `user_metadata`) and record successful referrals in `referral_events`. Basic RLS added to `referrals` table. **TODO: Implement RLS for `referral_events`. Thoroughly test end-to-end referral flow. Develop logic for updating referral status (e.g., after first wash) and reward distribution.**)_
 
 #### Week 16-17: Advanced Backend Features
 
 - [ ] Set up Supabase Realtime for chat functionality
-- [ ] Implement referral tracking and reward system
+- [~] Implement referral tracking and reward system _(Notes: Foundational tracking implemented (see Week 14-15). Reward system itself is TODO.)_
 - [ ] Build analytics data processing
 - [ ] Create secure payment integration with Stripe
 - [ ] Implement Stripe Connect for Washer payouts
@@ -366,14 +366,13 @@
 
 ### User Referral Features
 
-- Dedicated referral section on User dashboard
-- Unique referral code generation
-- Shareable referral links
-- Social media integration for easy sharing
-- Referral status tracking
-- First-wash discount for referred friends
-- Credit applied after referred user's first completed booking
-- Referral history and earnings display
+- [x] Dedicated referral section on User dashboard _(Notes: `app/dashboard/referrals/page.tsx` created.)_
+- [x] Unique referral code generation _(Notes: Implemented via `lib/referral.ts` and `referrals` table.)_
+- [ ] Shareable referral links _(Notes: TODO - Requires constructing links with the referral code.)_
+- [ ] Referral status tracking _(Notes: TODO - Requires linking `referral_events` table data to dashboard UI.)_
+- [ ] Promotional copy for sharing _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
+- [ ] Social media sharing links _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
+- [ ] Referral reward explanation _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
 
 ### Washer Referral Features
 
@@ -400,7 +399,7 @@
 - [ ] Payment Processing (if implemented)
 - [ ] Mobile Responsiveness
 - [ ] Accessibility Compliance
-- [ ] Referral System Functionality
+- [~] Referral System Functionality _(Notes: Basic code generation and submission at signup implemented. End-to-end flow, tracking, and reward distribution need full testing and implementation.)_
 
 ### Testing Tools
 
