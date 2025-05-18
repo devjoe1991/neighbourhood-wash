@@ -4,6 +4,16 @@
 
 This is a comprehensive rule for the Neighbourhood Wash web application project - a Next.js-based community marketplace connecting individuals seeking laundry services with local "Washers" who offer their laundry facilities.
 
+### Current Focus: Soft Launch Branch
+
+**Note:** Development is currently proceeding on the `soft-launch` branch. The primary objectives for this phase are:
+
+- Rapid User Acquisition strategies.
+- Streamlined Washer Onboarding processes.
+- Implementation and promotion of the Referral System (for both Users and Washers).
+- Ensuring all dashboards clearly indicate the platform is in a beta/soft-launch phase.
+  Tasks related to these objectives will be prioritized from the `implementation-plan.md`.
+
 ## Project Documentation Understanding
 
 Before assisting with any task, always read and understand:

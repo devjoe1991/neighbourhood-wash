@@ -9,6 +9,16 @@
 - Create separate user experiences for three user roles: Users, Washers, and Administrators
 - Implement referral system from launch for both Users and Washers to encourage platform growth
 
+## 1.A. Current Development Focus: Soft Launch Branch
+
+**Note:** Development is currently proceeding on the `soft-launch` branch. The primary objectives for this phase are:
+
+- Rapid User Acquisition strategies.
+- Streamlined Washer Onboarding processes.
+- Implementation and promotion of the Referral System (for both Users and Washers).
+- Ensuring all dashboards clearly indicate the platform is in a beta/soft-launch phase.
+  Tasks related to these objectives within the subsequent phases will be prioritized.
+
 ## 2. Technology Stack
 
 - **Frontend**:
