@@ -1,0 +1,9 @@
+### Phase 2: Authentication & User Profiles
+
+- [x] Supabase authentication _(Notes: Implemented core Supabase authentication using email/password. Set up sign-in (`app/signin/page.tsx`), sign-up (`app/signup/page.tsx`), and sign-out (`app/auth/actions.ts`) functionalities. Created a protected dashboard page (`app/dashboard/page.tsx`) with middleware (`middleware.ts` and `utils/supabase/middleware.ts`) for route protection. Encountered and resolved a significant server-side cookie handling issue with `next/headers` and `@supabase/ssr` by renaming `utils/supabase/server.ts` to `utils/supabase/server_new.ts` to overcome a persistent Next.js dev server cache. The client is configured in `utils/supabase/client.ts` (for client components) and `utils/supabase/server_new.ts` (for server components/actions).)_
+- [x] Email/password registration _(Notes: Successfully implemented email and password registration functionality via `app/signup/page.tsx`. Users can create accounts, which are stored in Supabase `auth.users` table. Basic form validation and error handling are in place.)_
+- [ ] Google OAuth integration _(Notes: Google OAuth integration was partially explored but is currently on hold. Previous work involved setting up Google Cloud Platform credentials and Supabase OAuth providers. Challenges were encountered with automatically assigning `selected_role` metadata via Edge Functions for OAuth users. This feature can be revisited. Focus is currently on email/password authentication.)_
+- [ ] User profile creation _(Notes: ...)_
+- [ ] Washer profile creation _(Notes: ...)_
+
+### Phase 3: User Dashboard & Experience 

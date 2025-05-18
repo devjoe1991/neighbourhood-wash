@@ -23,5 +23,10 @@ authentication
 A Note on the Renamed File (server_new.ts):
 As discussed, the underlying cause of the caching issue for the original utils/supabase/server.ts filename remains a bit of a mystery (likely a Next.js dev server internal). For now, sticking with server_new.ts is the safest bet as it's working.
 If, in the future (perhaps after a Next.js version upgrade or if you're doing a major cleanup), you want to try renaming it back to server.ts, you can. But be prepared to test thoroughly and potentially revert if the old caching issue resurfaces.
+To recap the key fixes:
+The persistent runtime error with cookies() was resolved by renaming utils/supabase/server.ts to utils/supabase/server_new.ts and ensuring it correctly uses await cookies().
+The TypeScript error for the signOut action in the form was fixed with a type assertion: action={signOut as (formData: FormData) => void}.
+The ESLint no-unused-vars error for the cookies import was fixed by removing the unused import.
+The leftover comment was manually removed by you.
 
 ---
