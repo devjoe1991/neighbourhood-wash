@@ -1,13 +1,17 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server' // Using the server client
+import { createClient } from '@/utils/supabase/server_new' // Using the server_new client
 import { redirect } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { signOut } from '@/app/auth/actions' // Import the server action
 
 export default async function DashboardPage() {
   const supabase = createClient()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser() // This internally uses the (now async) cookie methods
 
   if (!user) {
     // This should ideally be caught by middleware,
@@ -33,8 +37,14 @@ export default async function DashboardPage() {
           >
             Go to Homepage
           </Link>
-          {/* Add a sign-out button here eventually */}
-          {/* e.g., <form action="/auth/signout" method="post"><Button type="submit">Sign Out</Button></form> */}
+          <form
+            action={signOut as (formData: FormData) => void}
+            className='w-full'
+          >
+            <Button type='submit' variant='outline' className='mt-2 w-full'>
+              Sign Out
+            </Button>
+          </form>
         </div>
       </div>
     </div>

@@ -17,3 +17,11 @@ Edge Function Consideration: As mentioned, the set-default-role Edge Function ha
 Unused Imports: I didn't automatically remove imports like Icons from @/components/icons because I couldn't be certain if Icons.spinner or other icons were used elsewhere in those files. If Icons.google was the only icon used from that import and it's now commented out, you might want to manually remove or adjust the import statement to keep your code clean.
 
 ---
+
+authentication
+
+A Note on the Renamed File (server_new.ts):
+As discussed, the underlying cause of the caching issue for the original utils/supabase/server.ts filename remains a bit of a mystery (likely a Next.js dev server internal). For now, sticking with server_new.ts is the safest bet as it's working.
+If, in the future (perhaps after a Next.js version upgrade or if you're doing a major cleanup), you want to try renaming it back to server.ts, you can. But be prepared to test thoroughly and potentially revert if the old caching issue resurfaces.
+
+---
