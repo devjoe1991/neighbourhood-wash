@@ -104,9 +104,9 @@
 - [x] Implement email/password registration with role selection _(Notes: Created app/signup/page.tsx with UI for email, password, confirm password, and role (User/Washer). Added client-side validation and Supabase signUp call. Includes success/error messaging and redirect placeholder. Shadcn components input, label, radio-group, alert added. Corrected /join links to /signup.)_
 - [x] Create login form and functionality _(Notes: Created app/signin/page.tsx with UI for email and password. Implemented Supabase auth.signInWithPassword() for authentication. Includes success/error messaging and a temporary redirect to homepage '/' on successful login. Link to placeholder /forgot-password page added.)_
 - [x] Add password reset functionality _(Notes: Created app/forgot-password/page.tsx to request reset link via Supabase auth.resetPasswordForEmail(). Created app/reset-password/page.tsx to handle token from URL hash, allow new password input, and update via Supabase auth.updateUser(). Ensured Supabase redirect URL for http://localhost:3000/reset-password is configured. Debugged and resolved token validation issue.)_
-- [ ] Implement Google OAuth integration
-- [ ] Create role selection page for OAuth users
-- [ ] Set up protected routes and authentication middleware
+- [ ] Implement Google OAuth integration _(Notes: Paused/Deferred. UI elements removed from signup/signin pages (app/signup/page.tsx, app/signin/page.tsx) due to complexities with Supabase metadata handling (selected_role placement) for new OAuth users and to simplify the initial auth flow. The set-default-role Edge Function logic related to Google users is now dormant. Can be revisited.)_
+- [ ] Create role selection page for OAuth users _(Notes: Deferred as Google OAuth integration is paused.)_
+- [x] Set up protected routes and authentication middleware _(Notes: Installed @supabase/ssr. Created Supabase client utilities in utils/supabase/client.ts, utils/supabase/server.ts, and utils/supabase/middleware.ts. Implemented middleware.ts to protect routes like /dashboard and redirect unauthenticated users to /signin, and authenticated users from auth pages to /dashboard. Updated app/signin/page.tsx to use the SSR-compatible Supabase client, resolving redirect loops. Created placeholder app/dashboard/page.tsx for testing.)_
 - [ ] Add authentication state management
 
 #### Week 5: Profile Management
