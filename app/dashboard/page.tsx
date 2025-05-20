@@ -63,7 +63,11 @@ export default async function DashboardPage() {
               action={signOut as (formData: FormData) => void}
               className='w-full'
             >
-              <Button type='submit' variant='outline' className='mt-2 w-full'>
+              <Button
+                type='submit'
+                variant='ghost'
+                className='mt-2 w-full text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+              >
                 Sign Out
               </Button>
             </form>

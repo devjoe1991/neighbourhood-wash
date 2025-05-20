@@ -50,7 +50,12 @@ export default function Header({ user }: HeaderProps) {
                   <Link href='/dashboard'>Dashboard</Link>
                 </Button>
                 <form action={signOut as (formData: FormData) => void}>
-                  <Button type='submit' variant='destructive' size='sm'>
+                  <Button
+                    type='submit'
+                    variant='ghost'
+                    size='sm'
+                    className='text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                  >
                     Sign Out
                   </Button>
                 </form>
