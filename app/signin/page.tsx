@@ -1,26 +1,34 @@
 'use client'
 
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react'
 import Link from 'next/link'
-// import { useRouter } from 'next/navigation'; // No longer needed for router.push or .refresh
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 // import { createClient } from '@/utils/supabase/client'; // No longer needed for direct Supabase calls here for email/password signin
 import { signInWithEmailPassword } from '@/app/auth/actions' // Import the server action
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function SignInPage() {
-  // const router = useRouter(); // No longer needed
+  const searchParams = useSearchParams() // Get search params
   const [email, setEmail] = useState('')
   // const [password, setPassword] = useState('') // Removed unused password state
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isAdminSignIn, setIsAdminSignIn] = useState(false)
 
   // const supabase = createClient(); // No longer calling Supabase client-side for this form
+
+  useEffect(() => {
+    const signInType = searchParams.get('type')
+    if (signInType === 'admin') {
+      setIsAdminSignIn(true)
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -36,6 +44,8 @@ export default function SignInPage() {
     const result = await signInWithEmailPassword({
       email: formData.get('email') as string,
       password: formData.get('password') as string,
+      // Pass isAdminSignIn or type to server action if needed for different redirect logic
+      // For now, the standard redirect to /dashboard is fine for admins too.
     })
 
     setIsLoading(false)
@@ -59,12 +69,27 @@ export default function SignInPage() {
           </h2>
         </Link>
         <p className='mt-2 text-center text-sm text-gray-600'>
-          Sign in to your account
+          {isAdminSignIn ? 'Admin Sign In' : 'Sign in to your account'}
         </p>
       </div>
 
       <div className='mt-8 sm:mx-auto sm:w-full sm:max-w-md'>
         <div className='bg-white px-4 py-8 shadow-xl sm:rounded-lg sm:px-10'>
+          {isAdminSignIn && (
+            <Alert
+              variant='destructive'
+              className='mb-6 border-yellow-500 bg-yellow-50 text-yellow-700'
+            >
+              <ShieldAlert className='h-5 w-5 text-yellow-600' />
+              <AlertTitle className='font-semibold text-yellow-800'>
+                ADMIN ACCESS ONLY
+              </AlertTitle>
+              <AlertDescription className='text-yellow-700'>
+                This sign-in form is for authorized administrators only.
+                Unauthorized access attempts are monitored.
+              </AlertDescription>
+            </Alert>
+          )}
           <form className='space-y-6' onSubmit={handleSubmit}>
             <div>
               <Label htmlFor='email'>Email address</Label>
@@ -87,14 +112,16 @@ export default function SignInPage() {
             <div>
               <div className='flex items-center justify-between'>
                 <Label htmlFor='password'>Password</Label>
-                <div className='text-sm'>
-                  <Link
-                    href='/forgot-password'
-                    className='font-medium text-blue-600 hover:text-blue-500'
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
+                {!isAdminSignIn && (
+                  <div className='text-sm'>
+                    <Link
+                      href='/forgot-password'
+                      className='font-medium text-blue-600 hover:text-blue-500'
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
+                )}
               </div>
               <div className='mt-1'>
                 <PasswordInput
@@ -137,28 +164,30 @@ export default function SignInPage() {
             </div>
           </form>
 
-          <div className='mt-6'>
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-gray-300' />
+          {!isAdminSignIn && (
+            <div className='mt-6'>
+              <div className='relative'>
+                <div className='absolute inset-0 flex items-center'>
+                  <div className='w-full border-t border-gray-300' />
+                </div>
+                <div className='relative flex justify-center text-sm'>
+                  <span className='bg-white px-2 text-gray-500'>Or</span>
+                </div>
               </div>
-              <div className='relative flex justify-center text-sm'>
-                <span className='bg-white px-2 text-gray-500'>Or</span>
-              </div>
-            </div>
 
-            <div className='mt-6 text-center'>
-              <p className='text-sm text-gray-600'>
-                Don&apos;t have an account?{' '}
-                <Link
-                  href='/signup'
-                  className='font-medium text-blue-600 hover:text-blue-500'
-                >
-                  Sign up
-                </Link>
-              </p>
+              <div className='mt-6 text-center'>
+                <p className='text-sm text-gray-600'>
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    href='/signup'
+                    className='font-medium text-blue-600 hover:text-blue-500'
+                  >
+                    Sign up
+                  </Link>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
