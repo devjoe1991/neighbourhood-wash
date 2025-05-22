@@ -183,6 +183,14 @@
 #### Week 9: Washer Dashboard Layout & Core Features
 
 - [ ] Create Washer-specific dashboard layout
+- [x] **Implement Pre-Launch Washer Interest Registration:** _(Notes: Created `app/dashboard/become-washer/page.tsx` which prompts users who are not yet approved Washers to register their interest. Added `components/dashboard/RegisterInterestForm.tsx` to collect postcode/London borough. Created `app/actions/registerWasherInterest.ts` server action to save data to new `washer_interest_registrations` Supabase table. Page displays benefits of early registration and informs user about future full onboarding. Logic added to check if user has already registered interest or is an approved washer.)_
+  - [x] UI on `/dashboard/become-washer` to show registration status (pending approval, not registered).
+  - [x] Form to collect postcode/London borough.
+  - [x] Display benefits of registering interest (e.g., be first in line, help shape platform).
+  - [x] Inform user about future full verification process.
+  - [x] Server action to save interest to `washer_interest_registrations` table (user_id, area, created_at).
+  - [x] RLS policies for `washer_interest_registrations` table.
+  - [x] Update `app/dashboard/become-washer/page.tsx` to check if interest already registered or if user is approved washer.
 - [ ] Implement dashboard overview with key metrics
 - [ ] Build service management interface
 - [ ] Create availability calendar management

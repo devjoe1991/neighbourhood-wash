@@ -54,6 +54,12 @@ Central hub for those seeking laundry services with streamlined access to:
 
 Comprehensive management interface for service providers featuring:
 
+- **Pre-Launch Interest Registration & Status**:
+  - For users who have selected the "Washer" role but are not yet approved (especially during pre-launch).
+  - Clear indication of their current status (e.g., "Pending Approval", "Interest Registered").
+  - If not yet registered interest: Call to action to register interest, outlining benefits (e.g., priority onboarding, help community, earn income).
+  - Form to collect essential pre-launch information (e.g., postcode/London borough like "Islington" or "N7 0EL") to gauge area demand.
+  - Confirmation message upon interest submission, explaining that full onboarding and verification will follow.
 - Service configuration and pricing
 - Availability calendar
 - Booking management
@@ -155,6 +161,7 @@ Oversight and management portal with tools for:
 #### Washer Profile Requirements:
 
 - Personal information and verification details
+- **Pre-Launch Interest Area (if applicable)**: Postcode or London Borough submitted during interest registration.
 - Service offerings (wash, dry, iron)
 - Pricing structure per service
 - Availability calendar

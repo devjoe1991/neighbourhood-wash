@@ -20,6 +20,43 @@ export default async function DashboardPage() {
     return redirect('/signin?message=Please sign in to view the dashboard.')
   }
 
+  let isApprovedWasher = false
+  // Fetch profile to check washer_status
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('washer_status, role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error('DashboardPage: Error fetching profile:', profileError)
+    // Potentially show an error to the user or handle gracefully
+  }
+
+  if (profile) {
+    isApprovedWasher =
+      profile.role === 'WASHER' && profile.washer_status === 'approved'
+  }
+
+  let hasRegisteredInterest = false
+  // Only check for interest registration if the user is not already an approved washer
+  if (user && !isApprovedWasher) {
+    const { data: interestData, error: interestRegError } = await supabase
+      .from('washer_interest_registrations')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle() // Use maybeSingle to avoid error if no row found
+
+    if (interestRegError) {
+      console.error(
+        'DashboardPage: Error fetching interest registration:',
+        interestRegError
+      )
+      // Potentially show an error to the user or handle gracefully
+    }
+    hasRegisteredInterest = !!interestData
+  }
+
   return (
     <div className='flex min-h-screen bg-gray-100 pt-16'>
       <Sidebar />
@@ -47,6 +84,47 @@ export default async function DashboardPage() {
               full launch!
             </p>
           </div>
+
+          {/* Conditional section for non-approved washers */}
+          {!isApprovedWasher && (
+            <>
+              {hasRegisteredInterest ? (
+                <div className='mb-6 rounded-lg border border-green-300 bg-green-50 p-4'>
+                  <h2 className='mb-2 text-xl font-semibold text-green-700'>
+                    Interest Received!
+                  </h2>
+                  <p className='text-gray-600'>
+                    Thank you for registering your interest in becoming a
+                    Neighbourhood Washer! We have your details and are currently
+                    in our pre-launch phase. We will be in touch soon regarding
+                    the next steps for full verification and onboarding as we
+                    prepare to launch in your area. We appreciate your patience!
+                  </p>
+                </div>
+              ) : (
+                // Only show this if they haven't registered interest yet
+                <div className='mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4'>
+                  <h2 className='mb-2 text-xl font-semibold text-yellow-700'>
+                    Interested in Earning with Your Laundry?
+                  </h2>
+                  <p className='mb-3 text-gray-600'>
+                    Become a Neighbourhood Washer and turn your appliances into
+                    an income source. Register your interest today to be among
+                    the first to get started in your area!
+                  </p>
+                  <Button
+                    asChild
+                    className='bg-yellow-500 text-white hover:bg-yellow-600'
+                  >
+                    <Link href='/dashboard/become-washer'>
+                      Learn More & Register Interest
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+
           <p className='mb-2 text-gray-700'>
             You are signed in as:{' '}
             <span className='font-semibold'>{user.email}</span>

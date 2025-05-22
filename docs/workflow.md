@@ -85,6 +85,12 @@ The application features a role-based architecture with three distinct user expe
 #### Core Components:
 
 - **Authentication Hub**: Registration, login, profile management with Washer role
+- **Pre-Launch Interest Registration**:
+  - Displays if Washer status is pending verification/approval.
+  - Prompts users (who selected Washer role at signup but are not yet approved) to register their interest for pre-launch.
+  - Collects basic information like postcode/London borough for area demand analysis.
+  - Informs them about the upcoming full verification and onboarding process.
+  - Highlights benefits of early interest registration.
 - **Service Management**:
   - Service offerings configuration (wash, dry, iron)
   - Pricing structure management
@@ -193,21 +199,30 @@ The application features a role-based architecture with three distinct user expe
    - Same basic registration as User
    - Selects Washer role during signup
 
-2. **Enhanced Profile Creation**:
+2. **Pre-Launch Interest Registration (If applicable during soft-launch/pre-launch phase)**:
+
+   - If the full Washer onboarding is not yet live, or for new areas, users who selected the "Washer" role but are not yet approved will be directed to a simplified interest registration.
+   - User is informed they need to go through a verification and approval process.
+   - User is shown benefits of becoming a Washer (e.g., earn income, flexible hours, help community).
+   - User submits their postcode or London borough (e.g., "Islington" or "N7 0EL") to register interest for their area.
+   - System confirms interest registration and informs the user they will be contacted for full onboarding.
+   - This data is used by Admins to gauge interest in specific geographical areas.
+
+3. **Enhanced Profile Creation (Full Onboarding - Post Interest Registration or Direct)**:
 
    - Completes personal information and verification details
    - Adds profile images and description
    - Defines service area boundaries
    - Specifies laundry equipment available
 
-3. **Service Configuration**:
+4. **Service Configuration**:
 
    - Sets up service offerings (wash, dry, iron)
    - Configures pricing structure per service
    - Establishes availability calendar
    - Defines specialty services (if applicable)
 
-4. **Inventory Setup**:
+5. **Inventory Setup**:
    - Catalogs available laundry products
    - Specifies eco-friendly options
    - Indicates allergen-free alternatives
