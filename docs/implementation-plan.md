@@ -176,7 +176,16 @@
 - [ ] Build reviews and ratings input interface
 - [~] Implement referral system with code generation _(Notes: Partially implemented. See Week 6 for dashboard UI & code generation. See Phase 6 for backend.)_
 - [ ] Create user notification center
-- [ ] Add user settings page
+- [x] **Add user settings page (`/dashboard/settings`):**
+  - [x] Created `app/dashboard/settings/page.tsx` with basic layout.
+  - [x] Fetches user role to conditionally display settings sections.
+  - [x] Added placeholder sections (using `Card` components) for:
+    - Profile Information
+    - Notification Preferences
+    - Laundry Preferences (for Users)
+    - Appearance (Theme Settings)
+    - Account & Security (including placeholder for account deletion)
+  - [ ] _(Future tasks: Implement actual forms and functionality for each section)._
 - [ ] Build allergies and preferences management
 - [ ] Implement product preference selection
 - [ ] Create dashboard analytics for users
@@ -207,6 +216,12 @@
   - [ ] Promotional materials for recruiting new Washers
   - [ ] Earnings visualization for referrals
   - [ ] Referral program explanation
+- [ ] Create Washer settings page
+  - [x] _(Note: `app/dashboard/settings/page.tsx` now includes conditional sections for Approved Washers)_
+  - [x] Placeholder sections added for:
+    - Service Area & Collection
+    - Laundry Equipment
+  - [ ] _(Future tasks: Implement actual forms and functionality for washer-specific settings)._
 
 #### Week 10: Washer Business Tools
 

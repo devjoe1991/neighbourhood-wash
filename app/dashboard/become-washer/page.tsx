@@ -25,12 +25,12 @@ export default async function BecomeWasherPage() {
     .from('washer_interest_registrations')
     .select('id')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (interestError && interestError.code !== 'PGRST116') {
-    // PGRST116: no rows found
+  if (interestError) {
     console.error('Error fetching interest registration:', interestError)
     // Handle error appropriately, maybe show an error message to the user
+    // or set a default state that assumes no interest registered, depending on desired UX.
   }
   const hasRegisteredInterest = !!interestRegistration
 
