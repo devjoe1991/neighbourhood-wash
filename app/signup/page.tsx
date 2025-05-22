@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { supabase } from '@/lib/supabaseClient'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -123,41 +124,6 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <Label htmlFor='password'>Password</Label>
-              <div className='mt-1'>
-                <Input
-                  id='password'
-                  name='password'
-                  type='password'
-                  autoComplete='new-password'
-                  required
-                  value={password}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setPassword(e.target.value)
-                  }
-                  placeholder='6+ characters'
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor='confirm-password'>Confirm Password</Label>
-              <div className='mt-1'>
-                <Input
-                  id='confirm-password'
-                  name='confirm-password'
-                  type='password'
-                  autoComplete='new-password'
-                  required
-                  value={confirmPassword}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setConfirmPassword(e.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            <div>
               <Label>I am a...</Label>
               <RadioGroup
                 defaultValue='user'
@@ -192,6 +158,49 @@ export default function SignUpPage() {
                     setReferralCode(e.target.value)
                   }
                   placeholder='Enter referral code'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor='password'
+                className='block text-sm font-medium text-gray-700'
+              >
+                Password
+              </label>
+              <div className='mt-1'>
+                <PasswordInput
+                  id='password'
+                  name='password'
+                  required
+                  className='block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none sm:text-sm'
+                  value={password}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setPassword(e.target.value)
+                  }
+                  aria-describedby='password-requirements'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor='confirmPassword'
+                className='block text-sm font-medium text-gray-700'
+              >
+                Confirm Password
+              </label>
+              <div className='mt-1'>
+                <PasswordInput
+                  id='confirmPassword'
+                  name='confirmPassword'
+                  required
+                  className='block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none sm:text-sm'
+                  value={confirmPassword}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setConfirmPassword(e.target.value)
+                  }
                 />
               </div>
             </div>

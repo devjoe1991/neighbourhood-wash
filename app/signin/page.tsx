@@ -10,11 +10,12 @@ import { Label } from '@/components/ui/label'
 import { signInWithEmailPassword } from '@/app/auth/actions' // Import the server action
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function SignInPage() {
   // const router = useRouter(); // No longer needed
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // const [password, setPassword] = useState('') // Removed unused password state
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -27,7 +28,15 @@ export default function SignInPage() {
     setMessage(null)
     setIsLoading(true)
 
-    const result = await signInWithEmailPassword({ email, password })
+    // The password will be picked up from FormData by the server action
+    // based on the name attribute of the PasswordInput component.
+    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    // We pass email directly because it's managed by state here for clarity,
+    // though it could also be picked from formData if preferred.
+    const result = await signInWithEmailPassword({
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    })
 
     setIsLoading(false)
 
@@ -66,7 +75,7 @@ export default function SignInPage() {
                   type='email'
                   autoComplete='email'
                   required
-                  value={email}
+                  value={email} // Email is still controlled for direct use in action call
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setEmail(e.target.value)
                   }
@@ -88,16 +97,13 @@ export default function SignInPage() {
                 </div>
               </div>
               <div className='mt-1'>
-                <Input
+                <PasswordInput
                   id='password'
-                  name='password'
-                  type='password'
-                  autoComplete='current-password'
+                  name='password' // Ensure name attribute is present for FormData
                   required
-                  value={password}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setPassword(e.target.value)
-                  }
+                  className='block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none sm:text-sm'
+                  // No value or onChange needed here as PasswordInput manages its state,
+                  // and server action will use FormData
                 />
               </div>
             </div>
