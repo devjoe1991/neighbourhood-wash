@@ -1,5 +1,11 @@
 import Link from 'next/link'
-import { LogOut } from 'lucide-react'
+import {
+  LogOut,
+  Settings,
+  Users,
+  Briefcase,
+  LayoutDashboard,
+} from 'lucide-react'
 // import { createClient } from '@/utils/supabase/server_new'; // For server-side sign out
 // import { redirect } from 'next/navigation';
 
@@ -12,52 +18,61 @@ const AdminNavbar = () => {
   // };
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard' },
-    { href: '/admin/users', label: 'Users' }, // Placeholder
-    { href: '/admin/washers', label: 'Washers' }, // Placeholder
-    { href: '/admin/bookings', label: 'Bookings' }, // Placeholder
-    { href: '/admin/settings', label: 'Settings' }, // Placeholder
+    {
+      href: '/admin/dashboard',
+      label: 'Dashboard',
+      icon: <LayoutDashboard className='mr-2 h-5 w-5' />,
+    },
+    {
+      href: '/admin/users',
+      label: 'Users',
+      icon: <Users className='mr-2 h-5 w-5' />,
+    },
+    {
+      href: '/admin/washers',
+      label: 'Washers',
+      icon: <Briefcase className='mr-2 h-5 w-5' />,
+    },
+    {
+      href: '/admin/bookings',
+      label: 'Bookings',
+      icon: <Briefcase className='mr-2 h-5 w-5' />,
+    },
+    {
+      href: '/admin/settings',
+      label: 'Settings',
+      icon: <Settings className='mr-2 h-5 w-5' />,
+    },
   ]
 
   return (
-    <nav className='bg-primary-blue p-4 text-white shadow-md'>
+    <nav className='bg-slate-800 p-5 text-slate-100 shadow-lg'>
       <div className='container mx-auto flex items-center justify-between'>
         <Link
           href='/admin/dashboard'
-          className='hover:text-secondary-blue text-xl font-bold transition-colors'
+          className='text-2xl font-semibold transition-colors duration-150 hover:text-sky-400'
         >
-          Admin Panel
+          Neighbourhood Wash Admin
         </Link>
-        <ul className='flex items-center space-x-4'>
+        <ul className='flex items-center space-x-6'>
           {navItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
-                className='hover:text-secondary-blue transition-colors'
+                className='flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 hover:bg-slate-700 hover:text-sky-300'
               >
+                {item.icon}
                 {item.label}
               </Link>
             </li>
           ))}
           <li>
-            {/* 
-            <form action={handleSignOut}> 
-              <button 
-                type="submit"
-                className="flex items-center hover:text-red-400 transition-colors"
-              >
-                <LogOut className="mr-2 h-5 w-5" />
-                Sign Out
-              </button>
-            </form>
-            */}
-            {/* For now, a simple link to a non-existent signout, or just a placeholder */}
             <Link
               href='/auth/signout'
-              className='flex items-center transition-colors hover:text-red-400'
+              className='flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-red-700 hover:text-white'
             >
               <LogOut className='mr-2 h-5 w-5' />
-              Sign Out (placeholder)
+              Sign Out
             </Link>
           </li>
         </ul>

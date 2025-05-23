@@ -251,13 +251,14 @@
 
 #### Week 12: Admin Dashboard Setup
 
-- [ ] Create admin dashboard layout and navigation
-- [ ] Implement user management system
-- [ ] Build Washer management tools
-- [ ] Add booking oversight features
-- [ ] Create platform analytics dashboard
+- [~] Create admin dashboard layout and navigation _(Notes: Implemented initial admin dashboard layout in `app/(admin)/admin/layout.tsx` and navigation bar in `components/admin/AdminNavbar.tsx`. Styling applied for a professional look and feel. Placeholder pages created for Dashboard (`app/(admin)/admin/dashboard/page.tsx`), Users, Washers, Bookings, and Settings. Admin dashboard main page includes styled cards linking to these sections.)_
+- [~] Implement user management system _(Notes: Basic user listing implemented in `app/(admin)/admin/users/page.tsx`. Fetches all users via `supabase.auth.admin.listUsers()` and displays email, role (from metadata), joined date, last sign-in, and email verification status. Requires `SUPABASE_SERVICE_ROLE_KEY`.)_
+- [~] Build Washer management tools _(Notes: Basic washer listing implemented in `app/(admin)/admin/washers/page.tsx`. Fetches users with 'washer' role via `supabase.auth.admin.listUsers()` and displays email, joined date, email verification status, and application_status (from metadata). Includes placeholder actions. Requires `SUPABASE_SERVICE_ROLE_KEY`.)_
+- [ ] Add booking oversight features _(Notes: Placeholder page `app/(admin)/admin/bookings/page.tsx` created.)_
+- [ ] Create platform analytics dashboard _(Notes: Partially covered by the main admin dashboard page which has placeholder cards for stats. Actual analytics data fetching and display is pending.)_
 - [ ] Implement content management system
-- [ ] Build settings configuration interface
+- [ ] Build settings configuration interface _(Notes: Placeholder page `app/(admin)/admin/settings/page.tsx` created with sections for general, referral, content, and security settings.)_
+- [x] **Secure Admin Routes & Authentication:** _(Notes: Updated `middleware.ts` to protect all `/admin/**` routes. Only users with `role: 'admin'` in their Supabase `user_metadata` (or `app_metadata`) can access these routes. Non-admin users are redirected. The sign-in page at `/signin?type=admin` now displays a specific warning for admin login and hides sign-up/password reset links. The `signInWithEmailPassword` server action in `app/auth/actions.ts` correctly redirects admin users to `/admin/dashboard` after login. Admin users are manually designated in Supabase by setting their metadata.)_
 
 #### Week 13: Admin Tools & Monitoring
 

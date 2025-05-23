@@ -84,9 +84,10 @@ After completing any implementation task:
 
 ### Phase 5: Admin Dashboard & Management Tools
 
-- [ ] Admin dashboard _(Notes: ...)_
-- [ ] User/Washer management _(Notes: ...)_
-- [ ] Platform analytics _(Notes: ...)_
+- [~] Admin dashboard _(Notes: Initial admin dashboard setup at `app/(admin)/admin/dashboard/page.tsx` with styled cards linking to Users, Washers, Bookings, and Settings. Layout defined in `app/(admin)/admin/layout.tsx` with a dedicated `components/admin/AdminNavbar.tsx`. Basic styling and icons applied for a professional look.)_
+- [~] User/Washer management _(Notes: User listing implemented at `app/(admin)/admin/users/page.tsx`, fetching all users via admin client and displaying key details including role from metadata. Washer listing implemented at `app/(admin)/admin/washers/page.tsx`, filtering users with 'washer' role and displaying details including application_status from metadata. Both require `SUPABASE_SERVICE_ROLE_KEY`.)_
+- [ ] Platform analytics _(Notes: Main admin dashboard page has placeholder cards for stats. Actual analytics data and visualizations are pending.)_
+- [x] **Admin Authentication & Security:** _(Notes: Admin routes `/admin/**` are protected by `middleware.ts`, requiring `role: 'admin'` in user/app metadata. Unauthenticated access to admin routes redirects to `/signin?type=admin`, which displays a specific warning and hides sign-up/password reset. Authenticated non-admins are redirected away from admin routes. Admin login via `signInWithEmailPassword` action in `app/auth/actions.ts` correctly redirects to `/admin/dashboard`. Admins are designated manually in Supabase.)_
 
 ### Phase 6: Backend Integration & API Development
 
