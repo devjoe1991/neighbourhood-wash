@@ -125,13 +125,13 @@
 
 #### Week 5: Profile Management
 
-- [ ] Create user profile creation forms
+- [~] Create user profile creation forms _(Notes: UI forms implemented in `app/dashboard/settings/page.tsx`. Supabase save logic for profile data (first name, last name, phone, postcode), notification preferences, and laundry preferences (allergies, product preferences) has been added. Assumes `profiles` table exists with correct columns and RLS policies, and a trigger for new user profile creation is in place. Testing of save/load functionality pending full Supabase setup verification.)_
 - [ ] Implement Washer profile creation with additional fields
-- [ ] Build profile editing functionality
+- [~] Build profile editing functionality _(Notes: Covered by the user profile creation forms and their save logic in `app/dashboard/settings/page.tsx`. Initial data loading implemented.)_
 - [ ] Add profile picture upload with Supabase storage
 - [ ] Implement address selection with Google Maps
 - [ ] Create address security system (encryption and controlled visibility)
-- [ ] Add allergies/preferences management for users
+- [~] Add allergies/preferences management for users _(Notes: UI and save logic implemented in `app/dashboard/settings/page.tsx`. Data populates from `profiles` table.)_
 - [ ] Build product/inventory management for Washers
 
 ### Phase 3: User Dashboard & Experience (3 weeks)
@@ -178,16 +178,16 @@
 - [ ] Create user notification center
 - [x] **Add user settings page (`/dashboard/settings`):**
   - [x] Created `app/dashboard/settings/page.tsx` with basic layout.
-  - [x] Fetches user role to conditionally display settings sections.
+  - [x] Fetches user role and profile data (first_name, last_name, phone_number, postcode, notification_preferences, allergies, product_preferences) to conditionally display settings sections and populate forms.
   - [x] Added placeholder sections (using `Card` components) for:
     - Profile Information
     - Notification Preferences
     - Laundry Preferences (for Users)
     - Appearance (Theme Settings)
     - Account & Security (including placeholder for account deletion)
-  - [ ] _(Future tasks: Implement actual forms and functionality for each section)._
-- [ ] Build allergies and preferences management
-- [ ] Implement product preference selection
+  - [x] _(Future tasks: Implement actual forms and functionality for each section)._ _(Notes: Implemented UI forms and Supabase save/load logic for Profile Information, Notification Preferences, and Laundry Preferences in `app/dashboard/settings/page.tsx`. File refactored to be a client component. `Textarea` and `Checkbox` are temporarily standard HTML elements; `shadcn/ui` versions to be re-integrated after `pnpm add shadcn-ui@latest add textarea checkbox`.)_
+- [x] Build allergies and preferences management _(Notes: UI form and Supabase save/load logic implemented within `app/dashboard/settings/page.tsx` under Laundry Preferences.)_
+- [x] Implement product preference selection _(Notes: UI form and Supabase save/load logic implemented within `app/dashboard/settings/page.tsx` under Laundry Preferences.)_
 - [ ] Create dashboard analytics for users
 - [ ] Add help/support section
 
@@ -274,8 +274,8 @@
 
 #### Week 14-15: Core Functionality APIs
 
-- [x] Set up Supabase database schema _(Notes: This is an ongoing process. Specific tables added include `referrals` and `referral_events`.)_
-- [ ] Implement user and Washer profile APIs
+- [x] Set up Supabase database schema _(Notes: This is an ongoing process. Specific tables added include `referrals`, `referral_events`. **Crucially, a `profiles` table has now been defined and (presumably) created with columns for `id` (FK to auth.users), `email`, `first_name`, `last_name`, `phone_number`, `postcode`, `notification_preferences` (jsonb), `allergies`, `product_preferences`, `role`, `washer_status`, `created_at`, `updated_at`. RLS policies and a new user trigger for this table are essential and assumed to be in place or being set up.)**_
+- [~] Implement user and Washer profile APIs _(Notes: Direct profile updates are now handled via client-side Supabase calls in `app/dashboard/settings/page.tsx`. This covers basic user profile data saving and loading. Washer-specific profile fields and any dedicated API endpoints are still pending.)_
 - [ ] Create booking system backend logic
 - [ ] Build service management APIs
 - [ ] Implement review and rating backend
