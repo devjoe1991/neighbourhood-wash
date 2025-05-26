@@ -2,7 +2,6 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +12,6 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function SignUpPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -75,12 +73,8 @@ export default function SignUpPage() {
       )
     } else if (data.user) {
       setMessage(
-        'Registration successful! Please check your email to confirm your account. You will be redirected to the sign-in page shortly.'
+        "Registration successful! Please check your email to confirm your account. Once confirmed, you'll be able to sign in or will be taken to your dashboard."
       )
-      // Redirect to signin page after a delay
-      setTimeout(() => {
-        router.push('/signin')
-      }, 5000)
     } else {
       // Fallback, unexpected state
       setError(

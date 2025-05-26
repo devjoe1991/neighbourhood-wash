@@ -1,4 +1,4 @@
-after confirmation email users are being redirected to the homepage this needs to be fixed so that they can be redirected to their dashboard once the user ole has been defined
+after confirmation email users are being redirected to the homepage this needs to be fixed so that they can be redirected to their dashboard once the user role has been defined
 
 make sure the admin dashboard shows the washers that have registered theri interest.
 
