@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Moon, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { type User } from '@supabase/supabase-js'
 import { signOut } from '@/app/auth/actions'
 // import { ThemeToggle } from '@/components/ThemeToggle';
@@ -45,14 +45,6 @@ export default function Header({ user }: HeaderProps) {
             ))}
           </nav>
           <div className='flex items-center space-x-2'>
-            <Button
-              variant='ghost'
-              size='icon'
-              disabled
-              className='hidden sm:inline-flex'
-            >
-              <Moon className='h-5 w-5 text-gray-400' />
-            </Button>
             <div className={`hidden items-center space-x-2 md:flex`}>
               {user ? (
                 <>
@@ -158,14 +150,6 @@ export default function Header({ user }: HeaderProps) {
                 </Link>
               </>
             )}
-            <Button
-              variant='ghost'
-              size='sm'
-              disabled
-              className='mt-2 w-full justify-start'
-            >
-              <Moon className='mr-2 h-5 w-5 text-gray-400' /> Theme (soon)
-            </Button>
           </nav>
         </div>
       )}
