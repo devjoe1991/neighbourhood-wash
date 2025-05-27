@@ -39,5 +39,7 @@ Update Supabase URL configurations (Site URL, Redirect URLs) to use your product
 Configure your custom domain in Vercel and your DNS provider.
 Your Next.js and Supabase code is largely built to adapt, provided these configurations are correct. It's always a good idea to deploy to a Vercel preview environment first, connect it to your Supabase project (perhaps a staging Supabase project if you have one, or your production one with careful testing), and thoroughly test all authentication flows and functionalities using the preview URL before going live with your custom domain.
 
+what our users say on the main apge to be palced back.
+
 charlie
 the authentication features are now merged into the main branch and ready for their review. They can pull the latest main to see the changes.
