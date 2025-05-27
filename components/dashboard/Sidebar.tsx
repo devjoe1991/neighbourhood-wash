@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 // import { createClient } from '@/utils/supabase/server_new' // Cannot use server client
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs' // Example for client-side Supabase
+import { createBrowserClient } from '@supabase/ssr' // Example for client-side Supabase
 import { useEffect, useState } from 'react'
 import { type User } from '@supabase/supabase-js'
 import { X } from 'lucide-react' // For an optional close button
@@ -12,7 +12,10 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ closeSidebar }: SidebarProps) => {
-  const supabase = createClientComponentClient() // Use client-side Supabase
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ) // Use client-side Supabase
   const [_user, _setUser] = useState<User | null>(null)
   const [isApprovedWasher, setIsApprovedWasher] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
