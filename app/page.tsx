@@ -191,7 +191,7 @@ export default function HomePage() {
           <div className='mt-10 flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4'>
             <Button
               size='lg'
-              className='w-full bg-white text-blue-600 hover:bg-blue-50 sm:w-auto'
+              className='w-full bg-white text-[#3498db] hover:bg-blue-50 sm:w-auto'
               asChild
             >
               <Link href='/signup'>Join Neighbourhood Wash &rarr;</Link>
@@ -199,7 +199,7 @@ export default function HomePage() {
             <Button
               size='lg'
               variant='outline'
-              className='w-full border-white text-white hover:border-blue-700 hover:bg-blue-700 sm:w-auto'
+              className='w-full border-white bg-transparent text-white hover:border-blue-700 hover:bg-blue-700 sm:w-auto'
               asChild
             >
               <Link href='/our-washers'>Meet Our Washers &rarr;</Link>
