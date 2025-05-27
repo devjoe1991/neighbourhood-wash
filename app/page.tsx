@@ -18,11 +18,11 @@ export default function HomePage() {
       <section className='py-12 md:py-20 lg:py-28'>
         <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='grid items-center gap-8 md:grid-cols-2 lg:gap-16'>
-            <div className='space-y-6'>
+            <div className='space-y-6 text-center md:text-left'>
               <p className='text-sm font-medium tracking-wide text-blue-600'>
                 Join the laundry revolution
               </p>
-              <h1 className='text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl'>
+              <h1 className='text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl md:font-bold lg:text-6xl'>
                 Your Neighbourhood
                 <br />
                 <span className='text-blue-600'>Laundry Solution</span>
@@ -36,7 +36,7 @@ export default function HomePage() {
               <div className='flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4'>
                 <Button
                   size='lg'
-                  className='bg-blue-600 text-white hover:bg-blue-700'
+                  className='w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto'
                   asChild
                 >
                   <Link href='/signup'>Join Neighbourhood Wash &rarr;</Link>
@@ -44,7 +44,7 @@ export default function HomePage() {
                 <Button
                   size='lg'
                   variant='outline'
-                  className='border-blue-600 text-blue-600 hover:bg-blue-50'
+                  className='w-full border-blue-600 text-blue-600 hover:bg-blue-50 sm:w-auto'
                   asChild
                 >
                   <Link href='/how-it-works'>Learn More &rarr;</Link>
