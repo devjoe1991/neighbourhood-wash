@@ -150,34 +150,6 @@ export default function HomePage() {
       </section>
       {/* End Why Choose Us Section */}
 
-      {/* Testimonials Placeholder Section */}
-      <section className='py-12 md:py-20 lg:py-28'>
-        <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='mb-12 text-center md:mb-16'>
-            <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
-              What Our Users Say
-            </h2>
-            <p className='mx-auto mt-4 max-w-2xl text-lg text-gray-600'>
-              Placeholder for testimonials. Real stories coming soon!
-            </p>
-          </div>
-          {/* Placeholder content - replace with actual testimonial cards later */}
-          <div className='grid gap-8 md:grid-cols-2 lg:grid-cols-3'>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className='rounded-lg bg-white p-6 shadow-lg'>
-                <p className='mb-4 text-gray-600 italic'>
-                  &quot;This service is amazing! So convenient and my clothes
-                  came back perfect. Placeholder testimonial {i}.&quot;
-                </p>
-                <p className='text-sm font-semibold text-gray-900'>User {i}</p>
-                <p className='text-xs text-gray-500'>Location {i}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      {/* End Testimonials Placeholder Section */}
-
       {/* CTA Section */}
       <section className='bg-blue-600 py-12 text-white md:py-20 lg:py-28'>
         <div className='container mx-auto px-4 text-center sm:px-6 lg:px-8'>
