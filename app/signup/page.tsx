@@ -18,7 +18,7 @@ export default function SignUpPage() {
   const [role, setRole] = useState('user') // Default role
   const [referralCode, setReferralCode] = useState('') // State for referral code
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | React.ReactNode | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
@@ -73,7 +73,17 @@ export default function SignUpPage() {
       )
     } else if (data.user) {
       setMessage(
-        "Registration successful! Please check your email to confirm your account. Once confirmed, you'll be able to sign in or will be taken to your dashboard."
+        <>
+          Registration successful! Please check your email to confirm your
+          account. Once confirmed, you&apos;ll be able to{' '}
+          <Link
+            href='/signin'
+            className='font-medium text-blue-600 hover:text-blue-500'
+          >
+            sign in
+          </Link>{' '}
+          or will be taken to your dashboard.
+        </>
       )
     } else {
       // Fallback, unexpected state
