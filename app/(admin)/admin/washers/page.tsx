@@ -1,18 +1,6 @@
 import React from 'react'
 import { createClient } from '@/utils/supabase/server_new'
 
-type ProfileWithUser = {
-  id: string
-  role: string
-  washer_status: string
-  users: {
-    email: string
-    created_at: string
-    last_sign_in_at: string | null
-    email_confirmed_at: string | null
-  } | null
-}
-
 // Define a type for Washer data on the admin page
 type AdminPageWasher = {
   id: string
@@ -56,6 +44,7 @@ async function getWashers(): Promise<AdminPageWasher[]> {
   }
 
   // Map the profiles to the desired shape
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const washers = profiles.map((profile: any): AdminPageWasher => {
     const user = profile.users
     return {
