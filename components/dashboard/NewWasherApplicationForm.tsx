@@ -297,11 +297,10 @@ export default function WasherApplicationForm({
                 <Label htmlFor='washer_bio'>
                   Tell your neighbours about you
                 </Label>
-                {/* eslint-disable-next-line react/no-unescaped-entities */}
                 <Textarea
                   id='washer_bio'
                   {...register('washer_bio')}
-                  placeholder={`e.g., "Hi, I'm Sarah! I work from home and would love to help you with your laundry. I take great care with all items..."`}
+                  placeholder='e.g., "Hi, I&apos;m Sarah! I work from home and would love to help you with your laundry. I take great care with all items..."'
                   rows={4}
                 />
                 {errors.washer_bio && (
