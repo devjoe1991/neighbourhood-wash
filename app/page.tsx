@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   HeartHandshake,
   Leaf,
-  Rocket,
   Search,
   Calendar,
   Sparkles,
@@ -41,7 +40,7 @@ export default function HomePage() {
         <div className='container mx-auto px-4 text-center'>
           <div className='mb-6'>
             <Link href='/signup' passHref>
-              <span className='inline-block rounded-full bg-blue-200 bg-opacity-50 px-4 py-2 text-sm font-semibold text-blue-800 transition-transform hover:scale-105 hover:bg-blue-200'>
+              <span className='bg-opacity-50 inline-block rounded-full bg-blue-200 px-4 py-2 text-sm font-semibold text-blue-800 transition-transform hover:scale-105 hover:bg-blue-200'>
                 🚀 Soft Launch Now Live! Join the revolution &rarr;
               </span>
             </Link>
@@ -142,24 +141,24 @@ export default function HomePage() {
               </p>
               <ul className='mt-6 space-y-4 text-gray-700'>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-green-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
                   <span>
-                    <strong>Convenience:</strong> Find help next door, especially
-                    when your machine fails.
+                    <strong>Convenience:</strong> Find help next door,
+                    especially when your machine fails.
                   </span>
                 </li>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-green-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
                   <span>
                     <strong>Affordable:</strong> Save money compared to
                     traditional laundry services.
                   </span>
                 </li>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-green-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
                   <span>
-                    <strong>Community:</strong> Support your neighbours and build
-                    local connections.
+                    <strong>Community:</strong> Support your neighbours and
+                    build local connections.
                   </span>
                 </li>
               </ul>
@@ -175,21 +174,21 @@ export default function HomePage() {
               </p>
               <ul className='mt-6 space-y-4 text-gray-700'>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-purple-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
                   <span>
-                    <strong>Earn Extra:</strong> Potential to earn over £1500 per
-                    month.
+                    <strong>Earn Extra:</strong> Potential to earn over £1500
+                    per month.
                   </span>
                 </li>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-purple-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
                   <span>
                     <strong>Flexible:</strong> You set your own schedule and
                     availability.
                   </span>
                 </li>
                 <li className='flex items-start'>
-                  <CheckIcon className='mr-3 mt-1 h-5 w-5 flex-shrink-0 text-purple-500' />
+                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
                   <span>
                     <strong>Be a Hero:</strong> Provide a valuable service to
                     your local community.
@@ -245,7 +244,7 @@ export default function HomePage() {
           </div>
           <div className='mx-auto grid max-w-4xl gap-8 md:grid-cols-2'>
             <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
-              <div className='mb-4 flex-shrink-0 md:mb-0 md:mr-4'>
+              <div className='mb-4 flex-shrink-0 md:mr-4 md:mb-0'>
                 <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
                   <ShieldCheck className='h-6 w-6' />
                 </div>
@@ -259,7 +258,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
-              <div className='mb-4 flex-shrink-0 md:mb-0 md:mr-4'>
+              <div className='mb-4 flex-shrink-0 md:mr-4 md:mb-0'>
                 <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
                   <HeartHandshake className='h-6 w-6' />
                 </div>
