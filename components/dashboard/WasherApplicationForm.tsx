@@ -52,7 +52,10 @@ const formSchema = z.object({
   // Step 3
   equipment_details: z
     .string()
-    .min(20, 'Please describe your equipment in a bit more detail (at least 20 characters).'),
+    .min(
+      20,
+      'Please describe your equipment in a bit more detail (at least 20 characters).'
+    ),
   washer_bio: z
     .string()
     .min(50, 'Please tell us a bit about yourself (at least 50 characters).'),
@@ -172,8 +175,8 @@ export default function WasherApplicationForm({
           Application Submitted!
         </AlertTitle>
         <AlertDescription>
-          Thank you! We've received your application. We'll review your details
-          and get in touch with the next steps shortly.
+          Thank you! We&apos;ve received your application. We&apos;ll review
+          your details and get in touch with the next steps shortly.
         </AlertDescription>
       </Alert>
     )
@@ -359,11 +362,7 @@ export default function WasherApplicationForm({
           </div>
           <div>
             {currentStep < steps.length ? (
-              <Button
-                type='button'
-                onClick={nextStep}
-                disabled={isSubmitting}
-              >
+              <Button type='button' onClick={nextStep} disabled={isSubmitting}>
                 {currentStep === steps.length - 1 ? 'Review' : 'Next'}
                 <ArrowRight className='ml-2 h-4 w-4' />
               </Button>
@@ -384,4 +383,4 @@ export default function WasherApplicationForm({
       </form>
     </Card>
   )
-} 
+}
