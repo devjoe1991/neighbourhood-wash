@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client' // Use client for fetch o
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import RegisterInterestForm from '@/components/dashboard/RegisterInterestForm'
-import WasherApplicationForm from '@/components/dashboard/WasherApplicationForm'
+import WasherApplicationForm from '@/components/dashboard/NewWasherApplicationForm'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { PartyPopper, Rocket } from 'lucide-react'
 
