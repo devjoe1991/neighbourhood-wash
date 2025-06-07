@@ -37,7 +37,7 @@ export default function HomePage() {
   return (
     <div className='bg-white text-gray-800'>
       {/* Hero Section */}
-      <section className='relative bg-gradient-to-br from-blue-50 to-indigo-100 pt-20 pb-24 md:pt-28 md:pb-32'>
+      <section className='relative bg-gradient-to-br from-blue-50 to-indigo-100 pt-16 pb-20 md:pt-28 md:pb-32'>
         <div className='container mx-auto px-4 text-center'>
           <div className='mb-6'>
             <Link href='/signup' passHref>
@@ -85,7 +85,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className='py-16 md:py-24'>
+      <section className='py-16 sm:py-20 md:py-24'>
         <div className='container mx-auto px-4'>
           <div className='mb-12 text-center'>
             <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
@@ -128,7 +128,7 @@ export default function HomePage() {
       </section>
 
       {/* Dual Benefit Section */}
-      <section className='bg-gray-50 py-16 md:py-24'>
+      <section className='bg-gray-50 py-16 sm:py-20 md:py-24'>
         <div className='container mx-auto px-4'>
           <div className='grid gap-12 md:grid-cols-2'>
             {/* For Users */}
@@ -202,7 +202,7 @@ export default function HomePage() {
       </section>
 
       {/* Green Initiative Section */}
-      <section className='py-16 md:py-24'>
+      <section className='py-16 sm:py-20 md:py-24'>
         <div className='container mx-auto grid items-center gap-12 px-4 md:grid-cols-2'>
           <div className='text-center md:text-left'>
             <div className='mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600'>
@@ -220,7 +220,7 @@ export default function HomePage() {
               and builds a greener neighbourhood.
             </p>
           </div>
-          <div className='relative'>
+          <div className='relative flex justify-center'>
             <Image
               src='/images/green-wash.jpeg'
               alt='A stylish person in green posing with a washing machine, representing the eco-friendly washer community'
@@ -233,7 +233,7 @@ export default function HomePage() {
       </section>
 
       {/* Trust & Community Section */}
-      <section className='bg-gray-50 py-16 md:py-24'>
+      <section className='bg-gray-50 py-16 sm:py-20 md:py-24'>
         <div className='container mx-auto px-4'>
           <div className='mb-12 text-center'>
             <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
@@ -244,8 +244,8 @@ export default function HomePage() {
             </p>
           </div>
           <div className='mx-auto grid max-w-4xl gap-8 md:grid-cols-2'>
-            <div className='flex items-start'>
-              <div className='mr-4 flex-shrink-0'>
+            <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
+              <div className='mb-4 flex-shrink-0 md:mb-0 md:mr-4'>
                 <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
                   <ShieldCheck className='h-6 w-6' />
                 </div>
@@ -258,8 +258,8 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            <div className='flex items-start'>
-              <div className='mr-4 flex-shrink-0'>
+            <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
+              <div className='mb-4 flex-shrink-0 md:mb-0 md:mr-4'>
                 <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
                   <HeartHandshake className='h-6 w-6' />
                 </div>
@@ -278,14 +278,14 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className='bg-blue-600'>
-        <div className='container mx-auto px-4 py-16 text-center text-white md:py-20'>
+        <div className='container mx-auto px-4 py-16 text-center text-white sm:py-20'>
           <h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
             Don&apos;t Miss Out on the Laundry Revolution
           </h2>
           <p className='mx-auto mt-4 max-w-2xl text-lg text-blue-100'>
             Whether you need a wash or want to earn, now is the time to join.
           </p>
-          <div className='mt-10 flex flex-col justify-center gap-4 sm:flex-row'>
+          <div className='mx-auto mt-10 flex max-w-xs flex-col justify-center gap-4 sm:max-w-none sm:flex-row'>
             <Button
               asChild
               size='lg'
