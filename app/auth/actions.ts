@@ -59,3 +59,93 @@ export async function signInWithEmailPassword(
   console.log('Non-admin user, redirecting to /dashboard')
   return redirect('/dashboard')
 }
+
+export async function registerInterest(location: string) {
+  'use server'
+  const supabase = createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: { message: 'You must be logged in to do that.' } }
+  }
+
+  const { data, error } = await supabase
+    .from('washer_interest_registrations')
+    .insert([
+      {
+        user_id: user.id,
+        email: user.email, // Storing email for easier contact
+        postcode_or_borough: location,
+        status: 'registered',
+      },
+    ])
+
+  if (error) {
+    console.error('Error registering interest:', error)
+    // A more specific error might be useful for the client
+    if (error.code === '23505') {
+      // Postgres unique violation
+      return {
+        error: { message: 'You have already registered your interest.' },
+      }
+    }
+    return { error: { message: 'Could not register interest.' } }
+  }
+
+  return { data }
+}
+
+interface WasherApplicationData {
+  phone_number: string
+  service_address: string
+  service_offerings: string[]
+  offers_collection?: boolean
+  collection_radius?: number
+  collection_fee?: number
+  equipment_details: string
+  washer_bio: string
+}
+
+export async function applyToBeWasher(applicationData: WasherApplicationData) {
+  'use server'
+
+  // TODO: Add Zod validation on the server-side for security
+  const supabase = createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: { message: 'You must be logged in to apply.' } }
+  }
+
+  // Map client-side data to your 'profiles' table columns
+  const profileUpdate = {
+    phone_number: applicationData.phone_number,
+    service_address: applicationData.service_address,
+    service_offerings: applicationData.service_offerings,
+    offers_collection: applicationData.offers_collection,
+    collection_radius: applicationData.collection_radius,
+    collection_fee: applicationData.collection_fee,
+    equipment_details: applicationData.equipment_details,
+    washer_bio: applicationData.washer_bio,
+    washer_status: 'pending_verification', // Update status
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(profileUpdate)
+    .eq('id', user.id)
+
+  if (error) {
+    console.error('Error updating profile for washer application:', error)
+    return { error: { message: 'Failed to submit application.' } }
+  }
+
+  return { data }
+}

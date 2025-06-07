@@ -1,145 +1,169 @@
-export const dynamic = 'force-dynamic'
+'use client' // This page now requires client-side state for the toggle
 
-import { createClient } from '@/utils/supabase/server_new'
-import { redirect } from 'next/navigation'
-// import Sidebar from '@/components/dashboard/Sidebar' // No longer needed here, layout handles it
+import { useState, useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client' // Use client for fetch on interaction
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import RegisterInterestForm from '@/components/dashboard/RegisterInterestForm'
+import WasherApplicationForm from '@/components/dashboard/WasherApplicationForm'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { PartyPopper, Rocket } from 'lucide-react'
 
-export default async function BecomeWasherPage() {
-  const supabase = createClient()
+// Note: We convert this to a client component to manage the state
+// of showing/hiding the full application form.
+// We'll fetch initial data via a client-side useEffect hook.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+// Simplified placeholder for the user object type.
+// In a real app, you'd likely have a more robust type definition.
+type UserProfile = {
+  id: string
+  role: string
+  washer_status: string | null
+  phone?: string | null
+  [key: string]: unknown // Allow other properties
+}
 
-  if (!user) {
-    return redirect(
-      '/signin?message=Please sign in to learn about becoming a Washer.'
+export default function BecomeWasherPage() {
+  const [showFullApplication, setShowFullApplication] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [hasRegisteredInterest, setHasRegisteredInterest] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // useEffect to fetch initial user status
+  // This replaces the server-side data fetching
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setIsLoading(false)
+        return // Or redirect
+      }
+
+      // Fetch profile and interest registration in parallel
+      const [profileRes, interestRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase
+          .from('washer_interest_registrations')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
+
+      if (profileRes.data) {
+        setUserProfile(profileRes.data as UserProfile)
+      }
+
+      setHasRegisteredInterest(!!interestRes.data)
+      setIsLoading(false)
+    }
+
+    fetchUserStatus()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className='flex h-64 items-center justify-center'>
+        <p>Loading your details...</p>
+      </div>
     )
   }
 
-  // Check if user has registered interest
-  const { data: interestRegistration, error: interestError } = await supabase
-    .from('washer_interest_registrations')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const isApprovedWasher = userProfile?.washer_status === 'approved'
 
-  if (interestError) {
-    console.error('Error fetching interest registration:', interestError)
-    // Handle error appropriately, maybe show an error message to the user
-    // or set a default state that assumes no interest registered, depending on desired UX.
-  }
-  const hasRegisteredInterest = !!interestRegistration
+  // This is the content shown if the user has ALREADY submitted a full application
+  const isApplicationPending =
+    userProfile?.washer_status === 'pending_verification'
 
-  // Placeholder: Check if user is an approved washer (you'll need a way to determine this)
-  // This might involve checking a 'status' column in your 'washers' table or a 'user_roles' table.
-  // For now, we'll keep it simple. This logic needs to be implemented based on your actual data model.
-  const { data: washerProfile, error: washerError } = await supabase
-    .from('profiles') // Assuming your user profiles/washer details are in 'profiles' table
-    .select('role, washer_status') // Assuming 'role' is 'washer' and 'washer_status' is 'approved'
-    .eq('id', user.id)
-    .eq('role', 'WASHER') // Make sure this matches how you store roles
-    .single()
-
-  if (washerError && washerError.code !== 'PGRST116') {
-    console.error('Error fetching washer profile:', washerError)
-    // Handle error appropriately
+  if (isApplicationPending) {
+    return (
+      <Alert>
+        <Rocket className='h-4 w-4' />
+        <AlertTitle>Application Submitted & Pending Review</AlertTitle>
+        <AlertDescription>
+          Thanks for submitting your application! We are currently reviewing it
+          and will get back to you soon.
+        </AlertDescription>
+      </Alert>
+    )
   }
 
-  const isApprovedWasher = washerProfile?.washer_status === 'approved' // Example check
-
-  if (isApprovedWasher) {
-    // Optional: Redirect to a washer dashboard or show different content
-    // For now, we can just show a message, or they might not even see the link in sidebar later.
-  }
-
-  // The main layout (app/dashboard/layout.tsx) now provides the overall page structure (sidebar, main tag, margins)
-  // This component should only return the content specific to this page.
   return (
-    <div className='rounded-lg bg-white p-8 shadow-md'>
+    <div className='rounded-lg bg-white p-6 shadow-md sm:p-8'>
       <h1 className='mb-6 text-3xl font-bold text-blue-600'>
-        Interested in Becoming a Neighbourhood Washer?
+        Become a Neighbourhood Washer
       </h1>
 
       {isApprovedWasher ? (
         <div>
           <p className='text-lg text-gray-700'>
-            You are an approved Neighbourhood Washer! Manage your services and
-            bookings from your Washer Hub.
+            You are an approved Neighbourhood Washer! Manage your services from
+            your Washer Hub.
           </p>
           <Link href='/dashboard/washer-hub'>
             <Button className='mt-4'>Go to Washer Hub</Button>
           </Link>
         </div>
-      ) : hasRegisteredInterest ? (
+      ) : hasRegisteredInterest && !showFullApplication ? (
         <div className='rounded-md bg-green-50 p-6 text-center'>
           <h3 className='text-xl font-semibold text-green-700'>
+            <PartyPopper className='mx-auto mb-2 h-8 w-8' />
             Interest Registered!
           </h3>
           <p className='mt-2 text-gray-600'>
-            Thank you for expressing your interest in becoming a Washer. We have
-            your details and will contact you soon with information about the
-            full onboarding and verification process. We appreciate your
-            patience as we prepare for our soft launch!
+            Thank you! We&apos;ll be in touch soon. If you&apos;re ready to get
+            fully set up now, you can start the full application below.
           </p>
+          <Button
+            onClick={() => setShowFullApplication(true)}
+            className='mt-4'
+            variant='outline'
+          >
+            Start Full Application
+          </Button>
         </div>
+      ) : showFullApplication ? (
+        <WasherApplicationForm user={userProfile} />
       ) : (
         <>
           <p className='mb-4 text-lg text-gray-700'>
-            Ready to turn your laundry appliances into an income source and help
-            your neighbours? Register your interest to become one of the first
-            Washers on our platform!
+            Turn your laundry appliances into an income source. Choose how you
+            want to start.
           </p>
+          <div className='grid gap-6 md:grid-cols-2'>
+            {/* Option 1: Register Interest */}
+            <div className='rounded-lg border border-gray-200 bg-gray-50 p-6'>
+              <h2 className='mb-3 text-xl font-semibold text-gray-800'>
+                Just Register Interest
+              </h2>
+              <p className='mb-4 text-sm text-gray-600'>
+                Not ready for the full application? Just give us your postcode
+                so we know where to launch next. We&apos;ll email you when
+                we&apos;re ready for you.
+              </p>
+              <RegisterInterestForm />
+            </div>
 
-          <div className='mb-6 rounded-lg border border-blue-200 bg-blue-50 p-6'>
-            <h2 className='mb-3 text-xl font-semibold text-blue-700'>
-              Why Register Your Interest Early?
-            </h2>
-            <ul className='list-inside list-disc space-y-2 text-gray-600'>
-              <li>
-                <b>Be First in Line:</b> Get priority access to full onboarding
-                when we launch in your area.
-              </li>
-              <li>
-                <b>Help Shape the Platform:</b> Early registrants may be invited
-                for feedback.
-              </li>
-              <li>
-                <b>Earn Extra Income:</b> Set your own schedule and prices.
-              </li>
-              <li>
-                <b>Support Your Community:</b> Provide a valuable service to
-                your neighbours.
-              </li>
-              <li>
-                <b>Simple & Flexible:</b> Easy-to-use platform to manage your
-                laundry services.
-              </li>
-            </ul>
+            {/* Option 2: Full Application */}
+            <div className='rounded-lg border border-blue-200 bg-blue-50 p-6'>
+              <h2 className='mb-3 text-xl font-semibold text-blue-700'>
+                Apply Now
+              </h2>
+              <p className='mb-4 text-sm text-gray-600'>
+                Ready to go? Complete the full application to get verified and
+                start accepting laundry jobs as soon as possible.
+              </p>
+              <Button onClick={() => setShowFullApplication(true)}>
+                Start Full Application
+              </Button>
+            </div>
           </div>
-
-          <div className='mb-6'>
-            <h2 className='mb-3 text-xl font-semibold text-gray-800'>
-              Register Your Interest (Pre-Launch)
-            </h2>
-            <p className='mb-4 text-gray-600'>
-              We are currently in a pre-launch phase and gathering interest from
-              potential Washers in various areas. Please provide your postcode
-              or London borough so we can gauge demand. Once we are ready to
-              onboard Washers in your area, we will contact you with the full
-              application details. No commitment is needed at this stage.
-            </p>
-            <RegisterInterestForm />
-          </div>
-
           <p className='mt-8 text-sm text-gray-500'>
-            <b>Please Note:</b> This is an initial registration of interest. A
-            full onboarding and verification process will be required to become
-            an approved Neighbourhood Washer. We&apos;ll be in touch with more
-            details soon!
+            <b>Please Note:</b> A full application and verification process is
+            required to become an approved Neighbourhood Washer.
           </p>
         </>
       )}
