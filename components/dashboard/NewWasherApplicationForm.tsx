@@ -297,6 +297,7 @@ export default function WasherApplicationForm({
                 <Label htmlFor='washer_bio'>
                   Tell your neighbours about you
                 </Label>
+                {/* eslint-disable-next-line react/no-unescaped-entities */}
                 <Textarea
                   id='washer_bio'
                   {...register('washer_bio')}
