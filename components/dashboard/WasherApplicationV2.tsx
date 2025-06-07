@@ -91,7 +91,7 @@ const steps = [
 // We will need a server action `applyToBeWasher` to handle the form submission.
 // The user prop will be passed from the parent page to pre-fill data.
 
-export default function WasherApplicationForm({
+export default function WasherApplicationFormV2({
   user,
 }: {
   user: { phone?: string | null } | null
