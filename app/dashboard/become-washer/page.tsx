@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client' // Use client for fetch o
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import RegisterInterestForm from '@/components/dashboard/RegisterInterestForm'
-import WasherApplicationFormV2 from '@/components/dashboard/WasherApplicationV2'
+import WasherApplicationForm from '@/components/dashboard/WasherApplicationForm'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { PartyPopper, Rocket } from 'lucide-react'
 
@@ -126,7 +126,7 @@ export default function BecomeWasherPage() {
           </Button>
         </div>
       ) : showFullApplication ? (
-        <WasherApplicationFormV2 user={userProfile} />
+        <WasherApplicationForm user={userProfile} />
       ) : (
         <>
           <p className='mb-4 text-lg text-gray-700'>
