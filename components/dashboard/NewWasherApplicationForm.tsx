@@ -60,8 +60,6 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-const washerBioPlaceholder = `e.g., "Hi, I'm Sarah! I work from home and would love to help you with your laundry. I take great care with all items..."`
-
 const steps = [
   {
     id: 'personal',
@@ -302,7 +300,6 @@ export default function WasherApplicationForm({
                 <Textarea
                   id='washer_bio'
                   {...register('washer_bio')}
-                  placeholder={washerBioPlaceholder}
                   rows={4}
                 />
                 {errors.washer_bio && (
