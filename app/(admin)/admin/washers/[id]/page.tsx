@@ -1,4 +1,4 @@
-import { createClient } from '../../../utils/supabase/server_new'
+import { createClient } from '@/utils/supabase/server_new'
 import { notFound } from 'next/navigation'
 import {
   Card,
@@ -7,9 +7,9 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from '../../../components/ui/card'
-import { Badge } from '../../../components/ui/badge'
-import { Button } from '../../../components/ui/button'
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Phone,
   Home,
@@ -17,9 +17,11 @@ import {
   Truck,
   Info,
   Text,
+  ArrowLeft,
 } from 'lucide-react'
 import Link from 'next/link'
-import { updateApplicationStatus } from '../actions'
+import { updateApplicationStatus } from '@/app/(admin)/admin/actions'
+import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
