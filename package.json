@@ -26,6 +26,8 @@
     "@radix-ui/react-slot": "^1.2.2",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
+    "add": "^2.0.6",
+    "badge": "^1.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",
@@ -35,6 +37,8 @@
     "react-dom": "^19.0.0",
     "react-google-places-autocomplete": "^4.1.0",
     "react-hook-form": "^7.57.0",
+    "shadcn-ui": "^0.9.5",
+    "table": "^6.9.0",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.56"

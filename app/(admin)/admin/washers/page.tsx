@@ -1,167 +1,126 @@
-import React from 'react'
 import { createClient } from '@/utils/supabase/server_new'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
-// Define a type for Washer data on the admin page
-type AdminPageWasher = {
-  id: string
-  email: string | undefined
-  created_at: string
-  last_sign_in_at?: string | null
-  role?: string
-  application_status?: string // e.g., 'pending_verification', 'approved', 'rejected'
-  email_confirmed_at?: string | null
-  // Potentially other washer-specific fields from profile
-}
+export const dynamic = 'force-dynamic'
 
-async function getWashers(): Promise<AdminPageWasher[]> {
-  const supabase = createClient()
-
-  // Ensure SUPABASE_SERVICE_ROLE_KEY is set in your environment variables
-  const { data: profiles, error } = await supabase
-    .from('profiles')
-    .select(
-      `
-      id,
-      role,
-      washer_status,
-      users (
-        email,
-        created_at,
-        last_sign_in_at,
-        email_confirmed_at
-      )
-    `
-    )
-    .eq('role', 'washer')
-
-  if (error) {
-    console.error('Error fetching washer profiles:', error.message)
-    return []
+// Function to determine badge variant based on status
+const getBadgeVariant = (status: string) => {
+  switch (status) {
+    case 'approved':
+      return 'success'
+    case 'pending_verification':
+      return 'secondary'
+    case 'rejected':
+      return 'destructive'
+    default:
+      return 'outline'
   }
-
-  if (!profiles) {
-    return []
-  }
-
-  // Map the profiles to the desired shape
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const washers = profiles.map((profile: any): AdminPageWasher => {
-    const user = profile.users
-    return {
-      id: profile.id,
-      email: user?.email,
-      created_at: user?.created_at,
-      last_sign_in_at: user?.last_sign_in_at || null,
-      role: profile.role,
-      application_status: profile.washer_status || 'N/A',
-      email_confirmed_at: user?.email_confirmed_at || null,
-    }
-  })
-
-  return washers
 }
 
 export default async function AdminWashersPage() {
-  const washers = await getWashers()
+  const supabase = createClient()
+
+  const { data: applications, error } = await supabase
+    .from('washer_applications')
+    .select(
+      `
+      id,
+      created_at,
+      status,
+      profiles (
+        first_name,
+        last_name,
+        email
+      )
+    `
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching washer applications:', error)
+    return (
+      <Alert variant='destructive'>
+        <AlertCircle className='h-4 w-4' />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Could not fetch washer applications. {error.message}
+        </AlertDescription>
+      </Alert>
+    )
+  }
 
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <div className='mb-6 flex items-center justify-between'>
-        <h1 className='text-3xl font-bold text-gray-800 dark:text-white'>
-          Washer Management
-        </h1>
-        {/* TODO: Button for "Approve New Washers" or similar actions */}
-        {/* <Button>Filter Pending</Button> */}
-      </div>
-
-      <p className='mb-4 text-gray-600 dark:text-gray-300'>
-        View, approve, and manage washer profiles and applications. (
-        {washers.length} washers found)
-      </p>
-
-      {washers.length > 0 ? (
-        <div className='overflow-x-auto rounded-lg bg-white shadow dark:bg-gray-800'>
-          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
-            <thead className='bg-gray-50 dark:bg-gray-700'>
-              <tr>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
-                >
-                  Email
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
-                >
-                  Joined
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
-                >
-                  Status (Email)
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
-                >
-                  App. Status
-                </th>
-                <th scope='col' className='relative px-6 py-3'>
-                  <span className='sr-only'>Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className='divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800'>
-              {washers.map((washer) => (
-                <tr key={washer.id}>
-                  <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white'>
-                    {washer.email || 'N/A'}
-                  </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
-                    {new Date(washer.created_at).toLocaleDateString()}
-                  </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
-                    {washer.email_confirmed_at ? (
-                      <span className='text-green-500'>Verified</span>
-                    ) : (
-                      <span className='text-yellow-500'>Pending</span>
-                    )}
-                  </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
-                    {washer.application_status}
-                  </td>
-                  <td className='px-6 py-4 text-right text-sm font-medium whitespace-nowrap'>
-                    {/* TODO: Actions like 'Approve', 'Reject', 'View Profile' */}
-                    <a
-                      href='#'
-                      className='mr-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200'
-                    >
-                      View
-                    </a>
-                    {washer.application_status === 'pending_verification' && (
-                      <a
-                        href='#'
-                        className='text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200'
-                      >
-                        Approve
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className='rounded-lg bg-white p-6 text-center shadow dark:bg-gray-800'>
-          <p className='text-gray-500 dark:text-gray-400'>
-            No users with the &apos;washer&apos; role found in the profiles
-            table.
-          </p>
-        </div>
-      )}
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Washer Applications</CardTitle>
+        <CardDescription>
+          View and manage all washer applications.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Applicant</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Submitted On</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {applications && applications.length > 0 ? (
+              applications.map((app: any) => (
+                <TableRow key={app.id}>
+                  <TableCell>
+                    {app.profiles.first_name || 'N/A'}{' '}
+                    {app.profiles.last_name || ''}
+                  </TableCell>
+                  <TableCell>{app.profiles.email}</TableCell>
+                  <TableCell>
+                    {new Date(app.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getBadgeVariant(app.status)}>
+                      {app.status.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button asChild variant='outline' size='sm'>
+                      <Link href={`/admin/washers/${app.id}`}>View</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className='text-center'>
+                  No applications found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }
