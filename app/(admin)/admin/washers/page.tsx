@@ -36,10 +36,20 @@ const getBadgeVariant = (status: string) => {
   }
 }
 
-export default async function AdminWashersPage() {
-  const supabase = createClient()
+interface Application {
+  id: string
+  created_at: string
+  status: string
+  profiles: {
+    first_name: string | null
+    last_name: string | null
+    email: string | null
+  }[] | null
+}
 
-  const { data: applications, error } = await supabase
+async function getWasherApplications(): Promise<Application[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
     .from('washer_applications')
     .select(
       `
@@ -57,16 +67,13 @@ export default async function AdminWashersPage() {
 
   if (error) {
     console.error('Error fetching washer applications:', error)
-    return (
-      <Alert variant='destructive'>
-        <AlertCircle className='h-4 w-4' />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Could not fetch washer applications. {error.message}
-        </AlertDescription>
-      </Alert>
-    )
+    return []
   }
+  return data
+}
+
+export default async function AdminWashersPage() {
+  const applications = await getWasherApplications()
 
   return (
     <Card>
@@ -89,14 +96,14 @@ export default async function AdminWashersPage() {
           </TableHeader>
           <TableBody>
             {applications && applications.length > 0 ? (
-              applications.map((app: any) => (
+              applications.map((app) => (
                 <TableRow key={app.id}>
                   <TableCell>
-                    {app.profiles.first_name || 'N/A'}{' '}
-                    {app.profiles.last_name || ''}
+                    {app.profiles?.[0]?.first_name || 'N/A'}{' '}
+                    {app.profiles?.[0]?.last_name || ''}
                   </TableCell>
-                  <TableCell>{app.profiles.email}</TableCell>
-                  <TableCell>
+                  <TableCell>{app.profiles?.[0]?.email}</TableCell>
+                  <TableCell className='hidden md:table-cell'>
                     {new Date(app.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
@@ -105,9 +112,11 @@ export default async function AdminWashersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button asChild variant='outline' size='sm'>
-                      <Link href={`/admin/washers/${app.id}`}>View</Link>
-                    </Button>
+                    <Link href={`/admin/washers/${app.id}`}>
+                      <Button variant='outline' size='sm'>
+                        View Details
+                      </Button>
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))
