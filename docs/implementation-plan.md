@@ -196,14 +196,13 @@
 #### Week 9: Washer Dashboard Layout & Core Features
 
 - [ ] Create Washer-specific dashboard layout
-- [x] **Implement Pre-Launch Washer Interest Registration:** _(Notes: Created `app/dashboard/become-washer/page.tsx` which prompts users who are not yet approved Washers to register their interest. Added `components/dashboard/RegisterInterestForm.tsx` to collect postcode/London borough. Created `app/actions/registerWasherInterest.ts` server action to save data to new `washer_interest_registrations` Supabase table. Page displays benefits of early registration and informs user about future full onboarding. Logic added to check if user has already registered interest or is an approved washer.)_
-  - [x] UI on `/dashboard/become-washer` to show registration status (pending approval, not registered).
-  - [x] Form to collect postcode/London borough.
-  - [x] Display benefits of registering interest (e.g., be first in line, help shape platform).
-  - [x] Inform user about future full verification process.
-  - [x] Server action to save interest to `washer_interest_registrations` table (user_id, area, created_at).
-  - [x] RLS policies for `washer_interest_registrations` table.
-  - [x] Update `app/dashboard/become-washer/page.tsx` to check if interest already registered or if user is approved washer.
+- [x] **Implement Full Washer Application Flow:** _(Notes: Replaced the simple "interest registration" with a full multi-step application form. Created `components/dashboard/WasherApplicationForm.tsx` to handle the form logic, state, and validation for personal details, service offerings, and equipment. A new page, `app/dashboard/washer-application/page.tsx`, hosts this form and includes logic to check a user's role and `washer_status` before rendering. The `app/dashboard/become-washer/page.tsx` page was updated to act as a hub, directing users with a 'pending_application' status to the new form, showing a status message to those who have already applied, and keeping the interest registration form for brand new prospective washers.)_
+  - [x] Create multi-step application form component (`WasherApplicationForm.tsx`).
+  - [x] Implement client-side validation using `zod` and `react-hook-form`.
+  - [x] Create a dedicated page for the application at `/dashboard/washer-application`.
+  - [x] Add logic to check user's `washer_status` to control access and display appropriate messages.
+  - [x] Update the `/dashboard/become-washer` page to intelligently direct users based on their application status.
+  - [ ] Server action to save application data to a new `washer_applications` table. _(Note: Placeholder `applyToBeWasher` action exists; needs full implementation)_
 - [ ] Implement dashboard overview with key metrics
 - [ ] Build service management interface
 - [ ] Create availability calendar management

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server_new'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { type SignInWithPasswordCredentials } from '@supabase/supabase-js'
 
 export async function signOut() {
@@ -111,8 +112,6 @@ interface WasherApplicationData {
 
 export async function applyToBeWasher(applicationData: WasherApplicationData) {
   'use server'
-
-  // TODO: Add Zod validation on the server-side for security
   const supabase = createClient()
 
   const {
@@ -122,30 +121,108 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
   if (!user) {
     return { error: { message: 'You must be logged in to apply.' } }
   }
+    
+  // Fetch the user's profile to get the profile_id
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single()
 
-  // Map client-side data to your 'profiles' table columns
-  const profileUpdate = {
-    phone_number: applicationData.phone_number,
-    service_address: applicationData.service_address,
-    service_offerings: applicationData.service_offerings,
-    offers_collection: applicationData.offers_collection,
-    collection_radius: applicationData.collection_radius,
-    collection_fee: applicationData.collection_fee,
-    equipment_details: applicationData.equipment_details,
-    washer_bio: applicationData.washer_bio,
-    washer_status: 'pending_verification', // Update status
-    updated_at: new Date().toISOString(),
+  if (profileError || !profile) {
+    console.error('Error fetching profile for application:', profileError)
+    return { error: { message: 'Could not find your user profile.' } }
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(profileUpdate)
-    .eq('id', user.id)
 
-  if (error) {
-    console.error('Error updating profile for washer application:', error)
+  // 1. Insert into washer_applications table
+  const applicationInsert = {
+    user_id: user.id,
+    profile_id: profile.id,
+    ...applicationData
+  }
+
+  const { error: insertError } = await supabase
+    .from('washer_applications')
+    .insert(applicationInsert)
+
+  if (insertError) {
+    console.error('Error inserting washer application:', insertError)
+    if (insertError.code.includes('23505')) { // unique_violation
+        return { error: { message: 'You already have a pending application.' } };
+    }
     return { error: { message: 'Failed to submit application.' } }
   }
 
-  return { data }
+  // 2. Update the profile status
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({
+      washer_status: 'pending_verification',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id)
+
+  if (updateError) {
+    // This is a bit tricky. The application was inserted, but status update failed.
+    // For now, we'll log it and the user will see a generic error.
+    // A more robust solution might involve a transaction or a cleanup job.
+    console.error('CRITICAL: Application inserted but profile status update failed:', updateError)
+    return { error: { message: 'Failed to update your application status.' } }
+  }
+
+
+  return { data: { message: "Application submitted successfully!" } }
+}
+
+export async function startWasherApplicationProcess() {
+  'use server'
+  const supabase = createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return redirect('/signin')
+  }
+
+  // First, check if they already have a profile that is in some washer state
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('washer_status')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    console.error('Error fetching profile before starting application:', profileError)
+    return redirect('/dashboard/become-washer?error=profile_fetch_failed')
+  }
+
+  // If they are already in the process, just redirect them
+  if (profile.washer_status) {
+    return redirect('/dashboard/become-washer')
+  }
+
+  // Update the user's profile to start the application process
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ 
+        role: 'washer',
+        washer_status: 'pending_application',
+        updated_at: new Date().toISOString() 
+    })
+    .eq('id', user.id)
+
+  if (updateError) {
+    console.error('Error updating profile to start application:', updateError)
+    return redirect('/dashboard/become-washer?error=profile_update_failed')
+  }
+
+  // Revalidate the paths to ensure the UI updates correctly after the redirect.
+  revalidatePath('/dashboard/become-washer')
+  revalidatePath('/dashboard/washer-application')
+
+  // On success, redirect to the application form
+  redirect('/dashboard/washer-application')
 }

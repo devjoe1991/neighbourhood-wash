@@ -1,92 +1,110 @@
 'use client'
 
+import { useForm, SubmitHandler } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { useState } from 'react'
-import { useFormState, useFormStatus } from 'react-dom'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { registerWasherInterestAction } from '@/app/actions/registerWasherInterest'
-import { useEffect } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Loader2, AlertCircle } from 'lucide-react'
+import { registerWasherInterest } from '@/app/actions/registerWasherInterest'
 
-const initialState: { success: boolean; message: string } = {
-  success: false,
-  message: '',
+const formSchema = z.object({
+  area: z
+    .string()
+    .min(3, 'Please enter a valid London borough or postcode.')
+    .max(50),
+})
+
+type FormValues = z.infer<typeof formSchema>
+
+interface RegisterInterestFormProps {
+  userId: string
+  onInterestRegistered: () => void
 }
 
-function SubmitButton() {
-  const { pending } = useFormStatus()
-  return (
-    <Button
-      type='submit'
-      className='w-full bg-green-600 hover:bg-green-700'
-      aria-disabled={pending}
-      disabled={pending}
-    >
-      {pending ? 'Submitting...' : 'Register Interest'}
-    </Button>
-  )
-}
+export default function RegisterInterestForm({
+  userId,
+  onInterestRegistered,
+}: RegisterInterestFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
 
-export default function RegisterInterestForm() {
-  const [state, formAction] = useFormState(
-    registerWasherInterestAction,
-    initialState
-  )
-  const [submittedSuccessfully, setSubmittedSuccessfully] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+  })
 
-  useEffect(() => {
-    if (state?.message) {
-      if (state.success) {
-        setSubmittedSuccessfully(true)
-        console.log('Interest Registered!', state.message)
-      } else {
-        console.error('Error registering interest:', state.message)
-      }
+  const processForm: SubmitHandler<FormValues> = async (data) => {
+    setIsSubmitting(true)
+    setServerError(null)
+
+    const result = await registerWasherInterest(userId, data.area)
+
+    setIsSubmitting(false)
+
+    if (result && result.error) {
+      setServerError(result.error)
+    } else {
+      setIsSuccess(true)
+      onInterestRegistered()
     }
-  }, [state])
+  }
 
-  if (submittedSuccessfully) {
-    return (
-      <div className='rounded-md bg-green-50 p-6 text-center'>
-        <h3 className='text-xl font-semibold text-green-700'>Thank You!</h3>
-        <p className='mt-2 text-gray-600'>
-          {state.message ||
-            'Your interest has been registered. We will contact you shortly with details on the full onboarding process.'}
-        </p>
-      </div>
-    )
+  if (isSuccess) {
+    // The parent component will now show the success message
+    return null
   }
 
   return (
-    <form
-      action={formAction}
-      className='space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow'
-    >
-      <div>
-        <label
-          htmlFor='area'
-          className='block text-sm font-medium text-gray-700'
-        >
-          Your Postcode or London Borough
-        </label>
-        <Input
-          type='text'
-          name='area'
-          id='area'
-          required
-          className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-          placeholder='e.g., Islington or N7 0EL'
-        />
-      </div>
-      {state?.message && !state?.success && (
-        <p className='text-sm text-red-600'>{state.message}</p>
-      )}
-      <SubmitButton />
-      <p className='mt-4 text-xs text-gray-500'>
-        By registering your interest, you agree to be contacted about the
-        Neighbourhood Wash Washer program. This is a pre-launch registration to
-        gauge interest in specific areas. Full onboarding and verification will
-        be required to become an active Washer.
+    <div className='rounded-lg border border-gray-200 bg-gray-50 p-6'>
+      <h3 className='text-xl font-semibold text-gray-800'>
+        Register Your Interest
+      </h3>
+      <p className='mb-4 mt-2 text-sm text-gray-600'>
+        Not ready for the full application? Just give us your London borough or
+        postcode so we know where to launch next. We&apos;ll get in touch when
+        we&apos;re ready for you.
       </p>
-    </form>
+      <form onSubmit={handleSubmit(processForm)} className='space-y-4'>
+        <div>
+          <Label htmlFor='area'>London Borough or Postcode</Label>
+          <Input
+            id='area'
+            {...register('area')}
+            placeholder='e.g., "Islington" or "SW1A"'
+            className='bg-white'
+          />
+          {errors.area && (
+            <p className='mt-1 text-sm text-red-600'>{errors.area.message}</p>
+          )}
+        </div>
+
+        {serverError && (
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button type='submit' disabled={isSubmitting} className='w-full'>
+          {isSubmitting ? (
+            <>
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              Submitting...
+            </>
+          ) : (
+            'Register Interest'
+          )}
+        </Button>
+      </form>
+    </div>
   )
 }

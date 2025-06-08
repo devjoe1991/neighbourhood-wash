@@ -1,150 +1,215 @@
-export const dynamic = 'force-dynamic'
-
-import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server_new' // Using the server_new client
+import { createClient } from '@/utils/supabase/server_new'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { signOut } from '@/app/auth/actions' // Import the server action
-// import Sidebar from '@/components/dashboard/Sidebar' // No longer needed here, layout handles it
+import {
+  Rocket,
+  User,
+  HelpCircle,
+  ClipboardList,
+  LayoutGrid,
+} from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const supabase = createClient()
 
   const {
     data: { user },
-  } = await supabase.auth.getUser() // This internally uses the (now async) cookie methods
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    // This should ideally be caught by middleware,
-    // but as a safeguard or if middleware is bypassed for any reason.
     return redirect('/signin?message=Please sign in to view the dashboard.')
   }
 
-  let isApprovedWasher = false
-  // Fetch profile to check washer_status
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
-    .select('washer_status, role')
+    .select('role, washer_status')
     .eq('id', user.id)
     .single()
 
-  if (profileError && profileError.code !== 'PGRST116') {
-    console.error('DashboardPage: Error fetching profile:', profileError)
-    // Potentially show an error to the user or handle gracefully
-  }
+  const isWasher = profile?.role === 'washer'
+  const washerStatus = profile?.washer_status
 
-  if (profile) {
-    isApprovedWasher =
-      profile.role === 'WASHER' && profile.washer_status === 'approved'
-  }
-
-  let hasRegisteredInterest = false
-  // Only check for interest registration if the user is not already an approved washer
-  if (user && !isApprovedWasher) {
-    const { data: interestData, error: interestRegError } = await supabase
-      .from('washer_interest_registrations')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle() // Use maybeSingle to avoid error if no row found
-
-    if (interestRegError) {
-      console.error(
-        'DashboardPage: Error fetching interest registration:',
-        interestRegError
-      )
-      // Potentially show an error to the user or handle gracefully
-    }
-    hasRegisteredInterest = !!interestData
-  }
-
-  // The main layout (app/dashboard/layout.tsx) now provides the overall page structure (sidebar, main tag, margins)
-  // This component should only return the content specific to the dashboard overview.
   return (
-    <div className='rounded-lg bg-white p-8 shadow-md'>
-      <h1 className='mb-4 text-3xl font-bold text-blue-600'>
-        Welcome to your Dashboard!
-      </h1>
-      <div className='mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4'>
-        <h2 className='mb-2 text-xl font-semibold text-blue-700'>
-          Welcome to the Laundry Revolution!
-        </h2>
-        <p className='text-gray-600'>
-          Congratulations on joining Neighbourhood Wash! You&apos;re now part of
-          an exciting new way to manage laundry and connect with your community.
-        </p>
-        <p className='mt-2 text-gray-600'>
-          Please note: You are currently experiencing our{' '}
-          <strong className='text-blue-600'>Beta Version (Soft Launch)</strong>.
-          We&apos;re actively working on adding more features and refining the
-          experience. We&apos;ll keep you updated as we approach our full
-          launch!
-        </p>
+    <div className='space-y-8'>
+      <div className='flex items-center justify-between space-y-2'>
+        <div>
+          <h1 className='text-3xl font-bold tracking-tight'>
+            Welcome to Your Dashboard
+          </h1>
+          <p className='text-muted-foreground'>
+            Here's a quick overview of your account and available actions.
+          </p>
+        </div>
       </div>
 
-      {/* Conditional section for non-approved washers */}
-      {!isApprovedWasher && (
-        <>
-          {hasRegisteredInterest ? (
-            <div className='mb-6 rounded-lg border border-green-300 bg-green-50 p-4'>
-              <h2 className='mb-2 text-xl font-semibold text-green-700'>
-                Interest Received!
-              </h2>
-              <p className='text-gray-600'>
-                Thank you for registering your interest in becoming a
-                Neighbourhood Washer! We have your details and are currently in
-                our pre-launch phase. We will be in touch soon regarding the
-                next steps for full verification and onboarding as we prepare to
-                launch in your area. We appreciate your patience!
+      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
+        {/* Card for Becoming a Washer */}
+        {!isWasher && (
+          <Card className='flex flex-col'>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
+                  <Rocket className='h-6 w-6 text-primary' />
+                </div>
+                <div>
+                  <CardTitle>Become a Washer</CardTitle>
+                  <CardDescription>
+                    Start earning from your laundry room.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p>
+                Join our community of trusted locals. Click here to start the
+                application process or check on your status.
               </p>
-            </div>
-          ) : (
-            // Only show this if they haven't registered interest yet
-            <div className='mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4'>
-              <h2 className='mb-2 text-xl font-semibold text-yellow-700'>
-                Interested in Earning with Your Laundry?
-              </h2>
-              <p className='mb-3 text-gray-600'>
-                Become a Neighbourhood Washer and turn your appliances into an
-                income source. Register your interest today to be among the
-                first to get started in your area!
-              </p>
-              <Button
-                asChild
-                className='bg-yellow-500 text-white hover:bg-yellow-600'
-              >
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button asChild className='w-full'>
                 <Link href='/dashboard/become-washer'>
-                  Learn More & Register Interest
+                  {washerStatus
+                    ? 'Check Application Status'
+                    : 'Start Your Application'}
                 </Link>
               </Button>
             </div>
-          )}
-        </>
-      )}
+          </Card>
+        )}
 
-      <p className='mb-2 text-gray-700'>
-        You are signed in as:{' '}
-        <span className='font-semibold'>{user.email}</span>
-      </p>
-      <p className='mb-6 text-gray-600'>This page is protected.</p>
-      <div className='space-y-3'>
-        <Link
-          href='/'
-          className='block w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm hover:bg-blue-700'
-        >
-          Go to Homepage
-        </Link>
-        <form
-          action={signOut as (formData: FormData) => void}
-          className='w-full'
-        >
-          <Button
-            type='submit'
-            variant='ghost'
-            className='mt-2 w-full text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-          >
-            Sign Out
-          </Button>
-        </form>
+        {/* Card for Approved Washers */}
+        {isWasher && washerStatus === 'approved' && (
+          <Card className='flex flex-col'>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10'>
+                  <LayoutGrid className='h-6 w-6 text-green-600' />
+                </div>
+                <div>
+                  <CardTitle>Washer Hub</CardTitle>
+                  <CardDescription>Manage your services</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p>
+                Your application is approved! Head to your hub to set your
+                prices, manage your availability, and view your jobs.
+              </p>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button asChild className='w-full' variant='default'>
+                <Link href='/dashboard/washer-hub'>Go to Hub</Link>
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Card for Pending Washers */}
+        {isWasher &&
+          (washerStatus === 'pending_application' ||
+            washerStatus === 'pending_verification') && (
+            <Card className='flex flex-col'>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10'>
+                    <ClipboardList className='h-6 w-6 text-yellow-600' />
+                  </div>
+                  <div>
+                    <CardTitle>Application Status</CardTitle>
+                    <CardDescription>Your application is in progress</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p>
+                  Thank you for applying! You can check the current status of
+                  your application and see the next steps here.
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button asChild className='w-full'>
+                  <Link href='/dashboard/become-washer'>
+                    View Application Status
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          )}
+
+        {/* How It Works Card */}
+        <Card className='flex flex-col'>
+          <CardHeader>
+            <div className='flex items-center space-x-3'>
+              <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
+                <HelpCircle className='h-6 w-6 text-primary' />
+              </div>
+              <div>
+                <CardTitle>How It Works</CardTitle>
+                <CardDescription>
+                  Understand the process from start to finish.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className='flex-grow'>
+            <p>
+              New to Neighbourhood Wash? Learn how to use our platform, from
+              booking a wash to secure PIN verification.
+            </p>
+          </CardContent>
+          <div className='p-6 pt-0'>
+            <Button asChild className='w-full' variant='secondary'>
+              <Link href='/how-it-works'>View Guide</Link>
+            </Button>
+          </div>
+        </Card>
+
+        {/* Account Settings Card */}
+        <Card className='flex flex-col'>
+          <CardHeader>
+            <div className='flex items-center space-x-3'>
+              <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
+                <User className='h-6 w-6 text-primary' />
+              </div>
+              <div>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>
+                  Manage your personal information.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className='flex-grow'>
+            <p>
+              Update your profile details, manage notification preferences, and
+              view your account history.
+            </p>
+          </CardContent>
+          <div className='p-6 pt-0'>
+            <Button asChild className='w-full' variant='secondary'>
+              <Link href='/dashboard/settings'>Go to Settings</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      <div className='text-center text-sm text-muted-foreground'>
+        <p>
+          Signed in as {user.email}.
+          <br />
+          Please note we are in a Beta (Soft Launch) phase.
+        </p>
       </div>
     </div>
   )

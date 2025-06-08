@@ -1,17 +1,31 @@
-export const dynamic = 'force-dynamic'
-
 import { createClient } from '@/utils/supabase/server_new'
 import { redirect } from 'next/navigation'
-// import Sidebar from '@/components/dashboard/Sidebar' // No longer needed here, layout handles it
 import { getOrCreateReferralCode } from '@/lib/referral'
+import {
+  Gift,
+  Users,
+  Award,
+  Copy,
+  Share2,
+  UserPlus,
+  Star,
+} from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
-// Define an interface for the shape of a referral event
+export const dynamic = 'force-dynamic'
+
 interface ReferralEvent {
   id: string
-  referred_user_id: string // Assuming this is the ID of the user who was referred
-  referral_code_used: string
+  referred_user_id: string
   signup_timestamp: string
-  status: string
+  status: 'joined' | 'first_wash_completed' | 'reward_issued'
 }
 
 export default async function ReferralsPage() {
@@ -27,158 +41,197 @@ export default async function ReferralsPage() {
 
   const userReferralCode = await getOrCreateReferralCode(user.id)
 
-  // Fetch actual referral events
-  const { data: referralEvents, error: referralEventsError } = await supabase
+  const { data: referralEvents } = await supabase
     .from('referral_events')
     .select('*')
     .eq('referrer_user_id', user.id)
     .order('signup_timestamp', { ascending: false })
 
-  if (referralEventsError) {
-    console.error(
-      'Error fetching referral events:',
-      referralEventsError.message
-    )
-    // Optionally, you could show an error message to the user
-  }
-
   const typedReferralEvents = (referralEvents || []) as ReferralEvent[]
   const referralCount = typedReferralEvents.length
-  // Placeholder for rewards earned, can be calculated later based on status
-  const referralRewardsEarned = 0
+  const rewardsEarned =
+    typedReferralEvents.filter((e) => e.status === 'reward_issued').length * 10 // Assuming £10 reward
 
-  // The main layout (app/dashboard/layout.tsx) now provides the overall page structure (sidebar, main tag, margins)
-  // This component should only return the content specific to the referrals page.
   return (
-    <div className='rounded-lg bg-white p-8 shadow-md'>
-      <h1 className='mb-6 text-3xl font-bold text-blue-600'>Referrals</h1>
+    <div className='space-y-8'>
+      <div>
+        <h1 className='text-3xl font-bold tracking-tight'>Refer a Friend</h1>
+        <p className='text-muted-foreground'>
+          Share the love of clean laundry and earn rewards.
+        </p>
+      </div>
 
-      <div className='mb-8 rounded-lg border border-blue-200 bg-blue-50 p-6'>
-        <h2 className='mb-2 text-xl font-semibold text-blue-700'>
-          Share Your Referral Code!
-        </h2>
-        {userReferralCode ? (
-          <>
-            <p className='mb-3 text-gray-600'>
-              Invite friends to Neighbourhood Wash and earn rewards. Share your
-              unique code:
-            </p>
-            <div className='rounded-md border border-dashed border-blue-400 bg-white p-3 text-center'>
-              <p className='font-mono text-2xl text-blue-600'>
-                {userReferralCode}
+      {/* Main Referral Offer Card */}
+      <Card className='bg-primary/5'>
+        <CardHeader>
+          <div className='flex items-center space-x-3'>
+            <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
+              <Gift className='h-6 w-6 text-primary' />
+            </div>
+            <div>
+              <CardTitle className='text-2xl'>
+                Give 50% Off, Get £10
+              </CardTitle>
+              <CardDescription>
+                Share your code to give friends 50% off their first wash, and
+                we'll give you £10 in credit.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className='mb-3'>Your unique referral code:</p>
+          <div className='flex items-center space-x-2'>
+            <div className='flex-grow rounded-lg border-2 border-dashed border-primary/50 bg-white p-3 text-center'>
+              <p className='font-mono text-3xl tracking-widest text-primary'>
+                {userReferralCode || '...'}
               </p>
             </div>
-            <button className='mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white shadow-sm hover:bg-blue-700'>
-              Copy Code & Share (Coming Soon)
-            </button>
-          </>
-        ) : (
-          <p className='text-red-600'>
-            Could not retrieve your referral code at this time. Please try again
-            later or contact support.
-          </p>
-        )}
+            <Button size='icon' variant='outline' disabled>
+              <Copy className='h-5 w-5' />
+              <span className='sr-only'>Copy Code (coming soon)</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Cards */}
+      <div className='grid gap-6 md:grid-cols-2'>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium'>Friends Joined</CardTitle>
+            <Users className='h-4 w-4 text-primary' />
+          </CardHeader>
+          <CardContent>
+            <div className='text-2xl font-bold'>{referralCount}</div>
+            <p className='text-xs text-muted-foreground'>
+              users have signed up with your code.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium'>Rewards Earned</CardTitle>
+            <Award className='h-4 w-4 text-primary' />
+          </CardHeader>
+          <CardContent>
+            <div className='text-2xl font-bold'>£{rewardsEarned}</div>
+            <p className='text-xs text-muted-foreground'>
+              credit earned from completed referrals.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className='mb-8 grid grid-cols-1 gap-6 md:grid-cols-2'>
-        <div className='rounded-lg border border-gray-200 p-6'>
-          <h3 className='mb-2 text-lg font-semibold text-gray-700'>
-            Friends Joined
-          </h3>
-          <p className='text-3xl font-bold text-blue-600'>{referralCount}</p>
-        </div>
-        <div className='rounded-lg border border-gray-200 p-6'>
-          <h3 className='mb-2 text-lg font-semibold text-gray-700'>
-            Rewards Earned
-          </h3>
-          <p className='text-3xl font-bold text-blue-600'>
-            £{referralRewardsEarned}
-          </p>
-        </div>
-      </div>
+      {/* How it Works */}
+      <Card>
+        <CardHeader>
+          <CardTitle>How It Works</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='flex items-start space-x-3'>
+            <div className='mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10'>
+              <Share2 className='h-4 w-4 text-primary' />
+            </div>
+            <div>
+              <p className='font-semibold'>1. Share Your Code</p>
+              <p className='text-sm text-muted-foreground'>
+                Copy your personal code and send it to your friends.
+              </p>
+            </div>
+          </div>
+          <div className='flex items-start space-x-3'>
+            <div className='mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10'>
+              <UserPlus className='h-4 w-4 text-primary' />
+            </div>
+            <div>
+              <p className='font-semibold'>2. Your Friend Signs Up</p>
+              <p className='text-sm text-muted-foreground'>
+                They use your code during signup and get 50% off their first
+                laundry order.
+              </p>
+            </div>
+          </div>
+          <div className='flex items-start space-x-3'>
+            <div className='mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10'>
+              <Star className='h-4 w-4 text-primary' />
+            </div>
+            <div>
+              <p className='font-semibold'>3. You Get Rewarded</p>
+              <p className='text-sm text-muted-foreground'>
+                After their first wash is complete, we'll add £10 to your
+                account credit.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className='mt-6'>
-        <h2 className='mb-3 text-xl font-semibold text-gray-700'>
-          How it Works
-        </h2>
-        <ol className='list-inside list-decimal space-y-2 text-gray-600'>
-          <li>Share your unique referral code with friends.</li>
-          <li>Your friend signs up and completes their first wash.</li>
-          <li>You both get a reward! (Details coming soon)</li>
-        </ol>
-      </div>
-
-      {/* New Section: Referral Activity */}
-      <div className='mt-10'>
-        <h2 className='mb-4 text-xl font-semibold text-gray-700'>
-          Your Referral Activity
-        </h2>
-        {typedReferralEvents.length > 0 ? (
-          <div className='overflow-x-auto rounded-lg border border-gray-200'>
-            <table className='min-w-full divide-y divide-gray-200'>
-              <thead className='bg-gray-50'>
+      {/* Referral Activity Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Referral Activity</CardTitle>
+          <CardDescription>
+            Track the status of your referrals here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='overflow-x-auto rounded-lg border'>
+            <table className='min-w-full divide-y'>
+              <thead className='bg-primary/5'>
                 <tr>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
-                  >
-                    Referred User ID
+                  <th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-primary/90'>
+                    Referred User
                   </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
-                  >
+                  <th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-primary/90'>
                     Date Joined
                   </th>
-                  <th
-                    scope='col'
-                    className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
-                  >
+                  <th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-primary/90'>
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className='divide-y divide-gray-200 bg-white'>
-                {typedReferralEvents.map((event) => (
-                  <tr key={event.id}>
-                    <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
-                      {event.referred_user_id}
-                    </td>
-                    <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
-                      {new Date(event.signup_timestamp).toLocaleDateString()}
-                    </td>
-                    <td className='px-6 py-4 text-sm whitespace-nowrap'>
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs leading-tight font-semibold capitalize ${
-                          event.status === 'joined'
-                            ? 'bg-blue-100 text-blue-700'
-                            : event.status === 'first_wash_completed'
-                              ? 'bg-green-100 text-green-700'
-                              : event.status === 'reward_issued'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {event.status.replace('_', ' ')}
-                      </span>
+              <tbody className='divide-y bg-background'>
+                {typedReferralEvents.length > 0 ? (
+                  typedReferralEvents.map((event) => (
+                    <tr key={event.id}>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground'>
+                        {/* In a real app, you might fetch the user's name or email */}
+                        A new friend!
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-muted-foreground'>
+                        {new Date(event.signup_timestamp).toLocaleDateString()}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm'>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                            event.status === 'joined'
+                              ? 'bg-blue-100 text-blue-800'
+                              : event.status === 'first_wash_completed'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {event.status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className='px-6 py-12 text-center text-muted-foreground'
+                    >
+                      No referral activity yet. Share your code to get started!
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-        ) : (
-          <p className='text-gray-500'>
-            No referral activity yet. Share your code to get started!
-          </p>
-        )}
-      </div>
-      {/* End New Section */}
-
-      <p className='mt-8 text-sm text-gray-500'>
-        Note: Full referral program details and functionality are coming soon
-        for the soft launch!
-      </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

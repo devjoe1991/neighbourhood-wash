@@ -78,6 +78,7 @@ After completing any implementation task:
 ### Phase 4: Washer Dashboard & Experience
 
 - [ ] Washer dashboard layout _(Notes: ...)_
+- [~] **Full Washer Application Flow:** _(Notes: The previous "interest registration" has been upgraded to a full, multi-step application form at `app/dashboard/washer-application/page.tsx`, powered by the `components/dashboard/WasherApplicationForm.tsx` component. This new form captures detailed information required for vetting. The `app/dashboard/become-washer/page.tsx` page now acts as a central point, directing potential applicants to the correct form or showing their current application status based on their `profiles.washer_status` value. The basic interest registration form is still used as the entry point for new users.)_
 - [ ] Service management interface _(Notes: ...)_
 - [ ] Business analytics tools _(Notes: ...)_
 - [ ] Washer referral system _(Notes: ...)_
