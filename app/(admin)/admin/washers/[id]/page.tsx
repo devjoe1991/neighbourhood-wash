@@ -10,22 +10,36 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Phone,
-  Home,
-  WashingMachine,
-  Truck,
-  Info,
-  Text,
-  ArrowLeft,
-} from 'lucide-react'
+import { Phone, Home, WashingMachine, Truck, Info, Text } from 'lucide-react'
 import Link from 'next/link'
-import { updateApplicationStatus } from '@/app/(admin)/admin/actions'
-import { revalidatePath } from 'next/cache'
+import { updateApplicationStatus } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
-const getBadgeVariant = (status: string) => {
+type ApplicationStatus = 'approved' | 'pending_verification' | 'rejected'
+
+type ApplicationData = {
+  id: string
+  user_id: string
+  phone_number: string
+  service_address: string
+  service_offerings: string[]
+  offers_collection: boolean
+  collection_radius?: number
+  collection_fee?: number
+  equipment_details: string
+  washer_bio: string
+  status: ApplicationStatus
+  profiles: {
+    first_name: string | null
+    last_name: string | null
+    email: string
+  }
+}
+
+const getBadgeVariant = (
+  status: ApplicationStatus
+): 'success' | 'secondary' | 'destructive' | 'outline' => {
   switch (status) {
     case 'approved':
       return 'success'
@@ -84,20 +98,14 @@ export default async function ApplicationDetailPage({
     return notFound()
   }
 
-  const { profiles: profile, ...appData } = application as any
+  const { profiles: profile, ...appData } = application as ApplicationData
 
-  const approveAction = updateApplicationStatus.bind(
-    null,
-    applicationId,
-    appData.user_id,
-    'approved'
-  )
-  const rejectAction = updateApplicationStatus.bind(
-    null,
-    applicationId,
-    appData.user_id,
-    'rejected'
-  )
+  const approveAction = async (_formData: FormData) => {
+    await updateApplicationStatus(applicationId, appData.user_id, 'approved')
+  }
+  const rejectAction = async (_formData: FormData) => {
+    await updateApplicationStatus(applicationId, appData.user_id, 'rejected')
+  }
 
   return (
     <div className='space-y-6'>
@@ -111,12 +119,11 @@ export default async function ApplicationDetailPage({
         <CardHeader className='flex flex-row items-center justify-between'>
           <div>
             <CardTitle>
-              {profile.first_name || 'Applicant'}{' '}
-              {profile.last_name || ''}
+              {profile.first_name || 'Applicant'} {profile.last_name || ''}
             </CardTitle>
             <CardDescription>{profile.email}</CardDescription>
           </div>
-          <Badge variant={getBadgeVariant(appData.status) as any}>
+          <Badge variant={getBadgeVariant(appData.status)}>
             {appData.status.replace(/_/g, ' ')}
           </Badge>
         </CardHeader>
@@ -136,7 +143,7 @@ export default async function ApplicationDetailPage({
             label='Services Offered'
             value={
               <div className='flex flex-wrap gap-2'>
-                {appData.service_offerings.map((service: string) => (
+                {appData.service_offerings.map((service) => (
                   <Badge key={service} variant='outline'>
                     {service}
                   </Badge>
@@ -158,7 +165,9 @@ export default async function ApplicationDetailPage({
           <DetailRow
             icon={<Info className='h-4 w-4' />}
             label='Equipment Details'
-            value={<p className='whitespace-pre-wrap'>{appData.equipment_details}</p>}
+            value={
+              <p className='whitespace-pre-wrap'>{appData.equipment_details}</p>
+            }
           />
           <DetailRow
             icon={<Text className='h-4 w-4' />}
@@ -183,4 +192,4 @@ export default async function ApplicationDetailPage({
       </Card>
     </div>
   )
-} 
+}
