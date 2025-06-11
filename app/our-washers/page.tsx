@@ -75,14 +75,10 @@ const WasherProfileCard: React.FC<WasherProfileProps> = ({
   washer,
 }) => {
   return (
-    <div className='flex h-full flex-col items-center rounded-xl bg-white p-6 text-center shadow-lg transition-all duration-300 hover:shadow-2xl dark:bg-slate-800'>
+    <div className='flex h-full flex-col items-center rounded-xl bg-white p-6 text-center shadow-lg transition-all duration-300 hover:shadow-2xl'>
       <div className='flex w-full flex-grow flex-col items-center'>
-        <h3 className='text-2xl font-bold text-blue-600 dark:text-blue-400'>
-          {washer.name}
-        </h3>
-        <p className='mb-3 text-sm text-slate-500 dark:text-slate-400'>
-          {washer.location}
-        </p>
+        <h3 className='text-2xl font-bold text-blue-600'>{washer.name}</h3>
+        <p className='mb-3 text-sm text-slate-500'>{washer.location}</p>
         <div className='mb-3 flex items-center justify-center'>
           {[...Array(Math.floor(rating))].map((_, i) => (
             <SolidStarIcon key={i} className='h-5 w-5 text-yellow-400' />
@@ -303,10 +299,10 @@ export default function OurWashersPage() {
             </p>
           </div>
           <div className='mx-auto max-w-3xl'>
-            <ol className='relative ml-6 space-y-6 border-l border-gray-300 dark:border-gray-700'>
+            <ol className='relative ml-6 space-y-6 border-l border-gray-300'>
               <li className='mb-10 ml-10'>
-                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white dark:bg-blue-900 dark:ring-gray-900'>
-                  <UserGroupIcon className='h-5 w-5 text-blue-600 dark:text-blue-300' />
+                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white'>
+                  <UserGroupIcon className='h-5 w-5 text-blue-600' />
                 </span>
                 <h3 className='mb-1 flex items-center text-xl font-semibold text-gray-900'>
                   1. Sign Up & Create Profile
@@ -317,8 +313,8 @@ export default function OurWashersPage() {
                 </p>
               </li>
               <li className='mb-10 ml-10'>
-                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white dark:bg-blue-900 dark:ring-gray-900'>
-                  <ShieldCheckIcon className='h-5 w-5 text-blue-600 dark:text-blue-300' />
+                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white'>
+                  <ShieldCheckIcon className='h-5 w-5 text-blue-600' />
                 </span>
                 <h3 className='mb-1 text-xl font-semibold text-gray-900'>
                   2. Verification Process
@@ -329,8 +325,8 @@ export default function OurWashersPage() {
                 </p>
               </li>
               <li className='mb-10 ml-10'>
-                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white dark:bg-blue-900 dark:ring-gray-900'>
-                  <LightBulbIcon className='h-5 w-5 text-blue-600 dark:text-blue-300' />
+                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 ring-4 ring-white'>
+                  <LightBulbIcon className='h-5 w-5 text-blue-600' />
                 </span>
                 <h3 className='mb-1 text-xl font-semibold text-gray-900'>
                   3. Set Up Your Services
@@ -341,8 +337,8 @@ export default function OurWashersPage() {
                 </p>
               </li>
               <li className='ml-10'>
-                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 ring-4 ring-white dark:bg-green-900 dark:ring-gray-900'>
-                  <RocketLaunchIcon className='h-5 w-5 text-green-600 dark:text-green-300' />
+                <span className='absolute -left-5 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 ring-4 ring-white'>
+                  <RocketLaunchIcon className='h-5 w-5 text-green-600' />
                 </span>
                 <h3 className='mb-1 text-xl font-semibold text-gray-900'>
                   4. Go Live & Start Earning!

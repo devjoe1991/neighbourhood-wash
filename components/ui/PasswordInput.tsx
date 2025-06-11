@@ -80,14 +80,14 @@ export default function PasswordInput({
         type='button'
         variant='ghost'
         size='icon'
-        className='absolute top-1/2 right-1 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700'
+        className='absolute top-1/2 right-1 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full p-0 hover:bg-gray-100'
         onClick={togglePasswordVisibility}
         aria-label={showPassword ? 'Hide password' : 'Show password'}
       >
         {showPassword ? (
-          <EyeOff className='h-5 w-5 text-gray-500 dark:text-gray-400' />
+          <EyeOff className='h-5 w-5 text-gray-500' />
         ) : (
-          <Eye className='h-5 w-5 text-gray-500 dark:text-gray-400' />
+          <Eye className='h-5 w-5 text-gray-500' />
         )}
       </Button>
       {isCapsLockOn && (
