@@ -72,10 +72,10 @@ const DetailRow = ({
 
 export default async function ApplicationDetailPage({
   params,
-  _searchParams,
+  searchParams: _searchParams,
 }: {
   params: { id: string }
-  _searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: { [key: string]: string | string[] | undefined }
 }) {
   const supabase = createClient()
   const applicationId = params.id
