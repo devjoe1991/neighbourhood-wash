@@ -16,11 +16,6 @@ import { updateApplicationStatus } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
-type PageProps = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
-}
-
 type ApplicationStatus = 'approved' | 'pending_verification' | 'rejected'
 
 type ApplicationData = {
@@ -75,7 +70,11 @@ const DetailRow = ({
   </div>
 )
 
-export default async function ApplicationDetailPage({ params }: PageProps) {
+export default async function ApplicationDetailPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const supabase = createClient()
   const applicationId = params.id
 
