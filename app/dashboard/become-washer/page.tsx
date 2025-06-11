@@ -55,7 +55,7 @@ export default function BecomeWasherPage() {
           .from('profiles')
           .select('role, washer_status')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profileError) {
           console.error('Error fetching profile:', profileError)
