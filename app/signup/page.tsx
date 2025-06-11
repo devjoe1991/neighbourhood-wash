@@ -134,7 +134,7 @@ export default function SignUpPage() {
                 defaultValue='user'
                 value={role}
                 onValueChange={setRole}
-                className='mt-2 flex space-x-4'
+                className='mt-2 flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4'
               >
                 <div className='flex items-center space-x-2'>
                   <RadioGroupItem value='user' id='role-user' />
