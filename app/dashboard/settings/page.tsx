@@ -282,117 +282,6 @@ const NotificationSettings = ({
   )
 }
 
-// User Preferences Settings Form
-const UserPreferencesSettings = ({
-  userId,
-  supabase,
-  initialData,
-}: {
-  userId: string | undefined
-  supabase: SupabaseClient | null
-  initialData: ProfileData | null // Using ProfileData for consistency
-}) => {
-  const [allergies, setAllergies] = useState('')
-  const [productPreferences, setProductPreferences] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (initialData) {
-      setAllergies(initialData.allergies || '')
-      setProductPreferences(initialData.product_preferences || '')
-    }
-  }, [initialData])
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!supabase || !userId) {
-      console.error(
-        'UserPreferencesSettings: Supabase client or User ID not available.'
-      )
-      return
-    }
-    setSaving(true)
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: userId,
-        allergies: allergies,
-        product_preferences: productPreferences,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-
-    setSaving(false)
-    if (error) {
-      console.error('Error updating user preferences:', error)
-    } else {
-      console.log('User preferences updated successfully!')
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className='flex items-center'>
-          <CogIcon className='mr-2 h-5 w-5 text-blue-600' /> Laundry Preferences
-        </CardTitle>
-        <CardDescription>
-          Set your preferences for detergents, fabric softeners, and allergy
-          information.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className='space-y-4'>
-          <div>
-            <Label htmlFor='allergies'>Allergies and Sensitivities</Label>
-            {/* <Textarea
-              id="allergies"
-              value={allergies}
-              onChange={(e) => setAllergies(e.target.value)}
-              placeholder="e.g., sensitive to strong perfumes, allergic to specific brands"
-              rows={3}
-            /> */}
-            <textarea
-              id='allergies'
-              value={allergies}
-              onChange={(e) => setAllergies(e.target.value)}
-              placeholder='e.g., sensitive to strong perfumes, allergic to specific brands'
-              rows={3}
-              className='w-full rounded-md border p-2'
-            />
-          </div>
-          <div>
-            <Label htmlFor='productPreferences'>
-              Product and Detergent Preferences
-            </Label>
-            {/* <Textarea
-              id="productPreferences"
-              value={productPreferences}
-              onChange={(e) => setProductPreferences(e.target.value)}
-              placeholder="e.g., prefer non-bio, use eco-friendly softeners"
-              rows={3}
-            /> */}
-            <textarea
-              id='productPreferences'
-              value={productPreferences}
-              onChange={(e) => setProductPreferences(e.target.value)}
-              placeholder='e.g., prefer non-bio, use eco-friendly softeners'
-              rows={3}
-              className='w-full rounded-md border p-2'
-            />
-          </div>
-          <Button type='submit' className='w-full sm:w-auto' disabled={saving}>
-            {saving ? (
-              <Loader2Icon className='mr-2 h-4 w-4 animate-spin' />
-            ) : null}
-            {saving ? 'Saving...' : 'Save Laundry Preferences'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
 const ThemeSettings = () => (
   <Card>
     <CardHeader>
@@ -484,10 +373,8 @@ const EquipmentSettings = () => (
 )
 
 export default function SettingsPage() {
-  // No longer async, it's a client component
+  const supabase = createClient()
   const router = useRouter()
-  // const supabase = createClientComponentClient() // OLD - Remove this
-  const supabase = createClient() // NEW - Use the client from @/utils/supabase/client
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -497,55 +384,55 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      const { data: authData, error: authError } = await supabase.auth.getUser()
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
 
-      if (authError || !authData.user) {
-        console.error('SettingsPage: Auth error or no user', authError)
-        router.push('/signin?message=Please sign in to view settings.')
+      if (sessionError) {
+        console.error('Session error:', sessionError.message)
+        setLoading(false)
         return
       }
-      setUser(authData.user)
 
-      // Fetch all necessary profile fields
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(
-          'id, role, washer_status, first_name, last_name, phone_number, postcode, notification_preferences, allergies, product_preferences'
-        )
-        .eq('id', authData.user.id)
-        .single<ProfileData>() // Specify the expected return type
+      if (session?.user) {
+        setUser(session.user)
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle() // Use maybeSingle() instead of single()
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        // PGRST116: row not found, which is fine if new user
-        console.warn(
-          'SettingsPage: Profile not found or error fetching profile:',
-          profileError.message
-        )
-        // Profile might be null for a new user, this is handled by initialData checks in child components
-      }
-      setProfile(profileData) // profileData will be null if not found
+        if (profileError) {
+          console.error('Error fetching profile:', profileError)
+        } else {
+          // profileData will be null if no row is found, which is handled gracefully
+          setProfile(profileData)
+        }
 
-      if (profileData) {
-        setIsApprovedWasher(
-          profileData.role === 'washer' &&
-            profileData.washer_status === 'approved'
-        )
-        setUserRole(
-          profileData.role ||
-            authData.user.user_metadata?.selected_role ||
-            'user'
-        )
+        if (profileData) {
+          setIsApprovedWasher(
+            profileData.role === 'washer' &&
+              profileData.washer_status === 'approved'
+          )
+          setUserRole(
+            profileData.role ||
+              session.user.user_metadata?.selected_role ||
+              'user'
+          )
+        } else {
+          // If no profile, infer role from user_metadata if available, else default to 'user'
+          setUserRole(session.user.user_metadata?.selected_role || 'user')
+        }
       } else {
-        // If no profile, infer role from user_metadata if available, else default to 'user'
-        setUserRole(authData.user.user_metadata?.selected_role || 'user')
+        // No user session, redirect to signin
+        router.push('/signin')
       }
       setLoading(false)
     }
 
     fetchData()
-     
-  }, [supabase, router]) // Removed supabase and router from deps as they are stable for client component client
-  // If using a version of supabase client that might change, add it back. For createClientComponentClient, it's usually stable.
+  }, [supabase, router])
 
   if (loading) {
     return (
@@ -602,11 +489,7 @@ export default function SettingsPage() {
               initialPrefs={profile?.notification_preferences}
             />
             {userRole === 'user' && (
-              <UserPreferencesSettings
-                userId={user?.id}
-                supabase={supabase}
-                initialData={profile}
-              />
+              <></> // No longer showing UserPreferencesSettings here
             )}
             <ThemeSettings />
             <AccountSecuritySettings />

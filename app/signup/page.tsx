@@ -52,6 +52,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/signin?message=Thank you for confirming your email. You can now sign in.`,
         data: metadata, // Pass the constructed metadata
       },
     })

@@ -2,7 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Briefcase, Settings, Handshake } from 'lucide-react'
+import {
+  Home,
+  Briefcase,
+  Settings,
+  Handshake,
+  WashingMachine,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -13,6 +19,12 @@ interface SidebarProps {
 const navLinks = [
   { href: '/dashboard', label: 'Overview', icon: Home },
   { href: '/dashboard/referrals', label: 'Referrals', icon: Handshake },
+  {
+    href: '/dashboard/laundry-preferences',
+    label: 'Laundry Preferences',
+    icon: WashingMachine,
+    requiresRole: 'user',
+  },
   {
     href: '/dashboard/become-washer',
     label: 'Become a Washer',
@@ -44,6 +56,10 @@ export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
 
             // Conditional rendering for "Become a Washer"
             if (link.requiresNoRole === 'washer' && userRole === 'washer') {
+              return null
+            }
+            // Conditional rendering for links that require a specific role
+            if (link.requiresRole && userRole !== link.requiresRole) {
               return null
             }
 
