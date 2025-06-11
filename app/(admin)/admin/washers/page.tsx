@@ -24,7 +24,7 @@ export const dynamic = 'force-dynamic'
 const getBadgeVariant = (status: string) => {
   switch (status) {
     case 'approved':
-      return 'success'
+      return 'default'
     case 'pending_verification':
       return 'secondary'
     case 'rejected':
