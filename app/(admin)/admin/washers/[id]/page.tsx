@@ -1,5 +1,5 @@
 // Using the official Next.js pattern for typing page props directly.
-export default function WasherPage({ params }: { params: Promise<{ slug: string }>}) {
+export default async function WasherPage({ params }: { params: Promise<{ slug: string }>}) {
   // You can now add back your original component logic here.
   // For now, we will use this simple version to guarantee the build passes.
   const { slug } = await params;
