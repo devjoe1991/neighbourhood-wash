@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server_new'
 import { redirect } from 'next/navigation'
 import { getOrCreateReferralCode } from '@/lib/referral'
-import { Gift, Users, Award, Copy, Share2, UserPlus, Star } from 'lucide-react'
+import { Gift, Users, Award, Share2, UserPlus, Star } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { ReferralCodeDisplay } from '@/components/dashboard/ReferralCodeDisplay'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +18,11 @@ interface ReferralEvent {
   referred_user_id: string
   signup_timestamp: string
   status: 'joined' | 'first_wash_completed' | 'reward_issued'
+  profiles: {
+    first_name: string | null
+    last_name: string | null
+    email: string
+  } | null
 }
 
 export default async function ReferralsPage() {
@@ -35,14 +40,23 @@ export default async function ReferralsPage() {
 
   const { data: referralEvents } = await supabase
     .from('referral_events')
-    .select('*')
+    .select(
+      `
+      *,
+      profiles (
+        first_name,
+        last_name,
+        email
+      )
+    `
+    )
     .eq('referrer_user_id', user.id)
     .order('signup_timestamp', { ascending: false })
 
   const typedReferralEvents = (referralEvents || []) as ReferralEvent[]
   const referralCount = typedReferralEvents.length
   const rewardsEarned =
-    typedReferralEvents.filter((e) => e.status === 'reward_issued').length * 10 // Assuming £10 reward
+    typedReferralEvents.filter((e) => e.status === 'reward_issued').length * 5 // Assuming £5 reward
 
   return (
     <div className='space-y-8'>
@@ -61,27 +75,17 @@ export default async function ReferralsPage() {
               <Gift className='text-primary h-6 w-6' />
             </div>
             <div>
-              <CardTitle className='text-2xl'>Give 50% Off, Get £10</CardTitle>
+              <CardTitle className='text-2xl'>Give 50% Off, Get £5</CardTitle>
               <CardDescription>
                 Share your code to give friends 50% off their first wash, and
-                we&apos;ll give you £10 in credit.
+                we&apos;ll give you £5 in credit.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <p className='mb-3'>Your unique referral code:</p>
-          <div className='flex items-center space-x-2'>
-            <div className='border-primary/50 flex-grow rounded-lg border-2 border-dashed bg-white p-3 text-center'>
-              <p className='text-primary font-mono text-3xl tracking-widest'>
-                {userReferralCode || '...'}
-              </p>
-            </div>
-            <Button size='icon' variant='outline' disabled>
-              <Copy className='h-5 w-5' />
-              <span className='sr-only'>Copy Code (coming soon)</span>
-            </Button>
-          </div>
+          <ReferralCodeDisplay code={userReferralCode} />
         </CardContent>
       </Card>
 
@@ -153,7 +157,7 @@ export default async function ReferralsPage() {
             <div>
               <p className='font-semibold'>3. You Get Rewarded</p>
               <p className='text-muted-foreground text-sm'>
-                After their first wash is complete, we&apos;ll add £10 to your
+                After their first wash is complete, we&apos;ll add £5 to your
                 account credit.
               </p>
             </div>
@@ -190,8 +194,9 @@ export default async function ReferralsPage() {
                   typedReferralEvents.map((event) => (
                     <tr key={event.id}>
                       <td className='text-foreground px-6 py-4 text-sm font-medium whitespace-nowrap'>
-                        {/* In a real app, you might fetch the user's name or email */}
-                        A new friend!
+                        {event.profiles?.first_name ||
+                          event.profiles?.email ||
+                          'A new friend!'}
                       </td>
                       <td className='text-muted-foreground px-6 py-4 text-sm whitespace-nowrap'>
                         {new Date(event.signup_timestamp).toLocaleDateString()}

@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Clock,
   Award,
-  CheckCircle,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import {
@@ -136,47 +135,45 @@ export default function BecomeWasherPage() {
           </Card>
         )
       case 'approved':
-      case 'appoved': // Handle potential typo from DB
+      case 'appoved': // Handle soft-launch: approved means pending final review
         return (
           <div className='mx-auto w-full max-w-3xl'>
-            <Card className='overflow-hidden'>
-              <div className='bg-green-50 p-8 text-center'>
-                <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100'>
-                  <CheckCircle className='h-10 w-10 text-green-600' />
+            <Card className='overflow-hidden text-center'>
+              <CardHeader className='bg-yellow-50 p-8'>
+                <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100'>
+                  <Clock className='h-10 w-10 text-yellow-600' />
                 </div>
                 <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
-                  You&apos;re In! Welcome to the Neighbourhood!
+                  Application Pending Final Review
                 </h1>
                 <p className='mt-2 text-gray-600'>
-                  Congratulations! Your application is approved and you&apos;re
-                  ready to start earning.
+                  Our admin team is working hard to review your application in
+                  time for our full launch.
                 </p>
                 <div className='mt-4'>
                   <Badge
                     variant='outline'
-                    className='border-green-300 bg-green-200 text-green-800'
+                    className='border-yellow-300 bg-yellow-200 text-yellow-800'
                   >
-                    Approved
+                    Pending Review
                   </Badge>
                 </div>
-              </div>
-              <div className='p-8'>
+              </CardHeader>
+              <CardContent className='p-8'>
                 <h2 className='text-xl font-semibold text-gray-800'>
                   What&apos;s Next?
                 </h2>
                 <p className='mt-2 text-gray-600'>
-                  Your account is fully unlocked. The next step is to head over
-                  to your personal Washer Hub to set up your services, define
-                  your availability, and get ready for your first customer.
+                  You will be updated via email on your application status. Once
+                  we&apos;re ready for the full launch, you will gain access to
+                  your Washer Hub to set up your services and start earning.
                 </p>
-                <div className='mt-6 text-center'>
-                  <Button asChild size='lg'>
-                    <Link href='/dashboard/washer-hub'>
-                      Go to Your Washer Hub
-                    </Link>
+                <div className='mt-6'>
+                  <Button size='lg' disabled>
+                    Go to Your Washer Hub (Coming Soon)
                   </Button>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
         )
