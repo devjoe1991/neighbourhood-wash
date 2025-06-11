@@ -1,18 +1,19 @@
+// app/(admin)/admin/washers/[id]/page.tsx
+
 import React from 'react'
 
-// This is the known-good, correct type definition for this page.
-type WasherPageProps = {
+// Using a UNIQUE name to avoid all conflicts from other files.
+type SingleWasherPageProps = {
   params: {
     id: string
   }
 }
 
-// The component uses the correct type.
-export default function WasherPage({ params }: WasherPageProps) {
+// The component uses the new UNIQUE type name.
+export default function WasherPage({ params }: SingleWasherPageProps) {
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif' }}>
-      <h1>Washer Details Page</h1>
-      <p>This is a temporary, known-good component to break the build loop.</p>
+    <div style={{ padding: '40px', fontFamily: 'sans-serif', color: 'black' }}>
+      <h1>Washer Details: Final Fix Attempt</h1>
       <p>
         The ID for this washer is: <strong>{params.id}</strong>
       </p>
