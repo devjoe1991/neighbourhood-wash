@@ -1,171 +1,77 @@
 'use client'
 
 import Link from 'next/link'
-// import { createClient } from '@/utils/supabase/server_new' // Cannot use server client
-import { createBrowserClient } from '@supabase/ssr' // Example for client-side Supabase
-import { useEffect, useState } from 'react'
-import { type User } from '@supabase/supabase-js'
-import { X } from 'lucide-react' // For an optional close button
+import { usePathname } from 'next/navigation'
+import { Home, Briefcase, Settings, Handshake } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface SidebarProps {
-  closeSidebar?: () => void
+  userRole?: string | null
+  isMobile?: boolean
 }
 
-const Sidebar = ({ closeSidebar }: SidebarProps) => {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ) // Use client-side Supabase
-  const [_user, _setUser] = useState<User | null>(null)
-  const [isApprovedWasher, setIsApprovedWasher] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+const navLinks = [
+  { href: '/dashboard', label: 'Overview', icon: Home },
+  { href: '/dashboard/referrals', label: 'Referrals', icon: Handshake },
+  {
+    href: '/dashboard/become-washer',
+    label: 'Become a Washer',
+    icon: Briefcase,
+    requiresNoRole: 'washer',
+  },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+]
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      const { data: userData, error: authError } = await supabase.auth.getUser()
+export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
+  const pathname = usePathname()
 
-      if (authError) {
-        console.error('Sidebar: Auth error:', authError)
-        _setUser(null)
-        setIsApprovedWasher(false)
-        setIsLoading(false)
-        return
-      }
+  const baseClasses = 'flex h-full flex-col p-4 text-white'
+  const desktopClasses = 'bg-gray-800'
+  const mobileClasses = 'bg-gray-900' // Slightly darker for overlay
 
-      if (!userData.user) {
-        _setUser(null)
-        setIsApprovedWasher(false)
-        setIsLoading(false)
-        return
-      }
-
-      _setUser(userData.user)
-
-      // Fetch profile to check washer_status
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('washer_status, role')
-        .eq('id', userData.user.id)
-        .single()
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Sidebar: Error fetching profile:', profileError)
-      }
-
-      setIsApprovedWasher(
-        profile?.role === 'WASHER' && profile?.washer_status === 'approved'
-      )
-      setIsLoading(false)
-    }
-
-    fetchData()
-  }, [supabase])
-
-  // The className is now largely controlled by the parent DashboardLayout for show/hide.
-  // We keep base styling here.
   return (
-    <aside className='flex h-full w-full flex-col bg-gray-800 p-4 text-white'>
-      {/* Optional: Mobile header within sidebar with a close button */}
-      <div className='mb-4 flex items-center justify-between md:hidden'>
-        <h2 className='text-lg font-semibold'>Menu</h2>
-        {closeSidebar && (
-          <button
-            onClick={closeSidebar}
-            className='rounded p-1 text-white hover:bg-gray-700'
-          >
-            <X size={20} />
-          </button>
-        )}
+    <aside
+      className={cn(baseClasses, isMobile ? mobileClasses : desktopClasses)}
+    >
+      <div className='mb-6 flex items-center gap-3 px-2'>
+        <Briefcase className='h-8 w-8 text-blue-400' />
+        <span className='text-xl font-semibold'>My Dashboard</span>
       </div>
+      <nav className='flex-grow'>
+        <ul className='space-y-2'>
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href
 
-      {isLoading ? (
-        <div className='py-10 text-center'>Loading...</div>
-      ) : (
-        <nav className='mt-4 flex-grow'>
-          <ul>
-            <li className='mb-2'>
-              <Link
-                href='/dashboard'
-                className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                onClick={closeSidebar} // Close sidebar on link click for mobile
-              >
-                Overview
-              </Link>
-            </li>
-            {/* <li className="mb-2">
-              <Link href="/dashboard/bookings" className="block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300">
-                My Bookings
-              </Link>
-            </li> */}
-            <li className='mb-2'>
-              <Link
-                href='/dashboard/referrals'
-                className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                onClick={closeSidebar}
-              >
-                Referrals
-              </Link>
-            </li>
+            // Conditional rendering for "Become a Washer"
+            if (link.requiresNoRole === 'washer' && userRole === 'washer') {
+              return null
+            }
 
-            {/* Show "Become a Washer" if the user is not yet an approved washer */}
-            {!isApprovedWasher && (
-              <li className='mb-2'>
+            return (
+              <li key={link.href}>
                 <Link
-                  href='/dashboard/become-washer'
-                  className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                  onClick={closeSidebar}
+                  href={link.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-all hover:bg-gray-700 hover:text-white',
+                    {
+                      'bg-blue-600 text-white': isActive,
+                    }
+                  )}
                 >
-                  Become a Washer
+                  <link.icon className='h-5 w-5' />
+                  <span>{link.label}</span>
                 </Link>
               </li>
-            )}
-
-            {/* Example: Show Washer-specific links if they are an approved washer */}
-            {isApprovedWasher && (
-              <>
-                {/* <li className='mb-2'>
-                  <Link
-                    href='/dashboard/washer-hub' // Placeholder
-                    className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                  >
-                    Washer Hub
-                  </Link>
-                </li> */}
-                {/* <li className='mb-2'>
-                  <Link
-                    href='/dashboard/manage-services' // Placeholder
-                    className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                  >
-                    Manage Services
-                  </Link>
-                </li> */}
-              </>
-            )}
-
-            <li className='mb-2'>
-              <Link
-                href='/dashboard/settings'
-                className='block rounded px-2 py-1 hover:bg-gray-700 hover:text-blue-300'
-                onClick={closeSidebar}
-              >
-                Settings
-              </Link>
-            </li>
-            {/* Add more links as needed */}
-          </ul>
-        </nav>
-      )}
-
+            )
+          })}
+        </ul>
+      </nav>
       <div className='mt-auto'>
-        {' '}
-        {/* Pushes beta version to bottom */}
-        <p className='rounded bg-blue-600 p-2 text-center text-xs font-semibold text-white'>
-          Soft Launch - Beta Version
-        </p>
+        <div className='rounded-lg bg-gray-700 p-3 text-center text-sm'>
+          <p className='font-semibold'>Beta Version</p>
+          <p className='text-xs text-gray-400'>Soft Launch</p>
+        </div>
       </div>
     </aside>
   )
 }
-
-export default Sidebar

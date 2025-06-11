@@ -51,78 +51,72 @@ export default async function AdminUsersPage() {
   const users = await getUsers()
 
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <div className='mb-6 flex items-center justify-between'>
-        <h1 className='text-3xl font-bold text-gray-800 dark:text-white'>
-          User Management
-        </h1>
-        {/* TODO: Add New User button if applicable, or other actions */}
-        {/* <Button>Add New User</Button> */}
+    <div className='container mx-auto p-4'>
+      <div className='mb-8 text-center'>
+        <h1 className='text-3xl font-bold text-gray-800'>User Management</h1>
+        <p className='mb-4 text-gray-600'>
+          View and manage all registered users on the platform.
+        </p>
       </div>
 
-      <p className='mb-4 text-gray-600 dark:text-gray-300'>
-        View, edit, and manage user accounts on the platform. ({users.length}{' '}
-        users found)
-      </p>
-
       {users.length > 0 ? (
-        <div className='overflow-x-auto rounded-lg bg-white shadow dark:bg-gray-800'>
-          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
-            <thead className='bg-gray-50 dark:bg-gray-700'>
+        <div className='overflow-x-auto rounded-lg bg-white shadow'>
+          <table className='min-w-full divide-y divide-gray-200'>
+            <thead className='bg-gray-50'>
               <tr>
                 <th
                   scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
+                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
+                >
+                  Name
+                </th>
+                <th
+                  scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
                 >
                   Email
                 </th>
                 <th
                   scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
+                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
                 >
                   Role
                 </th>
                 <th
                   scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
+                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
                 >
                   Joined
                 </th>
                 <th
                   scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
-                >
-                  Last Sign In
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-300'
+                  className='px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase'
                 >
                   Status
                 </th>
                 <th scope='col' className='relative px-6 py-3'>
-                  <span className='sr-only'>Actions</span>
+                  <span className='sr-only'>Edit</span>
                 </th>
               </tr>
             </thead>
-            <tbody className='divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800'>
+            <tbody className='divide-y divide-gray-200 bg-white'>
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white'>
+                  <td className='px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900'>
                     {user.email || 'N/A'}
                   </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
+                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
                     {user.role}
                   </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
+                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
+                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
                     {user.last_sign_in_at
                       ? new Date(user.last_sign_in_at).toLocaleString()
                       : 'Never'}
                   </td>
-                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-300'>
+                  <td className='px-6 py-4 text-sm whitespace-nowrap text-gray-500'>
                     {user.email_confirmed_at ? (
                       <span className='text-green-500'>Verified</span>
                     ) : (
@@ -132,7 +126,7 @@ export default async function AdminUsersPage() {
                   <td className='px-6 py-4 text-right text-sm font-medium whitespace-nowrap'>
                     <a
                       href='#'
-                      className='text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200'
+                      className='text-indigo-600 hover:text-indigo-900'
                     >
                       Edit
                     </a>
@@ -144,11 +138,8 @@ export default async function AdminUsersPage() {
           </table>
         </div>
       ) : (
-        <div className='rounded-lg bg-white p-6 text-center shadow dark:bg-gray-800'>
-          <p className='text-gray-500 dark:text-gray-400'>
-            No users found. This could be due to an error fetching users or an
-            empty user list.
-          </p>
+        <div className='rounded-lg bg-white p-6 text-center shadow'>
+          <p className='text-gray-500'>No users found.</p>
         </div>
       )}
     </div>

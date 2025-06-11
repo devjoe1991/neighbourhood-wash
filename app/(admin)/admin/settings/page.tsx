@@ -2,60 +2,66 @@ import React from 'react'
 
 // TODO: Define structure for platform settings
 
-export default function AdminSettingsPage() {
+const AdminSettingsPage = () => {
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <h1 className='mb-6 text-3xl font-bold text-gray-800 dark:text-white'>
-        Platform Settings
-      </h1>
+    <div className='container mx-auto p-4 sm:p-6 lg:p-8'>
+      <div className='mb-8'>
+        <h1 className='mb-6 text-3xl font-bold text-gray-800'>
+          Admin Settings
+        </h1>
+        <p className='mb-8 text-gray-600'>
+          Manage global platform settings and configurations.
+        </p>
+      </div>
 
-      <p className='mb-8 text-gray-600 dark:text-gray-300'>
-        Manage global platform configurations, integrations, and other
-        administrative settings.
-      </p>
-
-      <div className='grid grid-cols-1 gap-8 md:grid-cols-2'>
-        {/* Placeholder for settings sections */}
-        <div className='rounded-lg bg-white p-6 shadow dark:bg-gray-800'>
-          <h2 className='mb-3 text-xl font-semibold text-gray-700 dark:text-white'>
+      <div className='space-y-8'>
+        {/* General Settings */}
+        <div className='rounded-lg bg-white p-6 shadow'>
+          <h2 className='mb-3 text-xl font-semibold text-gray-700'>
             General Settings
           </h2>
-          <p className='text-gray-500 dark:text-gray-400'>
-            Site name, contact information, maintenance mode, etc.
+          <p className='text-gray-500'>
+            Placeholder for general platform settings like site name, contact
+            info, etc.
           </p>
-          {/* TODO: Form fields for general settings */}
+          {/* TODO: Add form fields */}
         </div>
 
-        <div className='rounded-lg bg-white p-6 shadow dark:bg-gray-800'>
-          <h2 className='mb-3 text-xl font-semibold text-gray-700 dark:text-white'>
-            Referral Program
+        {/* Payment Gateway Settings */}
+        <div className='rounded-lg bg-white p-6 shadow'>
+          <h2 className='mb-3 text-xl font-semibold text-gray-700'>
+            Payment Gateway
           </h2>
-          <p className='text-gray-500 dark:text-gray-400'>
-            Configure referral bonuses, terms, etc.
+          <p className='text-gray-500'>
+            Configure Stripe or other payment gateway API keys and settings.
           </p>
-          {/* TODO: Form fields for referral settings */}
+          {/* TODO: Add form fields */}
         </div>
 
-        <div className='rounded-lg bg-white p-6 shadow dark:bg-gray-800'>
-          <h2 className='mb-3 text-xl font-semibold text-gray-700 dark:text-white'>
-            Content Management
+        {/* Commission Rate Settings */}
+        <div className='rounded-lg bg-white p-6 shadow'>
+          <h2 className='mb-3 text-xl font-semibold text-gray-700'>
+            Commission Rates
           </h2>
-          <p className='text-gray-500 dark:text-gray-400'>
-            Manage content for FAQs, landing pages, etc.
+          <p className='text-gray-500'>
+            Set the platform&apos;s commission fee on washer earnings.
           </p>
-          {/* TODO: Links or tools for content management */}
+          {/* TODO: Add form fields */}
         </div>
 
-        <div className='rounded-lg bg-white p-6 shadow dark:bg-gray-800'>
-          <h2 className='mb-3 text-xl font-semibold text-gray-700 dark:text-white'>
-            Security
+        {/* Other Admin Settings */}
+        <div className='rounded-lg bg-white p-6 shadow'>
+          <h2 className='mb-3 text-xl font-semibold text-gray-700'>
+            System Maintenance
           </h2>
-          <p className='text-gray-500 dark:text-gray-400'>
-            View audit logs, manage API keys (if any), etc.
+          <p className='text-gray-500'>
+            Actions like clearing cache, putting site in maintenance mode, etc.
           </p>
-          {/* TODO: Security related settings and logs */}
+          {/* TODO: Add buttons for actions */}
         </div>
       </div>
     </div>
   )
 }
+
+export default AdminSettingsPage
