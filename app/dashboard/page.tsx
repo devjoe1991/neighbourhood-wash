@@ -47,7 +47,7 @@ export default async function DashboardPage() {
             Welcome to Your Dashboard
           </h1>
           <p className='text-muted-foreground'>
-            Here's a quick overview of your account and available actions.
+            Here&apos;s a quick overview of your account and available actions.
           </p>
         </div>
       </div>
@@ -58,8 +58,8 @@ export default async function DashboardPage() {
           <Card className='flex flex-col'>
             <CardHeader>
               <div className='flex items-center space-x-3'>
-                <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
-                  <Rocket className='h-6 w-6 text-primary' />
+                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Rocket className='text-primary h-6 w-6' />
                 </div>
                 <div>
                   <CardTitle>Become a Washer</CardTitle>
@@ -127,7 +127,9 @@ export default async function DashboardPage() {
                   </div>
                   <div>
                     <CardTitle>Application Status</CardTitle>
-                    <CardDescription>Your application is in progress</CardDescription>
+                    <CardDescription>
+                      Your application is in progress
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -151,8 +153,8 @@ export default async function DashboardPage() {
         <Card className='flex flex-col'>
           <CardHeader>
             <div className='flex items-center space-x-3'>
-              <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
-                <HelpCircle className='h-6 w-6 text-primary' />
+              <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
+                <HelpCircle className='text-primary h-6 w-6' />
               </div>
               <div>
                 <CardTitle>How It Works</CardTitle>
@@ -179,8 +181,8 @@ export default async function DashboardPage() {
         <Card className='flex flex-col'>
           <CardHeader>
             <div className='flex items-center space-x-3'>
-              <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10'>
-                <User className='h-6 w-6 text-primary' />
+              <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
+                <User className='text-primary h-6 w-6' />
               </div>
               <div>
                 <CardTitle>Account Settings</CardTitle>
@@ -204,7 +206,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className='text-center text-sm text-muted-foreground'>
+      <div className='text-muted-foreground text-center text-sm'>
         <p>
           Signed in as {user.email}.
           <br />
