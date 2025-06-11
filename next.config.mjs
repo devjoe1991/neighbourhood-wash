@@ -23,8 +23,12 @@ const nextConfig = {
       // },
     ],
   },
-  webpack: (config) => {
+  // Exclude supabase/functions from build
+  webpack: (config, { isServer }) => {
     config.externals = [...config.externals, "@node-rs/argon2", "@node-rs/bcrypt"];
+    if (!isServer) {
+      config.resolve.alias['supabase/functions'] = false;
+    }
     return config;
   },
 };
