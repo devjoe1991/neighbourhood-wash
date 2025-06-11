@@ -52,8 +52,51 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Exciting Welcome Message */}
+      <div className='rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-6 text-center shadow-sm'>
+        <h2 className='text-2xl font-bold text-blue-800'>
+          Welcome to the laundry revolution!
+        </h2>
+        <p className='text-muted-foreground mt-2'>
+          Thank you for joining early. You are helping to shape the future of
+          laundry.
+        </p>
+      </div>
+
       <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-        {/* Card for Becoming a Washer */}
+        {/* Card for Setting Laundry Preferences (for Users) */}
+        {!isWasher && (
+          <Card className='flex flex-col'>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Rocket className='text-primary h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle>Set Your Laundry Preferences</CardTitle>
+                  <CardDescription>
+                    Get ready for our full launch!
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p>
+                Tell us about your allergies and product choices now so
+                we&apos;re ready to match you with the perfect Washer.
+              </p>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button asChild className='w-full'>
+                <Link href='/dashboard/laundry-preferences'>
+                  Set Preferences
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Card for Becoming a Washer - Now shown as a secondary option for users */}
         {!isWasher && (
           <Card className='flex flex-col'>
             <CardHeader>
@@ -71,12 +114,12 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className='flex-grow'>
               <p>
-                Join our community of trusted locals. Click here to start the
-                application process or check on your status.
+                Interested in earning? Join our community of trusted locals.
+                Start the application process here.
               </p>
             </CardContent>
             <div className='p-6 pt-0'>
-              <Button asChild className='w-full'>
+              <Button asChild className='w-full' variant='secondary'>
                 <Link href='/dashboard/become-washer'>
                   {washerStatus
                     ? 'Check Application Status'
