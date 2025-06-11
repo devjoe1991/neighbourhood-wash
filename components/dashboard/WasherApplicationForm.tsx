@@ -30,6 +30,13 @@ import {
   PartyPopper,
 } from 'lucide-react'
 import { applyToBeWasher } from '@/app/auth/actions' // We will create this server action
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 // Define Zod schema for validation
 const formSchema = z.object({
@@ -38,6 +45,7 @@ const formSchema = z.object({
   service_address: z
     .string()
     .min(10, 'Please enter a complete service address'),
+  borough: z.string().min(1, 'Please select your borough'),
 
   // Step 2
   service_offerings: z
@@ -68,7 +76,7 @@ const steps = [
     id: 'personal',
     title: 'Your Details',
     icon: <User className='h-5 w-5' />,
-    fields: ['phone_number', 'service_address'],
+    fields: ['phone_number', 'service_address', 'borough'],
   },
   {
     id: 'services',
@@ -87,6 +95,42 @@ const steps = [
     icon: <ClipboardCheck className='h-5 w-5' />,
     fields: ['equipment_details', 'washer_bio'],
   },
+]
+
+const londonBoroughs = [
+  'Barking and Dagenham',
+  'Barnet',
+  'Bexley',
+  'Brent',
+  'Bromley',
+  'Camden',
+  'City of London',
+  'Croydon',
+  'Ealing',
+  'Enfield',
+  'Greenwich',
+  'Hackney',
+  'Hammersmith and Fulham',
+  'Haringey',
+  'Harrow',
+  'Havering',
+  'Hillingdon',
+  'Hounslow',
+  'Islington',
+  'Kensington and Chelsea',
+  'Kingston upon Thames',
+  'Lambeth',
+  'Lewisham',
+  'Merton',
+  'Newham',
+  'Redbridge',
+  'Richmond upon Thames',
+  'Southwark',
+  'Sutton',
+  'Tower Hamlets',
+  'Waltham Forest',
+  'Wandsworth',
+  'Westminster',
 ]
 
 // NOTE: This will be a large component.
@@ -117,6 +161,7 @@ export default function WasherApplicationForm({
     defaultValues: {
       phone_number: user?.phone || '',
       service_address: '',
+      borough: '',
       service_offerings: [],
       offers_collection: false,
       equipment_details: '',
@@ -228,6 +273,29 @@ export default function WasherApplicationForm({
                   Your full address will not be public. We use it for
                   verification and to show your general area to users.
                 </p>
+              </div>
+              <div>
+                <Label htmlFor='borough'>Borough</Label>
+                <Select
+                  onValueChange={(value) => setValue('borough', value)}
+                  defaultValue={getValues('borough')}
+                >
+                  <SelectTrigger id='borough'>
+                    <SelectValue placeholder='Select your borough' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {londonBoroughs.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.borough && (
+                  <p className='mt-1 text-sm text-red-600'>
+                    {errors.borough.message}
+                  </p>
+                )}
               </div>
             </div>
           )}

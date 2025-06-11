@@ -14,6 +14,13 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 // import { Textarea } from '@/components/ui/textarea' // Commented out due to linter error
 // import { Checkbox } from '@/components/ui/checkbox' // Commented out due to linter error
 import { Button } from '@/components/ui/button'
@@ -44,7 +51,44 @@ interface ProfileData {
   role?: string | null // Existing field from previous logic
   washer_status?: string | null // Existing field from previous logic
   email?: string | null
+  borough?: string | null
 }
+
+const londonBoroughs = [
+  'Barking and Dagenham',
+  'Barnet',
+  'Bexley',
+  'Brent',
+  'Bromley',
+  'Camden',
+  'City of London',
+  'Croydon',
+  'Ealing',
+  'Enfield',
+  'Greenwich',
+  'Hackney',
+  'Hammersmith and Fulham',
+  'Haringey',
+  'Harrow',
+  'Havering',
+  'Hillingdon',
+  'Hounslow',
+  'Islington',
+  'Kensington and Chelsea',
+  'Kingston upon Thames',
+  'Lambeth',
+  'Lewisham',
+  'Merton',
+  'Newham',
+  'Redbridge',
+  'Richmond upon Thames',
+  'Southwark',
+  'Sutton',
+  'Tower Hamlets',
+  'Waltham Forest',
+  'Wandsworth',
+  'Westminster',
+]
 
 // User Profile Settings Form
 const UserProfileSettings = ({
@@ -62,6 +106,7 @@ const UserProfileSettings = ({
   const [lastName, setLastName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [postcode, setPostcode] = useState('')
+  const [borough, setBorough] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -70,6 +115,7 @@ const UserProfileSettings = ({
       setLastName(initialData.last_name || '')
       setPhoneNumber(initialData.phone_number || '')
       setPostcode(initialData.postcode || '')
+      setBorough(initialData.borough || '')
     }
   }, [initialData])
 
@@ -91,6 +137,7 @@ const UserProfileSettings = ({
         last_name: lastName,
         phone_number: phoneNumber,
         postcode: postcode,
+        borough: borough,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId) // Though upsert with ID should handle it, eq is good for clarity on intent.
@@ -162,14 +209,31 @@ const UserProfileSettings = ({
               placeholder='Enter your phone number'
             />
           </div>
-          <div>
-            <Label htmlFor='postcode'>Postcode</Label>
-            <Input
-              id='postcode'
-              value={postcode}
-              onChange={(e) => setPostcode(e.target.value)}
-              placeholder='Enter your postcode'
-            />
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+            <div>
+              <Label htmlFor='postcode'>Postcode</Label>
+              <Input
+                id='postcode'
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder='Enter your postcode'
+              />
+            </div>
+            <div>
+              <Label htmlFor='borough'>Borough</Label>
+              <Select value={borough} onValueChange={setBorough}>
+                <SelectTrigger id='borough'>
+                  <SelectValue placeholder='Select your borough' />
+                </SelectTrigger>
+                <SelectContent>
+                  {londonBoroughs.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Button type='submit' className='w-full sm:w-auto' disabled={saving}>
             {saving ? (
