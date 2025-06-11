@@ -15,6 +15,7 @@ import {
   HelpCircle,
   ClipboardList,
   LayoutGrid,
+  WashingMachine,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -34,9 +35,10 @@ export default async function DashboardPage() {
     .from('profiles')
     .select('role, washer_status')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const isWasher = profile?.role === 'washer'
+  const userRole = profile?.role || user.user_metadata?.selected_role
+  const isWasher = userRole === 'washer'
   const washerStatus = profile?.washer_status
 
   return (
@@ -51,6 +53,15 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {userRole && (
+        <div className='rounded-md border border-blue-200 bg-blue-50 p-4'>
+          <p className='text-sm font-semibold text-blue-800'>
+            You are currently viewing the dashboard as a{' '}
+            <span className='font-bold capitalize'>{userRole}</span>.
+          </p>
+        </div>
+      )}
 
       {/* Exciting Welcome Message */}
       <div className='rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-6 text-center shadow-sm'>
@@ -70,7 +81,7 @@ export default async function DashboardPage() {
             <CardHeader>
               <div className='flex items-center space-x-3'>
                 <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
-                  <Rocket className='text-primary h-6 w-6' />
+                  <WashingMachine className='text-primary h-6 w-6' />
                 </div>
                 <div>
                   <CardTitle>Set Your Laundry Preferences</CardTitle>

@@ -24,9 +24,10 @@ export default async function DashboardLayout({
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const userRole = profile?.role
+  // Robust role detection, falling back to metadata set at signup
+  const userRole = profile?.role || user.user_metadata?.selected_role
 
   return (
     <div className='min-h-screen bg-gray-100'>
