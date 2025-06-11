@@ -16,6 +16,11 @@ import { updateApplicationStatus } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
+type PageProps = {
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
 type ApplicationStatus = 'approved' | 'pending_verification' | 'rejected'
 
 type ApplicationData = {
@@ -39,10 +44,10 @@ type ApplicationData = {
 
 const getBadgeVariant = (
   status: ApplicationStatus
-): 'success' | 'secondary' | 'destructive' | 'outline' => {
+): 'default' | 'secondary' | 'destructive' | 'outline' => {
   switch (status) {
     case 'approved':
-      return 'success'
+      return 'default'
     case 'pending_verification':
       return 'secondary'
     case 'rejected':
@@ -70,11 +75,7 @@ const DetailRow = ({
   </div>
 )
 
-export default async function ApplicationDetailPage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default async function ApplicationDetailPage({ params }: PageProps) {
   const supabase = createClient()
   const applicationId = params.id
 
