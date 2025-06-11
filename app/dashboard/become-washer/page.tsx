@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Clock,
   Award,
+  CheckCircle,
 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import {
@@ -28,6 +29,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { startWasherApplicationProcess } from '@/app/auth/actions'
+import { Badge } from '@/components/ui/badge'
 
 // Note: We convert this to a client component to manage the state
 // of showing/hiding the full application form.
@@ -132,6 +134,51 @@ export default function BecomeWasherPage() {
               </Button>
             </CardContent>
           </Card>
+        )
+      case 'approved':
+      case 'appoved': // Handle potential typo from DB
+        return (
+          <div className='mx-auto w-full max-w-3xl'>
+            <Card className='overflow-hidden'>
+              <div className='bg-green-50 p-8 text-center'>
+                <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100'>
+                  <CheckCircle className='h-10 w-10 text-green-600' />
+                </div>
+                <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
+                  You&apos;re In! Welcome to the Neighbourhood!
+                </h1>
+                <p className='mt-2 text-gray-600'>
+                  Congratulations! Your application is approved and you&apos;re
+                  ready to start earning.
+                </p>
+                <div className='mt-4'>
+                  <Badge
+                    variant='outline'
+                    className='border-green-300 bg-green-200 text-green-800'
+                  >
+                    Approved
+                  </Badge>
+                </div>
+              </div>
+              <div className='p-8'>
+                <h2 className='text-xl font-semibold text-gray-800'>
+                  What&apos;s Next?
+                </h2>
+                <p className='mt-2 text-gray-600'>
+                  Your account is fully unlocked. The next step is to head over
+                  to your personal Washer Hub to set up your services, define
+                  your availability, and get ready for your first customer.
+                </p>
+                <div className='mt-6 text-center'>
+                  <Button asChild size='lg'>
+                    <Link href='/dashboard/washer-hub'>
+                      Go to Your Washer Hub
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
         )
       case 'pending_verification':
         return (
