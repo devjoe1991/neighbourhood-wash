@@ -13,7 +13,8 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
-      "@next/next/no-duplicate-head": "off"
+      "@next/next/no-duplicate-head": "off",
+      "react/no-unescaped-entities": "off"
     }
   },
   {
