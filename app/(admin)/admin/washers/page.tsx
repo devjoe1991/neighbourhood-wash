@@ -15,8 +15,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -40,11 +38,13 @@ interface Application {
   id: string
   created_at: string
   status: string
-  profiles: {
-    first_name: string | null
-    last_name: string | null
-    email: string | null
-  }[] | null
+  profiles:
+    | {
+        first_name: string | null
+        last_name: string | null
+        email: string | null
+      }[]
+    | null
 }
 
 async function getWasherApplications(): Promise<Application[]> {
