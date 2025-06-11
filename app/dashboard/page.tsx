@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
+      <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
         {/* Card for Setting Laundry Preferences (for Users) */}
         {!isWasher && (
           <Card className='flex flex-col'>

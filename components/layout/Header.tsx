@@ -30,7 +30,8 @@ export default function Header({ user }: HeaderProps) {
         <div className='flex h-16 items-center justify-between'>
           <div className='flex items-center'>
             <Link href='/' className='text-2xl font-bold text-blue-600'>
-              Neighbourhood Wash
+              <span className='hidden sm:inline'>Neighbourhood Wash</span>
+              <span className='sm:hidden'>NW</span>
             </Link>
           </div>
           <nav className='hidden space-x-1 md:flex lg:space-x-2'>
