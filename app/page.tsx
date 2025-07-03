@@ -15,11 +15,7 @@ import {
   PlayCircle,
   Sparkles,
   Users,
-  Shield,
-  MessageCircle,
   MapPin,
-  Clock,
-  Smartphone,
   Heart,
   PiggyBank,
   BadgeCheck,
@@ -32,8 +28,8 @@ import {
   Wind,
 } from 'lucide-react'
 import { SearchCategoryCard, LocationLinks } from '@/components/ui/search-cards'
-import { FeatureCard } from '@/components/ui/modern-card'
 import { CategoryLinkCard, ActionCard } from '@/components/ui/promo-cards'
+import CircularFeatures from '@/components/ui/CircularFeatures'
 
 const testimonials = [
   {
@@ -168,7 +164,7 @@ export default function HomePage() {
               </div>
             </div>
             <div>
-              <h3 className='font-bold text-gray-900'>The Whole Market</h3>
+              <h3 className='font-bold text-gray-900'>Your Whole Borough</h3>
               <p className='text-sm text-gray-600'>
                 Search every registered Washer in your area.
               </p>
@@ -198,10 +194,10 @@ export default function HomePage() {
               bgColor='bg-yellow-100'
             />
             <ActionCard
-              title='Free Expert Support'
-              description='Our support team is here to help you find the perfect Washer and ensure a seamless experience.'
-              ctaText='Contact Support'
-              ctaLink='/contact'
+              title='Natural & Hypoallergenic'
+              description='Many of our Washers offer services using natural, eco-friendly, and hypoallergenic products. Find the perfect match for your needs.'
+              ctaText='Find Specialist Washers'
+              ctaLink='/dashboard'
               bgColor='bg-blue-100'
             />
           </div>
@@ -254,7 +250,7 @@ export default function HomePage() {
       </ModernSection>
 
       {/* Why Community Loves Us Section */}
-      <ModernSection background='gray' padding='lg'>
+      <ModernSection background='white' padding='lg' className='border-t'>
         <SectionHeader
           title='Why Our Community Loves Us'
           description="Proudly rated 'Excellent' on Trustpilot, Neighbourhood Wash is creating cleaner, more connected communities."
@@ -283,31 +279,31 @@ export default function HomePage() {
           {/* Right Column: Benefits Grid */}
           <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-2'>
             <BenefitCard
-              icon={<CalendarCheck className='h-8 w-8 text-pink-500' />}
+              icon={<CalendarCheck className='h-8 w-8 text-blue-600' />}
               title='Instant Availability'
               description='Our search engine allows you to find washers with immediate availability.'
             />
             <BenefitCard
-              icon={<Star className='h-8 w-8 text-pink-500' />}
+              icon={<Star className='h-8 w-8 text-blue-600' />}
               title='5-Star Community Support'
               description='Need a helping hand? Benefit from free guides and on-demand support from our team.'
             />
             <BenefitCard
-              icon={<PoundSterling className='h-8 w-8 text-pink-500' />}
+              icon={<PoundSterling className='h-8 w-8 text-blue-600' />}
               title='Pricing Transparency'
               description='Benefit from full transparency with detailed pricing information for every service listed.'
             />
             <BenefitCard
-              icon={<Filter className='h-8 w-8 text-pink-500' />}
+              icon={<Filter className='h-8 w-8 text-blue-600' />}
               title='Advanced Search Filters'
               description='On a budget? Have a pet? Our filters allow you to quickly find the perfect washer.'
             />
             <BenefitCard
-              icon={<Home className='h-8 w-8 text-pink-500' />}
+              icon={<Home className='h-8 w-8 text-blue-600' />}
               title='The Whole Neighbourhood'
-              description='Confidently search the whole market including every registered washer in your area.'
+              description='Confidently search your whole borough including every registered washer in your area.'
             />
-            <div className='flex flex-col items-center justify-center rounded-2xl bg-pink-100 p-8 text-center'>
+            <div className='flex flex-col items-center justify-center rounded-2xl bg-blue-100 p-8 text-center'>
               <h3 className='mb-4 text-2xl font-bold text-gray-900'>
                 Find the perfect wash today!
               </h3>
@@ -356,79 +352,14 @@ export default function HomePage() {
         </div>
       </ModernSection>
 
-      {/* Trust & Security Section */}
-      <ModernSection background='white' padding='lg'>
-        <SectionHeader
-          subtitle='Quality Assured'
-          title='Your safety and satisfaction matter'
-          description="We've built multiple layers of trust and security into our platform."
-        />
-        <div className='grid gap-8 md:grid-cols-3'>
-          <FeatureCard
-            icon={<Shield className='h-8 w-8' />}
-            title='Verified Washers'
-            description='Every Washer goes through our comprehensive vetting process including background checks and references.'
-            iconBgColor='bg-blue-50'
-            iconColor='text-blue-600'
-          />
-          <FeatureCard
-            icon={<Star className='h-8 w-8' />}
-            title='Quality Guaranteed'
-            description='Our rating system ensures consistent quality. Washers are motivated to provide excellent service.'
-            iconBgColor='bg-yellow-50'
-            iconColor='text-yellow-600'
-          />
-          <FeatureCard
-            icon={<MessageCircle className='h-8 w-8' />}
-            title='Secure Communication'
-            description='Built-in messaging system with PIN verification for safe handovers and clear communication.'
-            iconBgColor='bg-green-50'
-            iconColor='text-green-600'
-          />
-        </div>
-      </ModernSection>
-
-      {/* Features Grid */}
+      {/* NEW Combined Features Section */}
       <ModernSection background='gradient' padding='lg'>
         <SectionHeader
-          subtitle='Platform Features'
+          subtitle='One Platform, Every Feature'
           title='Everything you need for seamless laundry'
-          description='Our platform is designed with modern features to make laundry simple and stress-free.'
+          description='Our platform is designed with modern features to make laundry simple, secure, and stress-free for everyone involved.'
         />
-
-        <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-4'>
-          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
-            <MapPin className='mx-auto mb-4 h-10 w-10 text-blue-600' />
-            <h3 className='mb-2 font-semibold text-gray-900'>Location-Based</h3>
-            <p className='text-sm text-gray-600'>Find Washers near you</p>
-          </div>
-
-          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
-            <Clock className='mx-auto mb-4 h-10 w-10 text-green-600' />
-            <h3 className='mb-2 font-semibold text-gray-900'>
-              Real-Time Booking
-            </h3>
-            <p className='text-sm text-gray-600'>
-              Instant availability checking
-            </p>
-          </div>
-
-          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
-            <Smartphone className='mx-auto mb-4 h-10 w-10 text-purple-600' />
-            <h3 className='mb-2 font-semibold text-gray-900'>
-              Mobile Friendly
-            </h3>
-            <p className='text-sm text-gray-600'>Book on any device</p>
-          </div>
-
-          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
-            <Heart className='mx-auto mb-4 h-10 w-10 text-red-500' />
-            <h3 className='font-semibled mb-2 text-gray-900'>
-              Community First
-            </h3>
-            <p className='text-sm text-gray-600'>Built for neighbours</p>
-          </div>
-        </div>
+        <CircularFeatures />
       </ModernSection>
 
       {/* Search By Needs Section */}
@@ -439,7 +370,7 @@ export default function HomePage() {
         />
         <div className='mb-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4'>
           <SearchCategoryCard
-            icon={<Sparkles className='h-20 w-20 text-pink-500' />}
+            icon={<Sparkles className='h-20 w-20 text-blue-600' />}
             title='Special Care'
             description='For delicate items'
             infoText='What is special care?'

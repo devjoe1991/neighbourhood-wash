@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ModernCard } from '@/components/ui/modern-card'
 
 interface CategoryLinkCardProps {
   title: string
@@ -16,15 +15,15 @@ export function CategoryLinkCard({
   className,
 }: CategoryLinkCardProps) {
   return (
-    <Link href={href} className='group block'>
-      <ModernCard
-        hover
-        padding='lg'
-        className={cn('flex items-center justify-between', className)}
-      >
-        <span className='font-semibold text-gray-800'>{title}</span>
-        <ArrowRight className='h-5 w-5 text-pink-500 transition-transform group-hover:translate-x-1' />
-      </ModernCard>
+    <Link
+      href={href}
+      className={cn(
+        'group flex items-center justify-between rounded-2xl border bg-white p-6 shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.06)]',
+        className
+      )}
+    >
+      <span className='font-semibold text-gray-800'>{title}</span>
+      <ArrowRight className='h-5 w-5 text-blue-600 transition-transform group-hover:translate-x-1' />
     </Link>
   )
 }
