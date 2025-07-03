@@ -1,308 +1,516 @@
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { ModernHero } from '@/components/ui/modern-hero'
+import { ModernSection, SectionHeader } from '@/components/ui/modern-section'
+import { TestimonialCard } from '@/components/ui/testimonial-card'
+import { BenefitCard } from '@/components/ui/benefit-card'
 import {
   ArrowRight,
-  ShieldCheck,
-  HeartHandshake,
-  Leaf,
-  Search,
-  Calendar,
-  Sparkles,
+  CalendarCheck,
+  Filter,
+  Home,
   PoundSterling,
+  Star,
+  PlayCircle,
+  Sparkles,
   Users,
+  Shield,
+  MessageCircle,
+  MapPin,
+  Clock,
+  Smartphone,
+  Heart,
+  PiggyBank,
+  BadgeCheck,
+  Check,
+  ThumbsUp,
+  HeartHandshake,
+  ShieldCheck,
+  Leaf,
+  Award,
+  Wind,
 } from 'lucide-react'
+import { SearchCategoryCard, LocationLinks } from '@/components/ui/search-cards'
+import { FeatureCard } from '@/components/ui/modern-card'
+import { CategoryLinkCard, ActionCard } from '@/components/ui/promo-cards'
 
-function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns='http://www.w3.org/2000/svg'
-      width='24'
-      height='24'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
-      <polyline points='20 6 9 17 4 12' />
-    </svg>
-  )
-}
+const testimonials = [
+  {
+    review:
+      "I really didn't know where to turn a few days ago but now I'm so hopeful. Found a local washer in minutes!",
+    author: 'Cat, Islington',
+    rating: 5,
+  },
+  {
+    review:
+      'A fantastic service which I would highly recommend. My clothes came back perfect.',
+    author: 'Nikki, Hackney',
+    rating: 5,
+  },
+  {
+    review:
+      'Honestly, this service is a godsend! So convenient and affordable.',
+    author: 'Martin, Camden',
+    rating: 5,
+  },
+  {
+    review:
+      'As a washer, this has been a great way to earn extra income. The app is so easy to use.',
+    author: 'Sarah B (Washer)',
+    rating: 5,
+  },
+]
+
+const locations = [
+  { name: 'Washers in Islington', href: '#' },
+  { name: 'Washers in Hackney', href: '#' },
+  { name: 'Washers in Camden', href: '#' },
+  { name: 'Washers in Tower Hamlets', href: '#' },
+  { name: 'Washers in Lambeth', href: '#' },
+  { name: 'Washers in Southwark', href: '#' },
+  { name: 'Washers in Lewisham', href: '#' },
+  { name: 'Washers in Greenwich', href: '#' },
+]
 
 export default function HomePage() {
   return (
-    <div className='bg-white text-gray-800'>
-      {/* Hero Section */}
-      <section className='relative bg-gradient-to-br from-blue-50 to-indigo-100 pt-16 pb-20 md:pt-28 md:pb-32'>
-        <div className='container mx-auto px-4 text-center'>
-          <div className='mb-6'>
-            <Link href='/signup' passHref>
-              <span className='bg-opacity-50 inline-block rounded-full bg-blue-200 px-4 py-2 text-sm font-semibold text-blue-800 transition-transform hover:scale-105 hover:bg-blue-200'>
-                🚀 Soft Launch Now Live! Join the revolution &rarr;
-              </span>
-            </Link>
-          </div>
-          <h1 className='text-4xl font-extrabold tracking-tighter text-gray-900 sm:text-5xl md:text-6xl lg:text-7xl'>
-            The Future of Laundry is{' '}
+    <div className='bg-white'>
+      {/* Modern Hero Section */}
+      <ModernHero
+        title={
+          <>
+            Find trusted laundry help in your{' '}
             <span className='bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
-              Local.
+              neighbourhood
             </span>
-          </h1>
-          <p className='mx-auto mt-6 max-w-2xl text-lg text-gray-600 md:text-xl'>
-            Get your laundry done by a trusted neighbour, or earn by sharing
-            your washer. Simple, affordable, and eco-friendly.
-          </p>
-          <div className='mt-10 flex flex-col justify-center gap-4 sm:flex-row'>
+          </>
+        }
+        subtitle='Connect with verified local Washers for convenient, affordable laundry services. Or become a Washer and earn extra income from your laundry facilities.'
+        showSearch={true}
+        ctaButtons={
+          <>
             <Button
               asChild
               size='lg'
-              className='bg-blue-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-blue-700'
+              className='rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl'
             >
               <Link href='/signup?role=user'>
-                Find a Washer <ArrowRight className='ml-2 h-5 w-5' />
+                Find a Washer
+                <ArrowRight className='ml-2 h-5 w-5' />
               </Link>
             </Button>
             <Button
               asChild
               size='lg'
               variant='outline'
-              className='border-2 border-blue-600 bg-white text-blue-600 shadow-lg transition-transform hover:scale-105 hover:bg-blue-50'
+              className='rounded-xl border-2 border-blue-600 px-8 py-4 text-base font-semibold text-blue-600 shadow-lg transition-all duration-300 hover:bg-blue-50 hover:shadow-xl'
             >
               <Link href='/signup?role=washer'>
-                Become a Washer <ArrowRight className='ml-2 h-5 w-5' />
+                Become a Washer
+                <ArrowRight className='ml-2 h-5 w-5' />
               </Link>
             </Button>
-          </div>
-        </div>
-        <div
-          aria-hidden='true'
-          className='absolute inset-x-0 top-0 z-0 h-48 bg-gradient-to-b from-blue-100 to-transparent'
-        />
-      </section>
+          </>
+        }
+      />
 
-      {/* How It Works Section */}
-      <section className='py-16 sm:py-20 md:py-24'>
-        <div className='container mx-auto px-4'>
-          <div className='mb-12 text-center'>
-            <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
-              Three Simple Steps
-            </h2>
-            <p className='mx-auto mt-4 max-w-2xl text-lg text-gray-600'>
-              Laundry day has never been this easy.
-            </p>
-          </div>
-          <div className='grid gap-8 md:grid-cols-3'>
-            <div className='text-center'>
-              <div className='mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
-                <Search className='h-8 w-8' />
+      {/* Key Benefits Bar */}
+      <ModernSection
+        background='light-blue'
+        padding='sm'
+        className='border-y border-gray-200/75'
+      >
+        <div className='grid gap-8 md:grid-cols-3'>
+          <div className='flex items-center gap-4'>
+            <div className='relative flex-shrink-0'>
+              <PiggyBank className='h-10 w-10 text-gray-700' strokeWidth={1} />
+              <div className='absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-blue-50 bg-pink-500'>
+                <Check className='h-3 w-3 text-white' strokeWidth={3} />
               </div>
-              <h3 className='text-xl font-semibold'>1. Find a Local Washer</h3>
-              <p className='mt-2 text-gray-600'>
-                Browse trusted washers in your neighbourhood.
-              </p>
             </div>
-            <div className='text-center'>
-              <div className='mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
-                <Calendar className='h-8 w-8' />
-              </div>
-              <h3 className='text-xl font-semibold'>2. Book a Time</h3>
-              <p className='mt-2 text-gray-600'>
-                Pick a slot that works for you, and for them.
-              </p>
-            </div>
-            <div className='text-center'>
-              <div className='mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
-                <Sparkles className='h-8 w-8' />
-              </div>
-              <h3 className='text-xl font-semibold'>3. Enjoy Fresh Laundry</h3>
-              <p className='mt-2 text-gray-600'>
-                Drop off your clothes and pick them up clean!
+            <div>
+              <h3 className='font-bold text-gray-900'>
+                Availability & Pricing
+              </h3>
+              <p className='text-sm text-gray-600'>
+                Confirmed availability and detailed pricing.
               </p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Dual Benefit Section */}
-      <section className='bg-gray-50 py-16 sm:py-20 md:py-24'>
-        <div className='container mx-auto px-4'>
-          <div className='grid gap-12 md:grid-cols-2'>
-            {/* For Users */}
-            <div className='h-full rounded-xl bg-white p-8 shadow-lg'>
-              <div className='mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600'>
-                <Users className='h-7 w-7' />
+          <div className='flex items-center gap-4'>
+            <div className='relative flex-shrink-0'>
+              <BadgeCheck className='h-10 w-10 text-gray-700' strokeWidth={1} />
+              <div className='absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-blue-50 bg-pink-500'>
+                <ThumbsUp
+                  className='h-3 w-3 text-white'
+                  strokeWidth={2}
+                  fill='white'
+                />
               </div>
-              <h3 className='text-2xl font-bold'>For Laundry Lovers</h3>
-              <p className='mt-2 text-gray-600'>
-                Enjoy a seamless laundry experience with a neighbourly touch.
-              </p>
-              <ul className='mt-6 space-y-4 text-gray-700'>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
-                  <span>
-                    <strong>Convenience:</strong> Find help next door,
-                    especially when your machine fails.
-                  </span>
-                </li>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
-                  <span>
-                    <strong>Affordable:</strong> Save money compared to
-                    traditional laundry services.
-                  </span>
-                </li>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-green-500' />
-                  <span>
-                    <strong>Community:</strong> Support your neighbours and
-                    build local connections.
-                  </span>
-                </li>
-              </ul>
             </div>
-            {/* For Washers */}
-            <div className='h-full rounded-xl bg-white p-8 shadow-lg'>
-              <div className='mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-600'>
-                <PoundSterling className='h-7 w-7' />
-              </div>
-              <h3 className='text-2xl font-bold'>For Earning Washers</h3>
-              <p className='mt-2 text-gray-600'>
-                Turn your laundry machine into a source of income.
+            <div>
+              <h3 className='font-bold text-gray-900'>Quality Assured</h3>
+              <p className='text-sm text-gray-600'>
+                Every Washer is vetted, reviewed, and regulated.
               </p>
-              <ul className='mt-6 space-y-4 text-gray-700'>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
-                  <span>
-                    <strong>Earn Extra:</strong> Potential to earn over £1500
-                    per month.
-                  </span>
-                </li>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
-                  <span>
-                    <strong>Flexible:</strong> You set your own schedule and
-                    availability.
-                  </span>
-                </li>
-                <li className='flex items-start'>
-                  <CheckIcon className='mt-1 mr-3 h-5 w-5 flex-shrink-0 text-purple-500' />
-                  <span>
-                    <strong>Be a Hero:</strong> Provide a valuable service to
-                    your local community.
-                  </span>
-                </li>
-              </ul>
+            </div>
+          </div>
+          <div className='flex items-center gap-4'>
+            <div className='relative flex-shrink-0'>
+              <Home className='h-10 w-10 text-gray-700' strokeWidth={1} />
+              <div className='absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-blue-50 bg-pink-500'>
+                <Heart
+                  className='h-3 w-3 text-white'
+                  strokeWidth={2}
+                  fill='white'
+                />
+              </div>
+            </div>
+            <div>
+              <h3 className='font-bold text-gray-900'>The Whole Market</h3>
+              <p className='text-sm text-gray-600'>
+                Search every registered Washer in your area.
+              </p>
             </div>
           </div>
         </div>
-      </section>
+      </ModernSection>
 
-      {/* Green Initiative Section */}
-      <section className='py-16 sm:py-20 md:py-24'>
-        <div className='container mx-auto grid items-center gap-12 px-4 md:grid-cols-2'>
-          <div className='text-center md:text-left'>
-            <div className='mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600'>
-              <Leaf className='h-8 w-8' />
-            </div>
-            <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
-              Good for Your Wallet,
-              <br />
-              Great for Your Planet.
-            </h2>
-            <p className='mt-4 text-lg text-gray-600'>
-              By using washing machines already in homes, we reduce the
-              environmental impact of manufacturing and transporting new
-              appliances. It&apos;s a shared economy that saves energy, money,
-              and builds a greener neighbourhood.
-            </p>
-          </div>
-          <div className='relative flex justify-center'>
-            <Image
-              src='/images/green-wash.jpeg'
-              alt='A stylish person in green posing with a washing machine, representing the eco-friendly washer community'
-              width={425}
-              height={300}
-              className='rounded-xl object-cover shadow-2xl'
+      {/* New Promo Section */}
+      <ModernSection background='white' padding='lg'>
+        <div className='mb-10 grid gap-6 md:grid-cols-3'>
+          <CategoryLinkCard title='Find a Washer' href='/dashboard' />
+          <CategoryLinkCard title='Our Services' href='/how-it-works' />
+          <CategoryLinkCard
+            title='Become a Washer'
+            href='/signup?role=washer'
+          />
+        </div>
+
+        <div className='grid grid-cols-1 gap-8 md:grid-cols-2'>
+          <div className='flex flex-col gap-8'>
+            <ActionCard
+              title='Book a Wash Instantly'
+              description='Need laundry done today? Find Washers with immediate availability and book in minutes.'
+              ctaText='Arrange a Wash'
+              ctaLink='/dashboard'
+              bgColor='bg-yellow-100'
+            />
+            <ActionCard
+              title='Free Expert Support'
+              description='Our support team is here to help you find the perfect Washer and ensure a seamless experience.'
+              ctaText='Contact Support'
+              ctaLink='/contact'
+              bgColor='bg-blue-100'
             />
           </div>
+          <ActionCard
+            title='Discover the Neighbourhood Difference'
+            description='Get your laundry search off to a great start by seeing how our seamless, app-based experience works.'
+            ctaText='See How It Works'
+            ctaLink='/how-it-works'
+            bgColor='bg-green-100'
+            className='min-h-[400px]'
+          >
+            <div className='relative mb-8 flex h-64 w-full items-center justify-center rounded-2xl bg-green-200/50 p-4'>
+              <div className='flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-green-600/50'>
+                <p className='text-sm text-green-800'>App Mockup Image</p>
+              </div>
+            </div>
+          </ActionCard>
         </div>
-      </section>
+      </ModernSection>
 
-      {/* Trust & Community Section */}
-      <section className='bg-gray-50 py-16 sm:py-20 md:py-24'>
-        <div className='container mx-auto px-4'>
-          <div className='mb-12 text-center'>
-            <h2 className='text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl'>
-              Built on Trust and Community
-            </h2>
-            <p className='mx-auto mt-4 max-w-2xl text-lg text-gray-600'>
-              Your peace of mind is our top priority.
+      {/* Community Staple Section */}
+      <ModernSection background='gray' padding='md'>
+        <div className='text-center'>
+          <h4 className='mb-8 text-sm font-bold tracking-wider text-gray-500 uppercase'>
+            A TRUSTED COMMUNITY STAPLE
+          </h4>
+          <div className='flex flex-wrap items-center justify-center gap-x-12 gap-y-8'>
+            <div className='flex items-center gap-2 font-medium text-gray-600'>
+              <HeartHandshake className='h-6 w-6 text-gray-500' />
+              <span>Community First</span>
+            </div>
+            <div className='flex items-center gap-2 font-medium text-gray-600'>
+              <ShieldCheck className='h-6 w-6 text-gray-500' />
+              <span>Safety Verified</span>
+            </div>
+            <div className='flex items-center gap-2 font-medium text-gray-600'>
+              <MapPin className='h-6 w-6 text-gray-500' />
+              <span>Proudly Local</span>
+            </div>
+            <div className='flex items-center gap-2 font-medium text-gray-600'>
+              <Leaf className='h-6 w-6 text-gray-500' />
+              <span>Eco-Friendly</span>
+            </div>
+            <div className='flex items-center gap-2 font-medium text-gray-600'>
+              <Award className='h-6 w-6 text-gray-500' />
+              <span>Top Rated</span>
+            </div>
+          </div>
+        </div>
+      </ModernSection>
+
+      {/* Why Community Loves Us Section */}
+      <ModernSection background='gray' padding='lg'>
+        <SectionHeader
+          title='Why Our Community Loves Us'
+          description="Proudly rated 'Excellent' on Trustpilot, Neighbourhood Wash is creating cleaner, more connected communities."
+        />
+        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+          {/* Left Column: Image Card */}
+          <div className='group relative min-h-[480px] overflow-hidden rounded-3xl'>
+            <Image
+              src='/images/green-wash.jpeg'
+              alt='A happy person with their clean laundry'
+              layout='fill'
+              objectFit='cover'
+              className='transition-transform duration-300 group-hover:scale-105'
+            />
+            <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent' />
+            <div className='absolute bottom-0 left-0 p-8'>
+              <h3 className='mb-4 text-2xl font-bold text-white'>
+                What are the benefits of Neighbourhood Wash?
+              </h3>
+              <button className='flex items-center gap-3 font-semibold text-white'>
+                <PlayCircle className='h-10 w-10' />
+                <span>Watch Video</span>
+              </button>
+            </div>
+          </div>
+          {/* Right Column: Benefits Grid */}
+          <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-2'>
+            <BenefitCard
+              icon={<CalendarCheck className='h-8 w-8 text-pink-500' />}
+              title='Instant Availability'
+              description='Our search engine allows you to find washers with immediate availability.'
+            />
+            <BenefitCard
+              icon={<Star className='h-8 w-8 text-pink-500' />}
+              title='5-Star Community Support'
+              description='Need a helping hand? Benefit from free guides and on-demand support from our team.'
+            />
+            <BenefitCard
+              icon={<PoundSterling className='h-8 w-8 text-pink-500' />}
+              title='Pricing Transparency'
+              description='Benefit from full transparency with detailed pricing information for every service listed.'
+            />
+            <BenefitCard
+              icon={<Filter className='h-8 w-8 text-pink-500' />}
+              title='Advanced Search Filters'
+              description='On a budget? Have a pet? Our filters allow you to quickly find the perfect washer.'
+            />
+            <BenefitCard
+              icon={<Home className='h-8 w-8 text-pink-500' />}
+              title='The Whole Neighbourhood'
+              description='Confidently search the whole market including every registered washer in your area.'
+            />
+            <div className='flex flex-col items-center justify-center rounded-2xl bg-pink-100 p-8 text-center'>
+              <h3 className='mb-4 text-2xl font-bold text-gray-900'>
+                Find the perfect wash today!
+              </h3>
+              <Button
+                asChild
+                className='rounded-lg bg-gray-900 text-white hover:bg-gray-800'
+              >
+                <Link href='/dashboard'>Start your search</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </ModernSection>
+
+      {/* Meet the Community Section */}
+      <ModernSection background='white' padding='lg'>
+        <SectionHeader
+          title='Meet the Neighbourhood'
+          description="A family's trusted (and free) guide to easy, local, and reliable laundry care."
+        />
+        <div className='relative mx-auto mb-12 max-w-4xl'>
+          <div className='overflow-hidden rounded-3xl bg-blue-100 p-2 md:p-4'>
+            <Image
+              src='/images/neighbourhood-image.jpg'
+              alt='A child playfully peeking over a washing machine door'
+              width={1200}
+              height={600}
+              className='rounded-2xl object-cover'
+            />
+          </div>
+          <div className='absolute inset-0 flex items-center justify-center'>
+            <button className='group'>
+              <PlayCircle className='h-20 w-20 rounded-full text-white/80 backdrop-blur-sm transition-all group-hover:scale-110 group-hover:text-white' />
+            </button>
+          </div>
+        </div>
+        <div className='flex gap-6 overflow-x-auto pb-4 lg:grid lg:grid-cols-4 lg:space-x-0'>
+          {testimonials.map((testimonial) => (
+            <div
+              key={testimonial.author}
+              className='w-[80vw] max-w-sm flex-shrink-0 sm:w-[45vw] md:w-[30vw] lg:w-auto'
+            >
+              <TestimonialCard {...testimonial} />
+            </div>
+          ))}
+        </div>
+      </ModernSection>
+
+      {/* Trust & Security Section */}
+      <ModernSection background='white' padding='lg'>
+        <SectionHeader
+          subtitle='Quality Assured'
+          title='Your safety and satisfaction matter'
+          description="We've built multiple layers of trust and security into our platform."
+        />
+        <div className='grid gap-8 md:grid-cols-3'>
+          <FeatureCard
+            icon={<Shield className='h-8 w-8' />}
+            title='Verified Washers'
+            description='Every Washer goes through our comprehensive vetting process including background checks and references.'
+            iconBgColor='bg-blue-50'
+            iconColor='text-blue-600'
+          />
+          <FeatureCard
+            icon={<Star className='h-8 w-8' />}
+            title='Quality Guaranteed'
+            description='Our rating system ensures consistent quality. Washers are motivated to provide excellent service.'
+            iconBgColor='bg-yellow-50'
+            iconColor='text-yellow-600'
+          />
+          <FeatureCard
+            icon={<MessageCircle className='h-8 w-8' />}
+            title='Secure Communication'
+            description='Built-in messaging system with PIN verification for safe handovers and clear communication.'
+            iconBgColor='bg-green-50'
+            iconColor='text-green-600'
+          />
+        </div>
+      </ModernSection>
+
+      {/* Features Grid */}
+      <ModernSection background='gradient' padding='lg'>
+        <SectionHeader
+          subtitle='Platform Features'
+          title='Everything you need for seamless laundry'
+          description='Our platform is designed with modern features to make laundry simple and stress-free.'
+        />
+
+        <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-4'>
+          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
+            <MapPin className='mx-auto mb-4 h-10 w-10 text-blue-600' />
+            <h3 className='mb-2 font-semibold text-gray-900'>Location-Based</h3>
+            <p className='text-sm text-gray-600'>Find Washers near you</p>
+          </div>
+
+          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
+            <Clock className='mx-auto mb-4 h-10 w-10 text-green-600' />
+            <h3 className='mb-2 font-semibold text-gray-900'>
+              Real-Time Booking
+            </h3>
+            <p className='text-sm text-gray-600'>
+              Instant availability checking
             </p>
           </div>
-          <div className='mx-auto grid max-w-4xl gap-8 md:grid-cols-2'>
-            <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
-              <div className='mb-4 flex-shrink-0 md:mr-4 md:mb-0'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
-                  <ShieldCheck className='h-6 w-6' />
-                </div>
-              </div>
-              <div>
-                <h3 className='text-xl font-semibold'>Vetted & Verified</h3>
-                <p className='mt-1 text-gray-600'>
-                  Every washer undergoes a background check and verification
-                  process to ensure a safe and reliable experience for all.
-                </p>
-              </div>
-            </div>
-            <div className='flex flex-col items-center text-center md:flex-row md:items-start md:text-left'>
-              <div className='mb-4 flex-shrink-0 md:mr-4 md:mb-0'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600'>
-                  <HeartHandshake className='h-6 w-6' />
-                </div>
-              </div>
-              <div>
-                <h3 className='text-xl font-semibold'>Neighbourly Respect</h3>
-                <p className='mt-1 text-gray-600'>
-                  We foster a community of respect and support, connecting you
-                  with people who care about their neighbourhood.
-                </p>
-              </div>
-            </div>
+
+          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
+            <Smartphone className='mx-auto mb-4 h-10 w-10 text-purple-600' />
+            <h3 className='mb-2 font-semibold text-gray-900'>
+              Mobile Friendly
+            </h3>
+            <p className='text-sm text-gray-600'>Book on any device</p>
+          </div>
+
+          <div className='rounded-2xl border border-white/20 bg-white/80 p-6 text-center shadow-sm backdrop-blur-sm'>
+            <Heart className='mx-auto mb-4 h-10 w-10 text-red-500' />
+            <h3 className='font-semibled mb-2 text-gray-900'>
+              Community First
+            </h3>
+            <p className='text-sm text-gray-600'>Built for neighbours</p>
           </div>
         </div>
-      </section>
+      </ModernSection>
+
+      {/* Search By Needs Section */}
+      <ModernSection background='gray' padding='lg'>
+        <SectionHeader
+          title='Search by Your Needs'
+          description='Find washers who cater to your specific laundry requirements.'
+        />
+        <div className='mb-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4'>
+          <SearchCategoryCard
+            icon={<Sparkles className='h-20 w-20 text-pink-500' />}
+            title='Special Care'
+            description='For delicate items'
+            infoText='What is special care?'
+            infoLink='#'
+            bgColor='bg-pink-100'
+          />
+          <SearchCategoryCard
+            icon={<Wind className='h-20 w-20 text-green-500' />}
+            title='Allergy-Friendly'
+            description='Hypoallergenic options'
+            infoText='What are allergy needs?'
+            infoLink='#'
+            bgColor='bg-green-100'
+          />
+          <SearchCategoryCard
+            icon={<Leaf className='h-20 w-20 text-blue-500' />}
+            title='Eco-Wash'
+            description='Sustainable detergents'
+            infoText='What is an eco-wash?'
+            infoLink='#'
+            bgColor='bg-blue-100'
+          />
+          <SearchCategoryCard
+            icon={<Users className='h-20 w-20 text-yellow-500' />}
+            title='Family-Sized Loads'
+            description='For bulk laundry'
+            infoText='What are bulk options?'
+            infoLink='#'
+            bgColor='bg-yellow-100'
+          />
+        </div>
+
+        <SectionHeader
+          title='Searching in a specific location?'
+          description='Find trusted, local washers right in your neighbourhood.'
+        />
+        <LocationLinks locations={locations} />
+      </ModernSection>
 
       {/* CTA Section */}
-      <section className='bg-blue-600'>
-        <div className='container mx-auto px-4 py-16 text-center text-white sm:py-20'>
-          <h2 className='text-3xl font-bold tracking-tight sm:text-4xl'>
-            Don&apos;t Miss Out on the Laundry Revolution
+      <ModernSection background='white' padding='lg'>
+        <div className='rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 p-12 text-center text-white md:p-16'>
+          <h2 className='mb-6 text-3xl font-bold md:text-4xl'>
+            Ready to revolutionise your laundry experience?
           </h2>
-          <p className='mx-auto mt-4 max-w-2xl text-lg text-blue-100'>
-            Whether you need a wash or want to earn, now is the time to join.
+          <p className='mx-auto mb-8 max-w-2xl text-xl text-blue-100'>
+            Join thousands of satisfied customers and Washers who've made
+            laundry simple, affordable, and community-focused.
           </p>
-          <div className='mx-auto mt-10 flex max-w-xs flex-col justify-center gap-4 sm:max-w-none sm:flex-row'>
+          <div className='flex flex-col justify-center gap-4 sm:flex-row'>
             <Button
               asChild
               size='lg'
-              className='bg-white text-blue-600 shadow-lg transition-transform hover:scale-105 hover:bg-gray-100'
+              className='rounded-xl bg-white px-8 py-4 text-base font-semibold text-blue-600 shadow-lg transition-all duration-300 hover:bg-gray-100 hover:shadow-xl'
             >
-              <Link href='/signup?role=user'>Sign Up to Wash</Link>
+              <Link href='/signup?role=user'>
+                Get Started Today
+                <ArrowRight className='ml-2 h-5 w-5' />
+              </Link>
             </Button>
             <Button
               asChild
               size='lg'
               variant='outline'
-              className='border-2 border-white bg-transparent text-white shadow-lg transition-transform hover:scale-105 hover:bg-white hover:text-blue-600'
+              className='rounded-xl border-2 border-white px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:bg-white hover:text-blue-600 hover:shadow-xl'
             >
-              <Link href='/signup?role=washer'>Apply to Earn</Link>
+              <Link href='/how-it-works'>Learn More</Link>
             </Button>
           </div>
         </div>
-      </section>
+      </ModernSection>
     </div>
   )
 }
