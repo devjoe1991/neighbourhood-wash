@@ -119,3 +119,44 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Base style for the bubbles to make them look realistic */
+.bubble {
+  position: absolute;
+  bottom: -100px; /* Start off-screen at the bottom */
+  border-radius: 50%;
+
+  /* A semi-transparent blue that matches your theme */
+  background: radial-gradient(
+    circle at 65% 15%,
+    white 1px,
+    rgba(52, 152, 219, 0.3) 8%,
+    rgba(52, 152, 219, 0.1) 60%,
+    rgba(52, 152, 219, 0) 100%
+  );
+
+  /* A subtle border to give it shape */
+  border: 1px solid rgba(133, 193, 233, 0.2);
+
+  animation-name: floatUp;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite; /* Bubbles will loop infinitely */
+  will-change: transform; /* Performance optimization for animations */
+}
+
+/* The keyframe animation that handles floating and popping */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  95% {
+    /* At 95% of the animation, the bubble is still visible */
+    opacity: 1;
+  }
+  100% {
+    /* In the last 5%, it floats up a bit more, scales up, and fades out to "pop" */
+    transform: translateY(-110vh) scale(1.2); /* Float up far beyond the viewport height */
+    opacity: 0;
+  }
+}
