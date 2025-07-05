@@ -209,10 +209,14 @@ export default function HomePage() {
             bgColor='bg-green-100'
             className='min-h-[400px]'
           >
-            <div className='relative mb-8 flex h-64 w-full items-center justify-center rounded-2xl bg-green-200/50 p-4'>
-              <div className='flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-green-600/50'>
-                <p className='text-sm text-green-800'>App Mockup Image</p>
-              </div>
+            <div className='relative mb-8 h-64 w-full overflow-hidden rounded-2xl'>
+              <Image
+                src='/images/colourful-pegs.jpg'
+                alt='Colourful pegs with a heart-shaped one'
+                layout='fill'
+                objectFit='cover'
+                className='transition-transform duration-300 group-hover:scale-105'
+              />
             </div>
           </ActionCard>
         </div>
@@ -270,14 +274,14 @@ export default function HomePage() {
               <h3 className='mb-4 text-2xl font-bold text-white'>
                 What are the benefits of Neighbourhood Wash?
               </h3>
-              <button className='flex items-center gap-3 font-semibold text-white'>
-                <PlayCircle className='h-10 w-10' />
-                <span>Watch Video</span>
-              </button>
+              <div className='flex items-center gap-3 font-semibold text-white'>
+                <ArrowRight className='h-6 w-6' />
+                <span>Learn More</span>
+              </div>
             </div>
           </div>
           {/* Right Column: Benefits Grid */}
-          <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-2'>
+          <div className='grid content-start gap-8'>
             <BenefitCard
               icon={<CalendarCheck className='h-8 w-8 text-blue-600' />}
               title='Instant Availability'
