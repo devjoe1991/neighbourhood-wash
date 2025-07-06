@@ -18,6 +18,7 @@ export interface BookingData {
   // Step 3: Details
   specialInstructions: string
   stainImageUrls: string[]
+  accessNotes: string
 
   // Step 4: Payment
   totalPrice: number
@@ -91,6 +92,7 @@ export async function createBooking(bookingData: BookingData) {
       collection_pin: collectionPin,
       delivery_pin: deliveryPin,
       payment_intent_id: bookingData.paymentIntentId || null,
+      access_notes: bookingData.accessNotes || null,
     }
 
     // Insert booking into database

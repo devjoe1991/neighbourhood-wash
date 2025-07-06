@@ -28,6 +28,7 @@ import { createBooking, type BookingData } from './actions'
 import { Elements } from '@stripe/react-stripe-js'
 import { stripePromise } from '@/lib/stripe/config'
 import { createPaymentIntent } from '@/lib/stripe/actions'
+import { createClient } from '@/utils/supabase/client'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -53,6 +54,8 @@ export default function NewBookingPage() {
   // Step 3: Details state
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
+  const [accessNotes, setAccessNotes] = useState('')
+  const [laundryPreferences, setLaundryPreferences] = useState<string>('')
 
   // Step 4: Payment state
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -86,6 +89,30 @@ export default function NewBookingPage() {
         })
     }
   }, [currentStep, totalPrice, clientSecret])
+
+  // Fetch user profile for laundry preferences
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('laundry_preferences')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.laundry_preferences) {
+          setLaundryPreferences(profile.laundry_preferences)
+        }
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
 
   const updateSelection = (updates: Partial<BookingSelection>) => {
     setSelection((prev) => ({ ...prev, ...updates }))
@@ -139,6 +166,7 @@ export default function NewBookingPage() {
         selectedAddOns: selection.selectedAddOns,
         specialInstructions,
         stainImageUrls: uploadedImageUrls,
+        accessNotes,
         totalPrice,
         paymentIntentId, // Add the payment intent ID
       }
@@ -203,28 +231,13 @@ export default function NewBookingPage() {
             )}
             uploadedImageUrls={uploadedImageUrls}
             onImageUrlsChange={setUploadedImageUrls}
+            accessNotes={accessNotes}
+            onAccessNotesChange={setAccessNotes}
+            laundryPreferences={laundryPreferences}
           />
         )
       case 4:
-        return clientSecret ? (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <PaymentStep
-              totalPrice={totalPrice}
-              itemizedBreakdown={itemizedBreakdown}
-              selection={selection}
-              specialInstructions={specialInstructions}
-              termsAccepted={termsAccepted}
-              userAgreementAccepted={userAgreementAccepted}
-              cancellationPolicyAccepted={cancellationPolicyAccepted}
-              onTermsChange={setTermsAccepted}
-              onUserAgreementChange={setUserAgreementAccepted}
-              onCancellationPolicyChange={setCancellationPolicyAccepted}
-              onPaymentSubmit={handlePaymentSubmit}
-              isSubmitting={isSubmitting}
-              clientSecret={clientSecret}
-            />
-          </Elements>
-        ) : (
+        return (
           <PaymentStep
             totalPrice={totalPrice}
             itemizedBreakdown={itemizedBreakdown}
@@ -247,149 +260,154 @@ export default function NewBookingPage() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='mx-auto max-w-7xl px-4 py-8'>
-        {/* Header */}
-        <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>
-            Create New Booking
-          </h1>
-          <p className='mt-2 text-gray-600'>
-            Schedule your laundry collection and customize your service
-          </p>
-        </div>
+    <Elements
+      stripe={stripePromise}
+      options={clientSecret ? { clientSecret } : {}}
+    >
+      <div className='min-h-screen bg-gray-50'>
+        <div className='mx-auto max-w-7xl px-4 py-8'>
+          {/* Header */}
+          <div className='mb-8'>
+            <h1 className='text-3xl font-bold text-gray-900'>
+              Create New Booking
+            </h1>
+            <p className='mt-2 text-gray-600'>
+              Schedule your laundry collection and customize your service
+            </p>
+          </div>
 
-        {/* Progress Steps */}
-        <div className='mb-8'>
-          <div className='flex items-center justify-between'>
-            {STEPS.map((step, index) => {
-              const Icon = step.icon
-              const isCompleted = currentStep > step.id
-              const isCurrent = currentStep === step.id
+          {/* Progress Steps */}
+          <div className='mb-8'>
+            <div className='flex items-center justify-between'>
+              {STEPS.map((step, index) => {
+                const Icon = step.icon
+                const isCompleted = currentStep > step.id
+                const isCurrent = currentStep === step.id
 
-              return (
-                <div key={step.id} className='flex items-center'>
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                      isCompleted
-                        ? 'border-blue-500 bg-blue-500 text-white'
-                        : isCurrent
-                          ? 'border-blue-500 bg-white text-blue-500'
-                          : 'border-gray-300 bg-gray-100 text-gray-400'
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <svg
-                        className='h-5 w-5'
-                        fill='currentColor'
-                        viewBox='0 0 20 20'
-                      >
-                        <path
-                          fillRule='evenodd'
-                          d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-                          clipRule='evenodd'
-                        />
-                      </svg>
-                    ) : (
-                      <Icon className='h-5 w-5' />
+                return (
+                  <div key={step.id} className='flex items-center'>
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                        isCompleted
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : isCurrent
+                            ? 'border-blue-500 bg-white text-blue-500'
+                            : 'border-gray-300 bg-gray-100 text-gray-400'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <svg
+                          className='h-5 w-5'
+                          fill='currentColor'
+                          viewBox='0 0 20 20'
+                        >
+                          <path
+                            fillRule='evenodd'
+                            d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                            clipRule='evenodd'
+                          />
+                        </svg>
+                      ) : (
+                        <Icon className='h-5 w-5' />
+                      )}
+                    </div>
+                    <div className='ml-3'>
+                      <Badge variant={isCurrent ? 'default' : 'secondary'}>
+                        {step.name}
+                      </Badge>
+                    </div>
+                    {index < STEPS.length - 1 && (
+                      <div className='mx-6 h-0.5 w-16 bg-gray-200' />
                     )}
                   </div>
-                  <div className='ml-3'>
-                    <Badge variant={isCurrent ? 'default' : 'secondary'}>
-                      {step.name}
-                    </Badge>
-                  </div>
-                  {index < STEPS.length - 1 && (
-                    <div className='mx-6 h-0.5 w-16 bg-gray-200' />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Main Content - Two Column Layout */}
-        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
-          {/* Left Column - Steps */}
-          <div className='lg:col-span-2'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  {(() => {
-                    const currentStepData = STEPS.find(
-                      (step) => step.id === currentStep
-                    )
-                    if (currentStepData) {
-                      const Icon = currentStepData.icon
-                      return <Icon className='h-5 w-5' />
-                    }
-                    return null
-                  })()}
-                  Step {currentStep}:{' '}
-                  {STEPS.find((step) => step.id === currentStep)?.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>{renderStep()}</CardContent>
-            </Card>
-
-            {/* Navigation Buttons */}
-            <div className='mt-6 flex justify-between'>
-              <Button
-                variant='outline'
-                onClick={handlePrevStep}
-                disabled={currentStep === 1}
-                className='flex items-center gap-2'
-              >
-                <ArrowLeft className='h-4 w-4' />
-                Previous
-              </Button>
-              {currentStep < 4 && (
-                <Button
-                  onClick={handleNextStep}
-                  disabled={!canProceedToNextStep()}
-                  className='flex items-center gap-2'
-                >
-                  Next
-                  <ArrowRight className='h-4 w-4' />
-                </Button>
-              )}
+                )
+              })}
             </div>
           </div>
 
-          {/* Right Column - Price Summary */}
-          <div className='lg:col-span-1'>
-            <div className='sticky top-8'>
+          {/* Main Content - Two Column Layout */}
+          <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+            {/* Left Column - Steps */}
+            <div className='lg:col-span-2'>
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle className='flex items-center gap-2'>
+                    {(() => {
+                      const currentStepData = STEPS.find(
+                        (step) => step.id === currentStep
+                      )
+                      if (currentStepData) {
+                        const Icon = currentStepData.icon
+                        return <Icon className='h-5 w-5' />
+                      }
+                      return null
+                    })()}
+                    Step {currentStep}:{' '}
+                    {STEPS.find((step) => step.id === currentStep)?.name}
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className='space-y-2'>
-                    {itemizedBreakdown.map((item, index) => (
-                      <div key={index} className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>
-                          {item.label}
-                        </span>
-                        <span className='text-sm font-medium'>
-                          £{item.price.toFixed(2)}
+                <CardContent>{renderStep()}</CardContent>
+              </Card>
+
+              {/* Navigation Buttons */}
+              <div className='mt-6 flex justify-between'>
+                <Button
+                  variant='outline'
+                  onClick={handlePrevStep}
+                  disabled={currentStep === 1}
+                  className='flex items-center gap-2'
+                >
+                  <ArrowLeft className='h-4 w-4' />
+                  Previous
+                </Button>
+                {currentStep < 4 && (
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={!canProceedToNextStep()}
+                    className='flex items-center gap-2'
+                  >
+                    Next
+                    <ArrowRight className='h-4 w-4' />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column - Price Summary */}
+            <div className='lg:col-span-1'>
+              <div className='sticky top-8'>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Order Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className='space-y-2'>
+                      {itemizedBreakdown.map((item, index) => (
+                        <div key={index} className='flex justify-between'>
+                          <span className='text-sm text-gray-600'>
+                            {item.label}
+                          </span>
+                          <span className='text-sm font-medium'>
+                            £{item.price.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className='mt-4 border-t border-gray-200 pt-4'>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-lg font-semibold'>Total</span>
+                        <span className='text-lg font-bold text-blue-600'>
+                          £{totalPrice.toFixed(2)}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                  <div className='mt-4 border-t border-gray-200 pt-4'>
-                    <div className='flex items-center justify-between'>
-                      <span className='text-lg font-semibold'>Total</span>
-                      <span className='text-lg font-bold text-blue-600'>
-                        £{totalPrice.toFixed(2)}
-                      </span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </Elements>
   )
 }
