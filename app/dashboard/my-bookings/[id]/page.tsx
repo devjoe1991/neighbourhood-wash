@@ -1,9 +1,23 @@
+'use client'
+
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import {
   ArrowLeft,
   Calendar,
@@ -14,24 +28,99 @@ import {
   MessageCircle,
   AlertTriangle,
   CheckCircle,
+  X,
 } from 'lucide-react'
-import { getBookingById } from '../actions'
+import {
+  getBookingById,
+  cancelBooking,
+  type BookingWithWasher,
+} from '../actions'
 import StatusTracker from '@/components/bookings/StatusTracker'
+import { toast } from 'sonner'
 
 interface BookingDetailPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default async function BookingDetailPage({
-  params,
-}: BookingDetailPageProps) {
-  const result = await getBookingById(params.id)
+export default function BookingDetailPage({ params }: BookingDetailPageProps) {
+  const [booking, setBooking] = useState<BookingWithWasher | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [bookingId, setBookingId] = useState<string | null>(null)
 
-  if (!result.success || !result.data) {
-    notFound()
+  useEffect(() => {
+    const initializeParams = async () => {
+      const { id } = await params
+      setBookingId(id)
+    }
+    initializeParams()
+  }, [params])
+
+  useEffect(() => {
+    if (!bookingId) return
+
+    const fetchBooking = async () => {
+      try {
+        setIsLoading(true)
+        const result = await getBookingById(bookingId)
+
+        if (!result.success || !result.data) {
+          setError(result.message || 'Booking not found')
+          return
+        }
+
+        setBooking(result.data)
+      } catch (err) {
+        setError('Failed to load booking')
+        console.error('Error fetching booking:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchBooking()
+  }, [bookingId])
+
+  const handleCancelBooking = async () => {
+    if (!booking || !bookingId) return
+
+    setIsCancelling(true)
+    try {
+      const result = await cancelBooking(booking.id.toString())
+
+      if (result.success) {
+        toast.success(result.message)
+        // Refresh the booking data to show updated status
+        const updatedResult = await getBookingById(bookingId)
+        if (updatedResult.success && updatedResult.data) {
+          setBooking(updatedResult.data)
+        }
+      } else {
+        toast.error(result.message)
+      }
+    } catch (err) {
+      console.error('Error cancelling booking:', err)
+      toast.error('Failed to cancel booking. Please try again.')
+    } finally {
+      setIsCancelling(false)
+    }
   }
 
-  const booking = result.data
+  if (isLoading) {
+    return (
+      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+        <div className='text-center'>
+          <div className='mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600'></div>
+          <p className='text-gray-600'>Loading booking details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !booking) {
+    notFound()
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -178,6 +267,57 @@ export default async function BookingDetailPage({
                 <StatusTracker currentStatus={booking.status} />
               </CardContent>
             </Card>
+
+            {/* Cancel Booking Card */}
+            {booking.status !== 'cancelled' &&
+              booking.status !== 'completed' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className='flex items-center gap-2'>
+                      <X className='h-5 w-5' />
+                      Booking Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant='destructive'
+                          className='w-full'
+                          disabled={isCancelling}
+                        >
+                          {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to cancel this booking?
+                            <br />
+                            <br />
+                            <strong>Cancellation Policy:</strong> Cancellations
+                            made less than 12 hours before the collection time
+                            are non-refundable.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelBooking}
+                            className='bg-red-600 hover:bg-red-700'
+                            disabled={isCancelling}
+                          >
+                            {isCancelling
+                              ? 'Cancelling...'
+                              : 'Yes, Cancel Booking'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </CardContent>
+                </Card>
+              )}
           </div>
 
           {/* Main Content */}

@@ -16,13 +16,14 @@ import {
 import { getBookingById } from '@/app/dashboard/my-bookings/actions'
 
 interface BookingConfirmationPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function BookingConfirmationPage({
   params,
 }: BookingConfirmationPageProps) {
-  const result = await getBookingById(params.id)
+  const { id } = await params
+  const result = await getBookingById(id)
 
   if (!result.success || !result.data) {
     notFound()
