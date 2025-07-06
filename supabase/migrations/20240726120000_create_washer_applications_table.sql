@@ -17,10 +17,13 @@ CREATE TABLE public.washer_applications (
     status TEXT NOT NULL DEFAULT 'pending_verification', -- e.g., pending_verification, approved, rejected
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
-    CONSTRAINT unique_pending_application UNIQUE (user_id, status) WHERE (status = 'pending_verification')
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Create a unique partial index to ensure a user can only have one pending application
+CREATE UNIQUE INDEX idx_unique_pending_application 
+ON public.washer_applications (user_id) 
+WHERE status = 'pending_verification';
 
 ALTER TABLE public.washer_applications ENABLE ROW LEVEL SECURITY;
 
@@ -36,9 +39,13 @@ FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Admins can manage all applications"
 ON public.washer_applications
 FOR ALL USING (
-  (get_my_claim('user_role'::text)) = '"admin"'::jsonb
+  EXISTS (
+    SELECT 1 FROM auth.users 
+    WHERE auth.users.id = auth.uid() 
+    AND auth.users.raw_user_meta_data->>'role' = 'admin'
+  )
 );
 
 COMMENT ON TABLE public.washer_applications IS 'Stores detailed applications submitted by users wishing to become Washers.';
 COMMENT ON COLUMN public.washer_applications.status IS 'The current status of the application, e.g., pending_verification, approved, rejected.';
-COMMENT ON CONSTRAINT unique_pending_application ON public.washer_applications IS 'Ensures a user cannot have more than one pending application at a time.'; 
+COMMENT ON INDEX idx_unique_pending_application IS 'Ensures a user cannot have more than one pending application at a time.'; 

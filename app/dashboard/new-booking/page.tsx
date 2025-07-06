@@ -49,6 +49,7 @@ export default function NewBookingPage() {
 
   // Step 3: Details state
   const [specialInstructions, setSpecialInstructions] = useState('')
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
 
   // Step 4: Payment state
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -116,7 +117,7 @@ export default function NewBookingPage() {
         selectedItems: selection.selectedItems,
         selectedAddOns: selection.selectedAddOns,
         specialInstructions,
-        stainImageUrls: [], // Empty for now
+        stainImageUrls: uploadedImageUrls,
         totalPrice,
       }
 
@@ -174,6 +175,8 @@ export default function NewBookingPage() {
             stainRemovalSelected={selection.selectedAddOns.includes(
               'stain_removal'
             )}
+            uploadedImageUrls={uploadedImageUrls}
+            onImageUrlsChange={setUploadedImageUrls}
           />
         )
       case 4:
