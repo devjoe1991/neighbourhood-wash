@@ -181,6 +181,16 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 #### Week 8: User Experience Enhancements
 
+- [x] **Build comprehensive "My Bookings" functionality with:** _(Notes: Implemented complete booking tracking system with list and detail views. Created `app/dashboard/my-bookings/page.tsx` for booking list with empty state handling, `app/dashboard/my-bookings/[id]/page.tsx` for detailed booking view, and `app/dashboard/my-bookings/actions.ts` for server-side data fetching. Added `BookingListItem` component (`components/bookings/BookingListItem.tsx`) with status badges and service summaries, and `StatusTracker` component (`components/bookings/StatusTracker.tsx`) for visual progress tracking. Includes washer profile fetching for assigned bookings, chat placeholder for future functionality, and proper TypeScript definitions. Added "My Bookings" to dashboard sidebar navigation. All ESLint issues resolved.)_
+  - [x] Create booking list page with server-side data fetching
+  - [x] Add detailed booking status page with visual progress tracker
+  - [x] Implement BookingListItem component with status badges and service summaries
+  - [x] Add StatusTracker component showing booking progression
+  - [x] Create server actions for fetching user bookings and booking details
+  - [x] Add My Bookings link to dashboard sidebar navigation
+  - [x] Include washer profile fetching for assigned bookings
+  - [x] Add chat placeholder for future functionality
+  - [x] Handle empty states and error scenarios
 - [ ] Build reviews and ratings input interface
 - [~] Implement referral system with code generation _(Notes: Partially implemented. See Week 6 for dashboard UI & code generation. See Phase 6 for backend.)_
 - [ ] Create user notification center
