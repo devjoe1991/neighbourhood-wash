@@ -38,30 +38,37 @@ export const timeSlots = [
 
 export const calculateTotal = (selection: BookingSelection): number => {
   let total = 0
+  let hasServices = false
 
   // Base wash & dry price
   if (selection.weightTier) {
     total += serviceConfig.baseWashDry[selection.weightTier].price
+    hasServices = true
   }
 
   // Special items
   selection.selectedItems.forEach((item) => {
     total += serviceConfig.specialItems[item].price
+    hasServices = true
   })
 
   // Add-ons
   selection.selectedAddOns.forEach((addOn) => {
     total += serviceConfig.addOns[addOn].price
+    hasServices = true
   })
 
-  // Collection fee
-  total += serviceConfig.collectionFee
+  // Collection fee - only add if services are selected
+  if (hasServices) {
+    total += serviceConfig.collectionFee
+  }
 
   return Math.max(0, total) // Ensure total is never negative
 }
 
 export const getItemizedBreakdown = (selection: BookingSelection) => {
   const items = []
+  let hasServices = false
 
   // Base wash & dry
   if (selection.weightTier) {
@@ -69,6 +76,7 @@ export const getItemizedBreakdown = (selection: BookingSelection) => {
       label: serviceConfig.baseWashDry[selection.weightTier].label,
       price: serviceConfig.baseWashDry[selection.weightTier].price,
     })
+    hasServices = true
   }
 
   // Special items
@@ -77,6 +85,7 @@ export const getItemizedBreakdown = (selection: BookingSelection) => {
       label: serviceConfig.specialItems[item].label,
       price: serviceConfig.specialItems[item].price,
     })
+    hasServices = true
   })
 
   // Add-ons
@@ -85,13 +94,16 @@ export const getItemizedBreakdown = (selection: BookingSelection) => {
       label: serviceConfig.addOns[addOn].label,
       price: serviceConfig.addOns[addOn].price,
     })
+    hasServices = true
   })
 
-  // Collection fee
-  items.push({
-    label: 'Collection & Delivery',
-    price: serviceConfig.collectionFee,
-  })
+  // Collection fee - only add if services are selected
+  if (hasServices) {
+    items.push({
+      label: 'Collection & Delivery',
+      price: serviceConfig.collectionFee,
+    })
+  }
 
   return items
 }

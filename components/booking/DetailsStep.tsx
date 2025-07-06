@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +14,7 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  MapPin,
 } from 'lucide-react'
 import { uploadBookingImages, type UploadProgress } from '@/lib/storage'
 import { createClient } from '@/utils/supabase/client'
@@ -24,6 +25,9 @@ interface DetailsStepProps {
   stainRemovalSelected: boolean
   uploadedImageUrls: string[]
   onImageUrlsChange: (urls: string[]) => void
+  accessNotes: string
+  onAccessNotesChange: (notes: string) => void
+  laundryPreferences?: string
 }
 
 export default function DetailsStep({
@@ -32,10 +36,20 @@ export default function DetailsStep({
   stainRemovalSelected,
   uploadedImageUrls,
   onImageUrlsChange,
+  accessNotes,
+  onAccessNotesChange,
+  laundryPreferences,
 }: DetailsStepProps) {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-populate special instructions with user preferences
+  useEffect(() => {
+    if (laundryPreferences && !specialInstructions) {
+      onSpecialInstructionsChange(laundryPreferences)
+    }
+  }, [laundryPreferences, specialInstructions, onSpecialInstructionsChange])
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -128,6 +142,12 @@ export default function DetailsStep({
             onChange={(e) => onSpecialInstructionsChange(e.target.value)}
             className='min-h-[120px]'
           />
+          {laundryPreferences && (
+            <p className='mt-2 text-xs text-gray-500'>
+              <strong>Tip:</strong> We've pre-filled this with your saved
+              preferences. You can modify or add to them.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -287,6 +307,32 @@ export default function DetailsStep({
           <p className='mt-2 text-xs text-gray-500'>
             You can update your contact details in{' '}
             <span className='text-blue-600 underline'>Settings</span>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Access Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            <MapPin className='h-5 w-5' />
+            Access Notes (Optional)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Label htmlFor='access-notes' className='mb-3 block text-sm'>
+            Help your Washer find and access your location
+          </Label>
+          <Textarea
+            id='access-notes'
+            placeholder='e.g., Dial 123 on the intercom, flat is on the 2nd floor...'
+            value={accessNotes}
+            onChange={(e) => onAccessNotesChange(e.target.value)}
+            className='min-h-[100px]'
+          />
+          <p className='mt-2 text-xs text-gray-500'>
+            <strong>Examples:</strong> Intercom codes, apartment numbers,
+            parking instructions, gate codes, etc.
           </p>
         </CardContent>
       </Card>
