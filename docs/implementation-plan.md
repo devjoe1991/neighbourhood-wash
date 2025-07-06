@@ -217,7 +217,7 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 #### Week 9: Washer Dashboard Layout & Core Features
 
-- [ ] Create Washer-specific dashboard layout
+- [x] **Create Washer-specific dashboard layout:** _(Notes: Implemented comprehensive Washer Dashboard with `(washer)` route group. Created `app/(washer)/layout.tsx` for role-based protection ensuring only approved washers can access the dashboard. Built professional booking list page at `app/(washer)/dashboard/bookings/page.tsx` displaying assigned bookings with customer details, collection dates, status tracking, and verification statuses. Implemented detailed booking view at `app/(washer)/dashboard/bookings/[id]/page.tsx` with complete booking information, service details, and PIN verification interface. Created server actions in `app/(washer)/dashboard/actions.ts` for fetching assigned bookings, booking details, and PIN verification. Built secure PIN verification system with `components/washer/PinInput.tsx` supporting both collection and delivery PIN workflows with real-time UI updates and proper error handling.)_
 - [x] **Implement Full Washer Application Flow:** _(Notes: Replaced the simple "interest registration" with a full multi-step application form. Created `components/dashboard/WasherApplicationForm.tsx` to handle the form logic, state, and validation for personal details, service offerings, and equipment. A new page, `app/dashboard/washer-application/page.tsx`, hosts this form and includes logic to check a user's role and `washer_status` before rendering. The `app/dashboard/become-washer/page.tsx` page was updated to act as a hub, directing users with a 'pending_application' status to the new form, showing a status message to those who have already applied, and keeping the interest registration form for brand new prospective washers.)_
   - [x] Create multi-step application form component (`WasherApplicationForm.tsx`).
   - [x] Implement client-side validation using `zod` and `react-hook-form`.
@@ -225,11 +225,12 @@ This pivot simplifies the user experience by removing the need for manual washer
   - [x] Add logic to check user's `washer_status` to control access and display appropriate messages.
   - [x] Update the `/dashboard/become-washer` page to intelligently direct users based on their application status.
   - [ ] Server action to save application data to a new `washer_applications` table. _(Note: Placeholder `applyToBeWasher` action exists; needs full implementation)_
+- [x] **Implement PIN verification system for secure handovers:** _(Notes: Core PIN verification system implemented in `components/washer/PinInput.tsx` with separate collection and delivery PIN workflows. Washers can input 4-digit PINs provided by customers to verify handovers. System validates PINs against stored values, updates booking status automatically (to 'in_progress' after collection, 'completed' after delivery), and provides real-time feedback through toast notifications. Server action `verifyPin` in `app/(washer)/dashboard/actions.ts` handles security checks, PIN validation, and database updates with proper error handling.)_
+- [x] **Build comprehensive booking management system:** _(Notes: Complete booking management implemented for washers. Features include: booking list view with status tracking, detailed booking information display, customer contact details, service configuration parsing, special instructions handling, and real-time verification status updates. All booking data is securely filtered to show only assignments for the current washer. The system supports the full booking lifecycle from assignment to completion.)_
 - [ ] Implement dashboard overview with key metrics
 - [ ] Build service management interface
 - [ ] Create availability calendar management
 - [ ] Add service pricing configuration
-- [ ] Implement booking management system
 - [ ] Build customer list view
 - [ ] **Create Washer referral section with:**
   - [ ] Unique Washer referral code generation
