@@ -47,3 +47,7 @@ the authentication features are now merged into the main branch and ready for th
 "Searched for a foreign key relationship between 'bookings' and 'washer_id' in the schema 'public', but no matches were found.",
 hint: null,
 message: "Could not find a relationship between 'bookings' and 'washer_id' in the schema cache"
+
+The help/support system for user assistance?
+
+Dashboard analytics for user insights?
