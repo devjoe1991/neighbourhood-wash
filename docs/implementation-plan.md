@@ -1,5 +1,14 @@
 # Enhanced Implementation Plan: Neighbourhood Wash Web Application
 
+## IMPORTANT: Major Workflow Pivot (December 2024)
+
+**BREAKING CHANGE**: The user workflow has been fundamentally changed from a manual "Washer Discovery" system to an automatic "Booking Assignment" system.
+
+**Previous Flow**: User browses available washers → selects preferred washer → creates booking
+**New Flow**: User creates booking with requirements → system automatically assigns best available washer
+
+This pivot simplifies the user experience by removing the need for manual washer selection and comparison. Users now simply specify their laundry needs, and the platform's algorithm handles washer matching and assignment automatically.
+
 ## 1. Project Goals
 
 - Develop and launch a user-friendly, visually appealing Neighbourhood Wash web application that connects users with local "Washers" for laundry services
@@ -140,19 +149,13 @@
 
 - [x] Create responsive dashboard layout with navigation _(Notes: Implemented a two-column dashboard layout with a fixed sidebar (`components/dashboard/Sidebar.tsx`) and main content area for pages like `app/dashboard/page.tsx`, `app/dashboard/referrals/page.tsx`, `app/dashboard/become-washer/page.tsx`. Includes 'Beta Version' notice in sidebar and welcome message on main dashboard. Resolved header overlap issues.)_
 - [x] Implement dashboard overview page _(Notes: Basic overview page at `app/dashboard/page.tsx` created with welcome message and beta notice.)_
-- [~] Build Washer discovery interface with: _(Notes: Created foundational elements for Washer Discovery feature. Added main page file at `app/dashboard/find-washer/page.tsx` with title and description. Created `lib/types.ts` with Washer interface matching data models from workflow.md. Added placeholder data fetching function at `app/dashboard/find-washer/actions.ts` with test washer object and simulated network delay. Files: `lib/types.ts`, `app/dashboard/find-washer/page.tsx`, `app/dashboard/find-washer/actions.ts`)_
-  - [ ] Search functionality
-  - [ ] Filtering options (services, price, ratings)
-  - [x] Washer preview cards with: _(Notes: Created reusable `WasherCard` component at `components/dashboard/find-washer/WasherCard.tsx`. Installed shadcn/ui Avatar component. Card includes all specified features: Avatar with image fallback to initials, formatted name display (First L.), star rating with review count, distance display, service specialties badges, availability info, verified status with ShieldCheck icon, price tier display, and favorite toggle functionality with Heart icon. Component is fully responsive with hover effects and proper accessibility.)_
-    - [x] Profile image/initials
-    - [x] First name display
-    - [x] Rating and review count
-    - [x] Approximate distance
-    - [x] Service specialties badges
-    - [x] Next available slot info
-    - [x] Verified status indicator
-- [ ] Implement distance-based sorting algorithm
-- [ ] Add favourites functionality
+- [x] Build Washer request interface with automatic assignment: _(Notes: **PIVOTED FROM DISCOVERY TO AUTOMATIC ASSIGNMENT FLOW**. Created "Request a Wash" page at `app/dashboard/request-wash/page.tsx` with comprehensive form for users to submit laundry requirements. Form includes services selection (wash/dry/iron), collection service option, preferred date/time textarea, and special instructions. Added server action at `app/dashboard/request-wash/actions.ts` for form submission with placeholder processing logic. Updated sidebar navigation from "Find a Washer" to "Request a Wash". This replaces the manual discovery/browsing approach with an automatic matching system. Files: `app/dashboard/request-wash/page.tsx`, `app/dashboard/request-wash/actions.ts`, updated `components/dashboard/Sidebar.tsx`. **Note**: Previous discovery components (`WasherCard`, `find-washer` page) remain in codebase but are no longer used in the main flow.)_
+  - [x] Service selection form (wash/dry/iron checkboxes)
+  - [x] Collection service option
+  - [x] Scheduling preference input
+  - [x] Special instructions textarea
+  - [x] Form submission with placeholder server action
+  - [x] User feedback messaging
 - [~] **Create referral section on dashboard with:** _(Notes: Created placeholder page `app/dashboard/referrals/page.tsx`.)_
   - [~] Unique referral code generation _(Notes: Implemented backend logic in `lib/referral.ts` to generate and store unique codes in a new `referrals` table. The `app/dashboard/referrals/page.tsx` now displays this code. RLS policy added for users to read their own codes.)_
   - [ ] Referral status tracking _(Notes: TODO - Requires linking `referral_events` table data to dashboard UI.)_
@@ -160,16 +163,21 @@
   - [ ] Social media sharing links _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
   - [ ] Referral reward explanation _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
 
-#### Week 7: Booking System (User Side)
+#### Week 6: Booking Configuration & Scheduling UI
 
-- [ ] Create service selection interface
-- [ ] Build calendar view for availability selection
-- [ ] Implement time slot selection
-- [ ] Add service cost calculator
-- [ ] Create booking confirmation process
-- [ ] Build special instructions/preferences section
-- [ ] Implement booking history view
-- [ ] Add booking cancellation functionality
+- [ ] Design and implement multi-step booking UI inspired by reference screenshots.
+- [ ] Create a dynamic service selection component with live price calculation (by weight, special items, add-ons).
+- [ ] Add a "Weight Guide" modal to help users estimate their laundry weight.
+- [ ] Implement options for stain removal and user-provided washing products.
+- [ ] Build the scheduling interface with a calendar for collection and estimated delivery dates/times.
+
+#### Week 7: Booking Finalisation & Payment
+
+- [ ] Develop the "Final Details" step: instructions, image uploads.
+- [ ] Integrate a placeholder for the Stripe payment gateway.
+- [ ] Create the final review/confirmation step, including checkboxes for T&Cs and cancellation policy.
+- [ ] Implement the server action to handle the complete booking submission post-payment.
+- [ ] Build the booking confirmation/status page.
 
 #### Week 8: User Experience Enhancements
 
@@ -278,7 +286,9 @@
 - [ ] Create booking system backend logic
 - [ ] Build service management APIs
 - [ ] Implement review and rating backend
-- [ ] Add location-based search and filtering
+- [ ] Design and implement the automatic washer matching algorithm (to run 12 hours pre-booking, factoring in location, availability, services, and washer capacity).
+- [ ] Implement backend logic for dynamic price calculation based on selected services.
+- [ ] Set up Supabase Storage for user-uploaded images of clothes.
 - [ ] Create notification system backend
 - [~] Build referral system backend logic _(Notes: Created `referrals` table for storing unique user codes and `referral_events` table for tracking referred signups. Implemented `lib/referral.ts` utility for code generation/retrieval. Deployed `process-referral` Supabase Edge Function (`supabase/functions/process-referral/index.ts`) to validate `submitted_referral_code` from new user signups (via `user_metadata`) and record successful referrals in `referral_events`. Basic RLS added to `referrals` table. **TODO: Implement RLS for `referral_events`. Thoroughly test end-to-end referral flow. Develop logic for updating referral status (e.g., after first wash) and reward distribution.**)_
 
@@ -418,7 +428,7 @@
 
 - [ ] Authentication & Profile Management
 - [ ] User Dashboard Functionality
-- [ ] Washer Discovery & Filtering
+- [ ] New Booking Creation & Auto-Assignment
 - [ ] Booking Process
 - [ ] Communication System
 - [ ] Washer Dashboard Features
