@@ -191,7 +191,7 @@ This pivot simplifies the user experience by removing the need for manual washer
   - [x] Include washer profile fetching for assigned bookings
   - [x] Add chat placeholder for future functionality
   - [x] Handle empty states and error scenarios
-- [ ] Implement booking cancellation logic with the 12-hour rule on the "My Bookings" page.
+- [x] Implement booking cancellation logic with the 12-hour rule on the "My Bookings" page. _(Notes: Added a 'Cancel Booking' button to the booking detail page which triggers a server action. The action enforces the 12-hour rule on the server before updating the booking status in Supabase. Features: AlertDialog confirmation with cancellation policy explanation, loading states, toast notifications for feedback, automatic page refresh on success. Only visible for non-cancelled/non-completed bookings. Files: updated `app/dashboard/my-bookings/[id]/page.tsx`, added `cancelBooking` function to `app/dashboard/my-bookings/actions.ts`, added Toaster component to `app/layout.tsx`.)_
 - [ ] Create the PIN code verification UI for handovers on the booking detail page.
 - [ ] Build the post-completion UI on the user dashboard: "Leave a Review" and "Add Washer to Favourites" prompts.
 - [ ] Develop the backend functionality for a user's "Favourite Washers" list.

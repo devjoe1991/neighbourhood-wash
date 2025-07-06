@@ -162,3 +162,104 @@ export async function getBookingById(bookingId: string): Promise<{
     }
   }
 }
+
+export async function cancelBooking(bookingId: string): Promise<{
+  success: boolean
+  message: string
+}> {
+  try {
+    const supabase = createClient()
+
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error('Auth error:', authError)
+      return {
+        success: false,
+        message: 'Authentication error. Please log in again.',
+      }
+    }
+
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found. Please log in again.',
+      }
+    }
+
+    // Fetch the booking to check ownership and get collection date
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('id, collection_date, collection_time_slot, status, user_id')
+      .eq('id', bookingId)
+      .eq('user_id', user.id) // Security: ensure user can only cancel their own bookings
+      .single()
+
+    if (fetchError) {
+      console.error('Database error:', fetchError)
+      return {
+        success: false,
+        message: 'Booking not found or access denied.',
+      }
+    }
+
+    // Check if booking is already cancelled or completed
+    if (booking.status === 'cancelled') {
+      return {
+        success: false,
+        message: 'This booking has already been cancelled.',
+      }
+    }
+
+    if (booking.status === 'completed') {
+      return {
+        success: false,
+        message: 'Completed bookings cannot be cancelled.',
+      }
+    }
+
+    // Implement 12-hour rule
+    const collectionDate = new Date(booking.collection_date)
+    const currentTime = new Date()
+    const timeDifferenceInHours =
+      (collectionDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
+
+    if (timeDifferenceInHours < 12) {
+      return {
+        success: false,
+        message:
+          'Cancellation failed. Bookings cannot be cancelled less than 12 hours before collection.',
+      }
+    }
+
+    // Update booking status to cancelled
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', bookingId)
+      .eq('user_id', user.id) // Double security check
+
+    if (updateError) {
+      console.error('Database update error:', updateError)
+      return {
+        success: false,
+        message: 'Failed to cancel booking. Please try again.',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Your booking has been successfully cancelled.',
+    }
+  } catch (error) {
+    console.error('Error cancelling booking:', error)
+    return {
+      success: false,
+      message: 'An unexpected error occurred. Please try again.',
+    }
+  }
+}
