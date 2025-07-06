@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, ArrowRight, ArrowLeft } from 'lucide-react'
+import {
+  Calendar,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  FileText,
+  CreditCard,
+} from 'lucide-react'
 import {
   BookingSelection,
   WeightTier,
@@ -15,12 +22,15 @@ import {
 } from '@/lib/pricing'
 import ScheduleStep from '@/components/booking/ScheduleStep'
 import ServiceStep from '@/components/booking/ServiceStep'
+import DetailsStep from '@/components/booking/DetailsStep'
+import PaymentStep from '@/components/booking/PaymentStep'
+import { createBooking, type BookingData } from './actions'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
   { id: 2, name: 'Services', icon: Clock },
-  // { id: 3, name: 'Details', icon: FileText },
-  // { id: 4, name: 'Payment', icon: CreditCard },
+  { id: 3, name: 'Details', icon: FileText },
+  { id: 4, name: 'Payment', icon: CreditCard },
 ]
 
 export default function NewBookingPage() {
@@ -36,6 +46,16 @@ export default function NewBookingPage() {
   const [itemizedBreakdown, setItemizedBreakdown] = useState<
     Array<{ label: string; price: number }>
   >([])
+
+  // Step 3: Details state
+  const [specialInstructions, setSpecialInstructions] = useState('')
+
+  // Step 4: Payment state
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [userAgreementAccepted, setUserAgreementAccepted] = useState(false)
+  const [cancellationPolicyAccepted, setCancellationPolicyAccepted] =
+    useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -56,6 +76,16 @@ export default function NewBookingPage() {
     if (currentStep === 2) {
       return selection.weightTier
     }
+    if (currentStep === 3) {
+      // Details step - no required fields, special instructions are optional
+      return true
+    }
+    if (currentStep === 4) {
+      // Payment step - all agreements must be accepted
+      return (
+        termsAccepted && userAgreementAccepted && cancellationPolicyAccepted
+      )
+    }
     return true
   }
 
@@ -68,6 +98,41 @@ export default function NewBookingPage() {
   const handlePrevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handlePaymentSubmit = async () => {
+    if (!selection.date || !selection.timeSlot || !selection.weightTier) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const bookingData: BookingData = {
+        date: selection.date,
+        timeSlot: selection.timeSlot,
+        weightTier: selection.weightTier,
+        selectedItems: selection.selectedItems,
+        selectedAddOns: selection.selectedAddOns,
+        specialInstructions,
+        stainImageUrls: [], // Empty for now
+        totalPrice,
+      }
+
+      const result = await createBooking(bookingData)
+
+      if (result.success) {
+        // TODO: Redirect to confirmation page or show success message
+        alert(`Success! ${result.message}`)
+      } else {
+        alert(`Error: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Payment submission error:', error)
+      alert('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -99,6 +164,33 @@ export default function NewBookingPage() {
             onAddOnsChange={(selectedAddOns: AddOn[]) =>
               updateSelection({ selectedAddOns })
             }
+          />
+        )
+      case 3:
+        return (
+          <DetailsStep
+            specialInstructions={specialInstructions}
+            onSpecialInstructionsChange={setSpecialInstructions}
+            stainRemovalSelected={selection.selectedAddOns.includes(
+              'stain_removal'
+            )}
+          />
+        )
+      case 4:
+        return (
+          <PaymentStep
+            totalPrice={totalPrice}
+            itemizedBreakdown={itemizedBreakdown}
+            selection={selection}
+            specialInstructions={specialInstructions}
+            termsAccepted={termsAccepted}
+            userAgreementAccepted={userAgreementAccepted}
+            cancellationPolicyAccepted={cancellationPolicyAccepted}
+            onTermsChange={setTermsAccepted}
+            onUserAgreementChange={setUserAgreementAccepted}
+            onCancellationPolicyChange={setCancellationPolicyAccepted}
+            onPaymentSubmit={handlePaymentSubmit}
+            isSubmitting={isSubmitting}
           />
         )
       default:
@@ -204,14 +296,26 @@ export default function NewBookingPage() {
                 Previous
               </Button>
               <Button
-                onClick={handleNextStep}
+                onClick={
+                  currentStep === 4 ? handlePaymentSubmit : handleNextStep
+                }
                 disabled={
-                  !canProceedToNextStep() || currentStep === STEPS.length
+                  !canProceedToNextStep() || (currentStep === 4 && isSubmitting)
                 }
                 className='flex items-center gap-2'
               >
-                Next
-                <ArrowRight className='h-4 w-4' />
+                {currentStep === 4 ? (
+                  isSubmitting ? (
+                    'Processing...'
+                  ) : (
+                    `Pay £${totalPrice.toFixed(2)}`
+                  )
+                ) : (
+                  <>
+                    Next
+                    <ArrowRight className='h-4 w-4' />
+                  </>
+                )}
               </Button>
             </div>
           </div>
