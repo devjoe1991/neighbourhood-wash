@@ -140,7 +140,7 @@
 
 - [x] Create responsive dashboard layout with navigation _(Notes: Implemented a two-column dashboard layout with a fixed sidebar (`components/dashboard/Sidebar.tsx`) and main content area for pages like `app/dashboard/page.tsx`, `app/dashboard/referrals/page.tsx`, `app/dashboard/become-washer/page.tsx`. Includes 'Beta Version' notice in sidebar and welcome message on main dashboard. Resolved header overlap issues.)_
 - [x] Implement dashboard overview page _(Notes: Basic overview page at `app/dashboard/page.tsx` created with welcome message and beta notice.)_
-- [ ] Build Washer discovery interface with:
+- [~] Build Washer discovery interface with: _(Notes: Created foundational elements for Washer Discovery feature. Added main page file at `app/dashboard/find-washer/page.tsx` with title and description. Created `lib/types.ts` with Washer interface matching data models from workflow.md. Added placeholder data fetching function at `app/dashboard/find-washer/actions.ts` with test washer object and simulated network delay. Files: `lib/types.ts`, `app/dashboard/find-washer/page.tsx`, `app/dashboard/find-washer/actions.ts`)_
   - [ ] Search functionality
   - [ ] Filtering options (services, price, ratings)
   - [ ] Washer preview cards with:
