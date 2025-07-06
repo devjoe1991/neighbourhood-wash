@@ -20,8 +20,8 @@ interface SidebarProps {
 const navLinks = [
   { href: '/dashboard', label: 'Overview', icon: Home },
   {
-    href: '/dashboard/find-washer',
-    label: 'Find a Washer',
+    href: '/dashboard/request-wash',
+    label: 'Request a Wash',
     icon: Search,
     requiresRole: 'user',
   },
