@@ -10,6 +10,7 @@ import {
   WashingMachine,
   Search,
   Plus,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,12 @@ const navLinks = [
     href: '/dashboard/new-booking',
     label: 'New Booking',
     icon: Plus,
+    requiresRole: 'user',
+  },
+  {
+    href: '/dashboard/my-bookings',
+    label: 'My Bookings',
+    icon: Package,
     requiresRole: 'user',
   },
   {
