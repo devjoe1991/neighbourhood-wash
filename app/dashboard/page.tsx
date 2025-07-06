@@ -17,6 +17,8 @@ import {
   LayoutGrid,
   WashingMachine,
 } from 'lucide-react'
+import { getCompletedBookingsNeedingReview } from './actions'
+import PostBookingPrompt from '@/components/dashboard/PostBookingPrompt'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +42,15 @@ export default async function DashboardPage() {
   const userRole = profile?.role || user.user_metadata?.selected_role
   const isWasher = userRole === 'washer'
   const washerStatus = profile?.washer_status
+
+  // Get completed bookings that need review (only for users, not washers)
+  const completedBookingsResult = !isWasher
+    ? await getCompletedBookingsNeedingReview()
+    : { success: true, data: [] }
+
+  const completedBookings = completedBookingsResult.success
+    ? completedBookingsResult.data
+    : []
 
   return (
     <div className='space-y-8'>
@@ -73,6 +84,20 @@ export default async function DashboardPage() {
           laundry.
         </p>
       </div>
+
+      {/* Post-Booking Review Prompts */}
+      {completedBookings.length > 0 && (
+        <div className='space-y-4'>
+          <h2 className='text-xl font-semibold text-gray-900'>
+            How was your recent service?
+          </h2>
+          <div className='space-y-4'>
+            {completedBookings.map((booking) => (
+              <PostBookingPrompt key={booking.id} booking={booking} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
         {/* Card for Setting Laundry Preferences (for Users) */}
