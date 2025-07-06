@@ -9,6 +9,7 @@ import {
   Handshake,
   WashingMachine,
   Search,
+  Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +20,12 @@ interface SidebarProps {
 
 const navLinks = [
   { href: '/dashboard', label: 'Overview', icon: Home },
+  {
+    href: '/dashboard/new-booking',
+    label: 'New Booking',
+    icon: Plus,
+    requiresRole: 'user',
+  },
   {
     href: '/dashboard/request-wash',
     label: 'Request a Wash',
