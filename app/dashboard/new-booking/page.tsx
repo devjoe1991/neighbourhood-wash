@@ -29,6 +29,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import { stripePromise } from '@/lib/stripe/config'
 import { createPaymentIntent } from '@/lib/stripe/actions'
 import { createClient } from '@/utils/supabase/client'
+import { toast } from 'sonner'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -64,6 +65,7 @@ export default function NewBookingPage() {
     useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentInitializing, setPaymentInitializing] = useState(false)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -75,20 +77,34 @@ export default function NewBookingPage() {
 
   // Create payment intent when reaching payment step
   useEffect(() => {
-    if (currentStep === 4 && totalPrice > 0 && !clientSecret) {
+    if (
+      currentStep === 4 &&
+      totalPrice > 0 &&
+      !clientSecret &&
+      !paymentInitializing
+    ) {
+      console.log('🔄 Initiating payment intent creation for step 4')
+      setPaymentInitializing(true)
+
       createPaymentIntent(Math.round(totalPrice * 100))
         .then((result) => {
           if (result.success && result.clientSecret) {
+            console.log('✅ Payment intent created successfully')
             setClientSecret(result.clientSecret)
           } else {
-            console.error('Failed to create payment intent:', result.error)
+            console.error('❌ Failed to create payment intent:', result.error)
+            toast.error('Could not initialize payment. Please try again.')
           }
         })
         .catch((error) => {
-          console.error('Error creating payment intent:', error)
+          console.error('❌ Error creating payment intent:', error)
+          toast.error('Could not initialize payment. Please try again.')
+        })
+        .finally(() => {
+          setPaymentInitializing(false)
         })
     }
-  }, [currentStep, totalPrice, clientSecret])
+  }, [currentStep, totalPrice, clientSecret, paymentInitializing])
 
   // Fetch user profile for laundry preferences
   useEffect(() => {
@@ -237,22 +253,67 @@ export default function NewBookingPage() {
           />
         )
       case 4:
+        // Payment step with conditional rendering
+        if (paymentInitializing) {
+          return (
+            <div className='flex min-h-[400px] items-center justify-center'>
+              <div className='space-y-4 text-center'>
+                <div className='mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent'></div>
+                <p className='text-gray-600'>Initializing secure payment...</p>
+                <p className='text-sm text-gray-500'>
+                  Please wait while we set up your payment form
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        if (!clientSecret) {
+          return (
+            <div className='flex min-h-[400px] items-center justify-center'>
+              <div className='space-y-4 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center'>
+                <div className='text-gray-400'>
+                  <svg
+                    className='mx-auto h-12 w-12'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
+                    />
+                  </svg>
+                </div>
+                <p className='text-gray-600'>Payment initialization failed</p>
+                <p className='text-sm text-gray-500'>
+                  Please go back and try again, or refresh the page
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        // Only render PaymentStep when we have clientSecret
         return (
-          <PaymentStep
-            totalPrice={totalPrice}
-            itemizedBreakdown={itemizedBreakdown}
-            selection={selection}
-            specialInstructions={specialInstructions}
-            termsAccepted={termsAccepted}
-            userAgreementAccepted={userAgreementAccepted}
-            cancellationPolicyAccepted={cancellationPolicyAccepted}
-            onTermsChange={setTermsAccepted}
-            onUserAgreementChange={setUserAgreementAccepted}
-            onCancellationPolicyChange={setCancellationPolicyAccepted}
-            onPaymentSubmit={handlePaymentSubmit}
-            isSubmitting={isSubmitting}
-            clientSecret={clientSecret}
-          />
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentStep
+              totalPrice={totalPrice}
+              itemizedBreakdown={itemizedBreakdown}
+              selection={selection}
+              specialInstructions={specialInstructions}
+              termsAccepted={termsAccepted}
+              userAgreementAccepted={userAgreementAccepted}
+              cancellationPolicyAccepted={cancellationPolicyAccepted}
+              onTermsChange={setTermsAccepted}
+              onUserAgreementChange={setUserAgreementAccepted}
+              onCancellationPolicyChange={setCancellationPolicyAccepted}
+              onPaymentSubmit={handlePaymentSubmit}
+              isSubmitting={isSubmitting}
+            />
+          </Elements>
         )
       default:
         return <div>Step not implemented yet</div>
@@ -260,154 +321,149 @@ export default function NewBookingPage() {
   }
 
   return (
-    <Elements
-      stripe={stripePromise}
-      options={clientSecret ? { clientSecret } : {}}
-    >
-      <div className='min-h-screen bg-gray-50'>
-        <div className='mx-auto max-w-7xl px-4 py-8'>
-          {/* Header */}
-          <div className='mb-8'>
-            <h1 className='text-3xl font-bold text-gray-900'>
-              Create New Booking
-            </h1>
-            <p className='mt-2 text-gray-600'>
-              Schedule your laundry collection and customize your service
-            </p>
-          </div>
+    <div className='min-h-screen bg-gray-50'>
+      <div className='mx-auto max-w-7xl px-4 py-8'>
+        {/* Header */}
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>
+            Create New Booking
+          </h1>
+          <p className='mt-2 text-gray-600'>
+            Schedule your laundry collection and customize your service
+          </p>
+        </div>
 
-          {/* Progress Steps */}
-          <div className='mb-8'>
-            <div className='flex items-center justify-between'>
-              {STEPS.map((step, index) => {
-                const Icon = step.icon
-                const isCompleted = currentStep > step.id
-                const isCurrent = currentStep === step.id
+        {/* Progress Steps */}
+        <div className='mb-8'>
+          <div className='flex items-center justify-between'>
+            {STEPS.map((step, index) => {
+              const Icon = step.icon
+              const isCompleted = currentStep > step.id
+              const isCurrent = currentStep === step.id
 
-                return (
-                  <div key={step.id} className='flex items-center'>
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                        isCompleted
-                          ? 'border-blue-500 bg-blue-500 text-white'
-                          : isCurrent
-                            ? 'border-blue-500 bg-white text-blue-500'
-                            : 'border-gray-300 bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <svg
-                          className='h-5 w-5'
-                          fill='currentColor'
-                          viewBox='0 0 20 20'
-                        >
-                          <path
-                            fillRule='evenodd'
-                            d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-                            clipRule='evenodd'
-                          />
-                        </svg>
-                      ) : (
-                        <Icon className='h-5 w-5' />
-                      )}
-                    </div>
-                    <div className='ml-3'>
-                      <Badge variant={isCurrent ? 'default' : 'secondary'}>
-                        {step.name}
-                      </Badge>
-                    </div>
-                    {index < STEPS.length - 1 && (
-                      <div className='mx-6 h-0.5 w-16 bg-gray-200' />
+              return (
+                <div key={step.id} className='flex items-center'>
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                      isCompleted
+                        ? 'border-blue-500 bg-blue-500 text-white'
+                        : isCurrent
+                          ? 'border-blue-500 bg-white text-blue-500'
+                          : 'border-gray-300 bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <svg
+                        className='h-5 w-5'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                          clipRule='evenodd'
+                        />
+                      </svg>
+                    ) : (
+                      <Icon className='h-5 w-5' />
                     )}
                   </div>
-                )
-              })}
+                  <div className='ml-3'>
+                    <Badge variant={isCurrent ? 'default' : 'secondary'}>
+                      {step.name}
+                    </Badge>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div className='mx-6 h-0.5 w-16 bg-gray-200' />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Main Content - Two Column Layout */}
+        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+          {/* Left Column - Steps */}
+          <div className='lg:col-span-2'>
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  {(() => {
+                    const currentStepData = STEPS.find(
+                      (step) => step.id === currentStep
+                    )
+                    if (currentStepData) {
+                      const Icon = currentStepData.icon
+                      return <Icon className='h-5 w-5' />
+                    }
+                    return null
+                  })()}
+                  Step {currentStep}:{' '}
+                  {STEPS.find((step) => step.id === currentStep)?.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>{renderStep()}</CardContent>
+            </Card>
+
+            {/* Navigation Buttons */}
+            <div className='mt-6 flex justify-between'>
+              <Button
+                variant='outline'
+                onClick={handlePrevStep}
+                disabled={currentStep === 1}
+                className='flex items-center gap-2'
+              >
+                <ArrowLeft className='h-4 w-4' />
+                Previous
+              </Button>
+              {currentStep < 4 && (
+                <Button
+                  onClick={handleNextStep}
+                  disabled={!canProceedToNextStep()}
+                  className='flex items-center gap-2'
+                >
+                  Next
+                  <ArrowRight className='h-4 w-4' />
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Main Content - Two Column Layout */}
-          <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
-            {/* Left Column - Steps */}
-            <div className='lg:col-span-2'>
+          {/* Right Column - Price Summary */}
+          <div className='lg:col-span-1'>
+            <div className='sticky top-8'>
               <Card>
                 <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    {(() => {
-                      const currentStepData = STEPS.find(
-                        (step) => step.id === currentStep
-                      )
-                      if (currentStepData) {
-                        const Icon = currentStepData.icon
-                        return <Icon className='h-5 w-5' />
-                      }
-                      return null
-                    })()}
-                    Step {currentStep}:{' '}
-                    {STEPS.find((step) => step.id === currentStep)?.name}
-                  </CardTitle>
+                  <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
-                <CardContent>{renderStep()}</CardContent>
-              </Card>
-
-              {/* Navigation Buttons */}
-              <div className='mt-6 flex justify-between'>
-                <Button
-                  variant='outline'
-                  onClick={handlePrevStep}
-                  disabled={currentStep === 1}
-                  className='flex items-center gap-2'
-                >
-                  <ArrowLeft className='h-4 w-4' />
-                  Previous
-                </Button>
-                {currentStep < 4 && (
-                  <Button
-                    onClick={handleNextStep}
-                    disabled={!canProceedToNextStep()}
-                    className='flex items-center gap-2'
-                  >
-                    Next
-                    <ArrowRight className='h-4 w-4' />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column - Price Summary */}
-            <div className='lg:col-span-1'>
-              <div className='sticky top-8'>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className='space-y-2'>
-                      {itemizedBreakdown.map((item, index) => (
-                        <div key={index} className='flex justify-between'>
-                          <span className='text-sm text-gray-600'>
-                            {item.label}
-                          </span>
-                          <span className='text-sm font-medium'>
-                            £{item.price.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className='mt-4 border-t border-gray-200 pt-4'>
-                      <div className='flex items-center justify-between'>
-                        <span className='text-lg font-semibold'>Total</span>
-                        <span className='text-lg font-bold text-blue-600'>
-                          £{totalPrice.toFixed(2)}
+                <CardContent>
+                  <div className='space-y-2'>
+                    {itemizedBreakdown.map((item, index) => (
+                      <div key={index} className='flex justify-between'>
+                        <span className='text-sm text-gray-600'>
+                          {item.label}
+                        </span>
+                        <span className='text-sm font-medium'>
+                          £{item.price.toFixed(2)}
                         </span>
                       </div>
+                    ))}
+                  </div>
+                  <div className='mt-4 border-t border-gray-200 pt-4'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-lg font-semibold'>Total</span>
+                      <span className='text-lg font-bold text-blue-600'>
+                        £{totalPrice.toFixed(2)}
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </div>
-    </Elements>
+    </div>
   )
 }

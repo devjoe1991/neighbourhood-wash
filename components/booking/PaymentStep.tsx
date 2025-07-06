@@ -30,7 +30,6 @@ interface PaymentStepProps {
   onCancellationPolicyChange: (accepted: boolean) => void
   onPaymentSubmit: (paymentIntentId: string) => void
   isSubmitting: boolean
-  clientSecret: string | null
 }
 
 export default function PaymentStep({
@@ -46,14 +45,13 @@ export default function PaymentStep({
   onCancellationPolicyChange,
   onPaymentSubmit,
   isSubmitting,
-  clientSecret,
 }: PaymentStepProps) {
   const stripe = useStripe()
   const elements = useElements()
   const [paymentProcessing, setPaymentProcessing] = useState(false)
 
   const handlePaymentSubmit = async () => {
-    if (!stripe || !elements || !clientSecret) {
+    if (!stripe || !elements) {
       return
     }
 
@@ -260,32 +258,15 @@ export default function PaymentStep({
         </CardHeader>
         <CardContent className='space-y-4'>
           {/* Stripe Payment Element */}
-          {clientSecret ? (
-            <div className='rounded-lg border p-4'>
-              <PaymentElement />
-            </div>
-          ) : (
-            <div className='rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8'>
-              <div className='text-center'>
-                <Lock className='mx-auto h-8 w-8 text-gray-400' />
-                <p className='mt-2 text-sm font-medium text-gray-600'>
-                  Initializing secure payment...
-                </p>
-                <p className='mt-1 text-xs text-gray-500'>
-                  Powered by Stripe - Your payment details are secure
-                </p>
-              </div>
-            </div>
-          )}
+          <div className='rounded-lg border p-4'>
+            <PaymentElement />
+          </div>
 
           {/* Payment Button */}
           <Button
             onClick={handlePaymentSubmit}
             disabled={
-              !allAgreementsAccepted ||
-              isSubmitting ||
-              paymentProcessing ||
-              !clientSecret
+              !allAgreementsAccepted || isSubmitting || paymentProcessing
             }
             className='w-full'
             size='lg'
