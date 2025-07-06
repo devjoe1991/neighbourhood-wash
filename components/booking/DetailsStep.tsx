@@ -1,21 +1,105 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { UploadCloud, FileText, User, Phone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  UploadCloud,
+  FileText,
+  User,
+  Phone,
+  X,
+  CheckCircle,
+  AlertCircle,
+} from 'lucide-react'
+import { uploadBookingImages, type UploadProgress } from '@/lib/storage'
+import { createClient } from '@/utils/supabase/client'
 
 interface DetailsStepProps {
   specialInstructions: string
   onSpecialInstructionsChange: (instructions: string) => void
   stainRemovalSelected: boolean
+  uploadedImageUrls: string[]
+  onImageUrlsChange: (urls: string[]) => void
 }
 
 export default function DetailsStep({
   specialInstructions,
   onSpecialInstructionsChange,
   stainRemovalSelected,
+  uploadedImageUrls,
+  onImageUrlsChange,
 }: DetailsStepProps) {
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    // Validate file types and sizes
+    const validFiles = Array.from(files).filter((file) => {
+      const isValidType = file.type.startsWith('image/')
+      const isValidSize = file.size <= 10 * 1024 * 1024 // 10MB
+      return isValidType && isValidSize
+    })
+
+    if (validFiles.length === 0) {
+      alert('Please select valid image files (max 10MB each)')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      // Get current user for folder naming
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert('Please log in to upload images')
+        return
+      }
+
+      const uploadedUrls = await uploadBookingImages(
+        validFiles,
+        user.id,
+        setUploadProgress
+      )
+
+      // Add new URLs to existing ones
+      const newUrls = [...uploadedImageUrls, ...uploadedUrls]
+      onImageUrlsChange(newUrls)
+
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Failed to upload images. Please try again.')
+    } finally {
+      setIsUploading(false)
+      setUploadProgress([])
+    }
+  }
+
+  const handleRemoveImage = (urlToRemove: string) => {
+    const newUrls = uploadedImageUrls.filter((url) => url !== urlToRemove)
+    onImageUrlsChange(newUrls)
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
   return (
     <div className='space-y-6'>
       <div>
@@ -61,12 +145,27 @@ export default function DetailsStep({
               Help your Washer identify and treat stains effectively by
               uploading clear photos
             </Label>
-            <div className='flex min-h-[200px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-blue-400 hover:bg-blue-50'>
+
+            {/* File Input - Hidden */}
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/*'
+              multiple
+              onChange={handleFileSelect}
+              className='hidden'
+            />
+
+            {/* Upload Area */}
+            <div
+              onClick={triggerFileInput}
+              className='flex min-h-[200px] cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-blue-400 hover:bg-blue-50'
+            >
               <div className='text-center'>
                 <UploadCloud className='mx-auto h-12 w-12 text-gray-400' />
                 <div className='mt-4'>
                   <p className='text-sm font-medium text-gray-900'>
-                    Click or drag to upload images
+                    Click to upload images
                   </p>
                   <p className='text-xs text-gray-500'>
                     PNG, JPG up to 10MB each
@@ -74,10 +173,91 @@ export default function DetailsStep({
                 </div>
               </div>
             </div>
+
+            {/* Upload Progress */}
+            {uploadProgress.length > 0 && (
+              <div className='mt-4 space-y-2'>
+                <Label className='text-sm font-medium'>Upload Progress:</Label>
+                {uploadProgress.map((progress, index) => (
+                  <div key={index} className='flex items-center gap-2 text-sm'>
+                    {progress.status === 'uploading' && (
+                      <UploadCloud className='h-4 w-4 animate-pulse text-blue-500' />
+                    )}
+                    {progress.status === 'success' && (
+                      <CheckCircle className='h-4 w-4 text-green-500' />
+                    )}
+                    {progress.status === 'error' && (
+                      <AlertCircle className='h-4 w-4 text-red-500' />
+                    )}
+                    <span className='flex-1'>{progress.fileName}</span>
+                    <Badge
+                      variant={
+                        progress.status === 'success'
+                          ? 'default'
+                          : 'destructive'
+                      }
+                    >
+                      {progress.status === 'success'
+                        ? 'Complete'
+                        : progress.status === 'error'
+                          ? 'Failed'
+                          : 'Uploading...'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Uploaded Images */}
+            {uploadedImageUrls.length > 0 && (
+              <div className='mt-4 space-y-2'>
+                <Label className='text-sm font-medium'>Uploaded Images:</Label>
+                <div className='grid grid-cols-2 gap-2'>
+                  {uploadedImageUrls.map((url, index) => (
+                    <div key={index} className='relative'>
+                      <img
+                        src={url}
+                        alt={`Stain ${index + 1}`}
+                        className='h-24 w-full rounded-lg border object-cover'
+                      />
+                      <Button
+                        variant='destructive'
+                        size='sm'
+                        className='absolute -top-2 -right-2 h-6 w-6 rounded-full p-0'
+                        onClick={() => handleRemoveImage(url)}
+                      >
+                        <X className='h-3 w-3' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <p className='mt-2 text-xs text-gray-500'>
               <strong>Tip:</strong> Take clear, well-lit photos of each stain
               for best results
             </p>
+
+            {/* Upload Button */}
+            <Button
+              onClick={triggerFileInput}
+              variant='outline'
+              className='mt-3 w-full'
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <UploadCloud className='mr-2 h-4 w-4 animate-pulse' />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud className='mr-2 h-4 w-4' />
+                  Add More Images
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -1,6 +1,7 @@
 'use server'
 
-import { WeightTier, SpecialItem, AddOn } from '@/lib/pricing'
+import { createClient } from '@/utils/supabase/server_new'
+import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
 
 export interface BookingData {
   // Step 1: Schedule
@@ -22,27 +23,93 @@ export interface BookingData {
 
 export async function createBooking(bookingData: BookingData) {
   try {
-    // TODO: Integrate with Supabase to save booking
-    // TODO: Integrate with Stripe for payment processing
-    // TODO: Send notifications to user and system
-
     console.log('Creating booking with data:', bookingData)
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Create server-side Supabase client
+    const supabase = createClient()
 
-    // For now, return success
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error('Auth error:', authError)
+      return {
+        success: false,
+        message: 'Authentication error. Please log in again.',
+      }
+    }
+
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found. Please log in again.',
+      }
+    }
+
+    // Prepare services configuration for database
+    const servicesConfig = {
+      weightTier: bookingData.weightTier,
+      baseService: serviceConfig.baseWashDry[bookingData.weightTier],
+      selectedItems: bookingData.selectedItems.map((item) => ({
+        key: item,
+        ...serviceConfig.specialItems[item],
+      })),
+      selectedAddOns: bookingData.selectedAddOns.map((addon) => ({
+        key: addon,
+        ...serviceConfig.addOns[addon],
+      })),
+      collectionFee: serviceConfig.collectionFee,
+    }
+
+    // Create booking record
+    const newBooking = {
+      user_id: user.id,
+      collection_date: bookingData.date.toISOString(),
+      collection_time_slot: bookingData.timeSlot,
+      services_config: servicesConfig,
+      total_price: bookingData.totalPrice,
+      special_instructions: bookingData.specialInstructions || null,
+      stain_images: bookingData.stainImageUrls,
+      status: 'awaiting_assignment',
+      cancellation_policy_agreed: true,
+      terms_agreed: true,
+    }
+
+    // Insert booking into database
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert(newBooking)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Database error:', error)
+      return {
+        success: false,
+        message: 'Failed to save booking. Please try again.',
+      }
+    }
+
+    console.log('Booking created successfully:', data)
+
+    // TODO: Integrate with Stripe for payment processing
+    // TODO: Send notifications to user and system
+    // TODO: Trigger washer assignment algorithm
+
     return {
       success: true,
       message:
         'Booking created successfully! You will be assigned a Washer 12 hours before collection.',
-      bookingId: `booking_${Date.now()}`,
+      bookingId: data.id.toString(),
     }
   } catch (error) {
     console.error('Error creating booking:', error)
     return {
       success: false,
-      message: 'Failed to create booking. Please try again.',
+      message: 'An unexpected error occurred. Please try again.',
     }
   }
 }
