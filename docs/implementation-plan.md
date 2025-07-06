@@ -165,19 +165,19 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 #### Week 6: Booking Configuration & Scheduling UI
 
-- [ ] Design and implement multi-step booking UI inspired by reference screenshots.
-- [ ] Create a dynamic service selection component with live price calculation (by weight, special items, add-ons).
-- [ ] Add a "Weight Guide" modal to help users estimate their laundry weight.
-- [ ] Implement options for stain removal and user-provided washing products.
-- [ ] Build the scheduling interface with a calendar for collection and estimated delivery dates/times.
+- [x] Design and implement multi-step booking UI inspired by reference screenshots. _(Notes: Created complete 4-step booking flow with progress indicators in `app/dashboard/new-booking/page.tsx`.)_
+- [x] Create a dynamic service selection component with live price calculation (by weight, special items, add-ons). _(Notes: Implemented `ServiceStep` component in `components/booking/ServiceStep.tsx` with live price updates via `lib/pricing.ts`.)_
+- [x] Add a "Weight Guide" modal to help users estimate their laundry weight. _(Notes: Added interactive Weight Guide modal with practical examples in `ServiceStep` component.)_
+- [x] Implement options for stain removal and user-provided washing products. _(Notes: Added stain removal and user products options in service configuration with dynamic pricing.)_
+- [x] Build the scheduling interface with a calendar for collection and estimated delivery dates/times. _(Notes: Created `ScheduleStep` component in `components/booking/ScheduleStep.tsx` with calendar and time slot selection.)_
 
 #### Week 7: Booking Finalisation & Payment
 
-- [ ] Develop the "Final Details" step: instructions, image uploads.
-- [ ] Integrate a placeholder for the Stripe payment gateway.
-- [ ] Create the final review/confirmation step, including checkboxes for T&Cs and cancellation policy.
-- [ ] Implement the server action to handle the complete booking submission post-payment.
-- [ ] Build the booking confirmation/status page.
+- [x] Develop the "Final Details" step: instructions, image uploads. _(Notes: Created `DetailsStep` component in `components/booking/DetailsStep.tsx` with special instructions textarea and conditional image uploader for stain removal.)_
+- [x] Integrate a placeholder for the Stripe payment gateway. _(Notes: Added payment section placeholder in `PaymentStep` component with security messaging.)_
+- [x] Create the final review/confirmation step, including checkboxes for T&Cs and cancellation policy. _(Notes: Implemented `PaymentStep` component in `components/booking/PaymentStep.tsx` with complete order summary and legal agreement checkboxes.)_
+- [x] Implement the server action to handle the complete booking submission post-payment. _(Notes: Created `createBooking` server action in `app/dashboard/new-booking/actions.ts` with complete booking data structure.)_
+- [ ] Build the booking confirmation/status page. _(Notes: TODO - Currently using alert for success/error messages. Need dedicated confirmation page.)_
 
 #### Week 8: User Experience Enhancements
 
