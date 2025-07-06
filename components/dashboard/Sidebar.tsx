@@ -8,7 +8,6 @@ import {
   Settings,
   Handshake,
   WashingMachine,
-  Search,
   Plus,
   Package,
 } from 'lucide-react'
@@ -31,12 +30,6 @@ const navLinks = [
     href: '/dashboard/my-bookings',
     label: 'My Bookings',
     icon: Package,
-    requiresRole: 'user',
-  },
-  {
-    href: '/dashboard/request-wash',
-    label: 'Request a Wash',
-    icon: Search,
     requiresRole: 'user',
   },
   { href: '/dashboard/referrals', label: 'Referrals', icon: Handshake },
