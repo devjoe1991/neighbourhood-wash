@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server_new'
 import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
+import { generatePin } from '@/lib/utils'
 
 export interface BookingData {
   // Step 1: Schedule
@@ -65,6 +66,15 @@ export async function createBooking(bookingData: BookingData) {
       collectionFee: serviceConfig.collectionFee,
     }
 
+    // Generate unique PINs for secure handovers
+    const collectionPin = generatePin()
+    let deliveryPin = generatePin()
+
+    // Ensure PINs are different (very unlikely but worth checking)
+    while (deliveryPin === collectionPin) {
+      deliveryPin = generatePin()
+    }
+
     // Create booking record
     const newBooking = {
       user_id: user.id,
@@ -77,6 +87,8 @@ export async function createBooking(bookingData: BookingData) {
       status: 'awaiting_assignment',
       cancellation_policy_agreed: true,
       terms_agreed: true,
+      collection_pin: collectionPin,
+      delivery_pin: deliveryPin,
     }
 
     // Insert booking into database

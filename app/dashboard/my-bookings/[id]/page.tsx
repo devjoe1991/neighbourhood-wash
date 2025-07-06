@@ -36,6 +36,7 @@ import {
   type BookingWithWasher,
 } from '../actions'
 import StatusTracker from '@/components/bookings/StatusTracker'
+import PinVerification from '@/components/booking/PinVerification'
 import { toast } from 'sonner'
 
 interface BookingDetailPageProps {
@@ -397,6 +398,12 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* PIN Verification Section */}
+            {booking.status !== 'cancelled' &&
+              booking.status !== 'completed' && (
+                <PinVerification booking={booking} />
+              )}
 
             {/* Washer Information */}
             <Card>
