@@ -51,3 +51,5 @@ message: "Could not find a relationship between 'bookings' and 'washer_id' in th
 The help/support system for user assistance?
 
 Dashboard analytics for user insights?
+
+Enhanced Booking Flow: Improvements to the existing 4-step booking process

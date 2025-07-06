@@ -25,6 +25,9 @@ import ServiceStep from '@/components/booking/ServiceStep'
 import DetailsStep from '@/components/booking/DetailsStep'
 import PaymentStep from '@/components/booking/PaymentStep'
 import { createBooking, type BookingData } from './actions'
+import { Elements } from '@stripe/react-stripe-js'
+import { stripePromise } from '@/lib/stripe/config'
+import { createPaymentIntent } from '@/lib/stripe/actions'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -57,6 +60,7 @@ export default function NewBookingPage() {
   const [cancellationPolicyAccepted, setCancellationPolicyAccepted] =
     useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -65,6 +69,23 @@ export default function NewBookingPage() {
     setTotalPrice(total)
     setItemizedBreakdown(breakdown)
   }, [selection])
+
+  // Create payment intent when reaching payment step
+  useEffect(() => {
+    if (currentStep === 4 && totalPrice > 0 && !clientSecret) {
+      createPaymentIntent(Math.round(totalPrice * 100))
+        .then((result) => {
+          if (result.success && result.clientSecret) {
+            setClientSecret(result.clientSecret)
+          } else {
+            console.error('Failed to create payment intent:', result.error)
+          }
+        })
+        .catch((error) => {
+          console.error('Error creating payment intent:', error)
+        })
+    }
+  }, [currentStep, totalPrice, clientSecret])
 
   const updateSelection = (updates: Partial<BookingSelection>) => {
     setSelection((prev) => ({ ...prev, ...updates }))
@@ -102,7 +123,7 @@ export default function NewBookingPage() {
     }
   }
 
-  const handlePaymentSubmit = async () => {
+  const handlePaymentSubmit = async (paymentIntentId: string) => {
     if (!selection.date || !selection.timeSlot || !selection.weightTier) {
       return
     }
@@ -119,6 +140,7 @@ export default function NewBookingPage() {
         specialInstructions,
         stainImageUrls: uploadedImageUrls,
         totalPrice,
+        paymentIntentId, // Add the payment intent ID
       }
 
       // Call the server action - if successful, it will redirect to confirmation page
@@ -184,7 +206,25 @@ export default function NewBookingPage() {
           />
         )
       case 4:
-        return (
+        return clientSecret ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentStep
+              totalPrice={totalPrice}
+              itemizedBreakdown={itemizedBreakdown}
+              selection={selection}
+              specialInstructions={specialInstructions}
+              termsAccepted={termsAccepted}
+              userAgreementAccepted={userAgreementAccepted}
+              cancellationPolicyAccepted={cancellationPolicyAccepted}
+              onTermsChange={setTermsAccepted}
+              onUserAgreementChange={setUserAgreementAccepted}
+              onCancellationPolicyChange={setCancellationPolicyAccepted}
+              onPaymentSubmit={handlePaymentSubmit}
+              isSubmitting={isSubmitting}
+              clientSecret={clientSecret}
+            />
+          </Elements>
+        ) : (
           <PaymentStep
             totalPrice={totalPrice}
             itemizedBreakdown={itemizedBreakdown}
@@ -198,6 +238,7 @@ export default function NewBookingPage() {
             onCancellationPolicyChange={setCancellationPolicyAccepted}
             onPaymentSubmit={handlePaymentSubmit}
             isSubmitting={isSubmitting}
+            clientSecret={clientSecret}
           />
         )
       default:
@@ -302,28 +343,16 @@ export default function NewBookingPage() {
                 <ArrowLeft className='h-4 w-4' />
                 Previous
               </Button>
-              <Button
-                onClick={
-                  currentStep === 4 ? handlePaymentSubmit : handleNextStep
-                }
-                disabled={
-                  !canProceedToNextStep() || (currentStep === 4 && isSubmitting)
-                }
-                className='flex items-center gap-2'
-              >
-                {currentStep === 4 ? (
-                  isSubmitting ? (
-                    'Processing...'
-                  ) : (
-                    `Pay £${totalPrice.toFixed(2)}`
-                  )
-                ) : (
-                  <>
-                    Next
-                    <ArrowRight className='h-4 w-4' />
-                  </>
-                )}
-              </Button>
+              {currentStep < 4 && (
+                <Button
+                  onClick={handleNextStep}
+                  disabled={!canProceedToNextStep()}
+                  className='flex items-center gap-2'
+                >
+                  Next
+                  <ArrowRight className='h-4 w-4' />
+                </Button>
+              )}
             </div>
           </div>
 

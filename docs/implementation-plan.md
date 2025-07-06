@@ -306,7 +306,7 @@ This pivot simplifies the user experience by removing the need for manual washer
 - [ ] Set up Supabase Realtime for chat functionality
 - [~] Implement referral tracking and reward system _(Notes: Foundational tracking implemented (see Week 14-15). Reward system itself is TODO.)_
 - [ ] Build analytics data processing
-- [ ] Create secure payment integration with Stripe
+- [~] Create secure payment integration with Stripe _(Notes: Began Stripe integration for bookings. Installed required packages (`stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`). Created server action `lib/stripe/actions.ts` to generate Payment Intents. Implemented Stripe Elements on frontend in `components/booking/PaymentStep.tsx` to replace payment UI placeholder. Added client-side Stripe configuration in `lib/stripe/config.ts`. Refactored booking submission logic so booking records are only created after successful payment confirmation from Stripe. Updated `BookingData` interface to include `paymentIntentId` field. Created database migration `20240801000005_add_payment_intent_to_bookings.sql` to add `payment_intent_id` column. **Next Steps:** Run migration, test payment flow, ensure environment variables are configured.)_
 - [ ] Implement Stripe Connect for Washer payouts
 - [ ] Add automated email notification system
 - [ ] Build data encryption services for sensitive information
