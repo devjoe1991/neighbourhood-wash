@@ -177,7 +177,7 @@ This pivot simplifies the user experience by removing the need for manual washer
 - [x] Integrate a placeholder for the Stripe payment gateway. _(Notes: Added payment section placeholder in `PaymentStep` component with security messaging.)_
 - [x] Create the final review/confirmation step, including checkboxes for T&Cs and cancellation policy. _(Notes: Implemented `PaymentStep` component in `components/booking/PaymentStep.tsx` with complete order summary and legal agreement checkboxes.)_
 - [x] Implement the server action to handle the complete booking submission post-payment. _(Notes: Created `createBooking` server action in `app/dashboard/new-booking/actions.ts` with complete booking data structure.)_
-- [ ] Build the booking confirmation/status page. _(Notes: TODO - Currently using alert for success/error messages. Need dedicated confirmation page.)_
+- [x] Build the booking confirmation/status page. _(Notes: Replaced alert() with a dedicated confirmation page at `/dashboard/booking-confirmation/[id]` to show success and explain next steps to the user. The page displays booking summary, payment confirmation, and a detailed "What Happens Next" section explaining the washer assignment process and PIN system. Updated the `createBooking` server action to redirect to this confirmation page upon successful booking creation. Files: `app/dashboard/booking-confirmation/[id]/page.tsx`, updated `app/dashboard/new-booking/actions.ts`.)_
 
 #### Week 8: User Experience Enhancements
 

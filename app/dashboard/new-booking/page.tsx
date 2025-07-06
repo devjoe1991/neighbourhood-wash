@@ -121,17 +121,21 @@ export default function NewBookingPage() {
         totalPrice,
       }
 
-      const result = await createBooking(bookingData)
+      // Call the server action - if successful, it will redirect to confirmation page
+      // If there's an error, it will be caught and handled below
+      await createBooking(bookingData)
 
-      if (result.success) {
-        // TODO: Redirect to confirmation page or show success message
-        alert(`Success! ${result.message}`)
-      } else {
-        alert(`Error: ${result.message}`)
-      }
+      // If we reach this point, there was no redirect (error case)
+      // The redirect happens on the server side for successful bookings
     } catch (error) {
       console.error('Payment submission error:', error)
-      alert('An unexpected error occurred. Please try again.')
+
+      // Handle server action errors
+      if (error && typeof error === 'object' && 'message' in error) {
+        alert(`Error: ${error.message}`)
+      } else {
+        alert('An unexpected error occurred. Please try again.')
+      }
     } finally {
       setIsSubmitting(false)
     }

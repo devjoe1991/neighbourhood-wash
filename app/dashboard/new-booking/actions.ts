@@ -1,5 +1,6 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server_new'
 import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
 
@@ -82,7 +83,7 @@ export async function createBooking(bookingData: BookingData) {
     const { data, error } = await supabase
       .from('bookings')
       .insert(newBooking)
-      .select()
+      .select('id')
       .single()
 
     if (error) {
@@ -99,12 +100,8 @@ export async function createBooking(bookingData: BookingData) {
     // TODO: Send notifications to user and system
     // TODO: Trigger washer assignment algorithm
 
-    return {
-      success: true,
-      message:
-        'Booking created successfully! You will be assigned a Washer 12 hours before collection.',
-      bookingId: data.id.toString(),
-    }
+    // Redirect to confirmation page
+    redirect(`/dashboard/booking-confirmation/${data.id}`)
   } catch (error) {
     console.error('Error creating booking:', error)
     return {
