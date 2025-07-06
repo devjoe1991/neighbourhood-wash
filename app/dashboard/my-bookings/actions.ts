@@ -16,6 +16,10 @@ export interface BookingRecord {
   washer_id: string | null
   cancellation_policy_agreed: boolean
   terms_agreed: boolean
+  collection_pin: string | null
+  delivery_pin: string | null
+  collection_verified_at: string | null
+  delivery_verified_at: string | null
 }
 
 export interface BookingWithWasher extends BookingRecord {
