@@ -143,14 +143,14 @@
 - [~] Build Washer discovery interface with: _(Notes: Created foundational elements for Washer Discovery feature. Added main page file at `app/dashboard/find-washer/page.tsx` with title and description. Created `lib/types.ts` with Washer interface matching data models from workflow.md. Added placeholder data fetching function at `app/dashboard/find-washer/actions.ts` with test washer object and simulated network delay. Files: `lib/types.ts`, `app/dashboard/find-washer/page.tsx`, `app/dashboard/find-washer/actions.ts`)_
   - [ ] Search functionality
   - [ ] Filtering options (services, price, ratings)
-  - [ ] Washer preview cards with:
-    - [ ] Profile image/initials
-    - [ ] First name display
-    - [ ] Rating and review count
-    - [ ] Approximate distance
-    - [ ] Service specialties badges
-    - [ ] Next available slot info
-    - [ ] Verified status indicator
+  - [x] Washer preview cards with: _(Notes: Created reusable `WasherCard` component at `components/dashboard/find-washer/WasherCard.tsx`. Installed shadcn/ui Avatar component. Card includes all specified features: Avatar with image fallback to initials, formatted name display (First L.), star rating with review count, distance display, service specialties badges, availability info, verified status with ShieldCheck icon, price tier display, and favorite toggle functionality with Heart icon. Component is fully responsive with hover effects and proper accessibility.)_
+    - [x] Profile image/initials
+    - [x] First name display
+    - [x] Rating and review count
+    - [x] Approximate distance
+    - [x] Service specialties badges
+    - [x] Next available slot info
+    - [x] Verified status indicator
 - [ ] Implement distance-based sorting algorithm
 - [ ] Add favourites functionality
 - [~] **Create referral section on dashboard with:** _(Notes: Created placeholder page `app/dashboard/referrals/page.tsx`.)_
