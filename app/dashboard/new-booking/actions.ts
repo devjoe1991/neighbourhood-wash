@@ -21,6 +21,7 @@ export interface BookingData {
 
   // Step 4: Payment
   totalPrice: number
+  paymentIntentId?: string
 }
 
 export async function createBooking(bookingData: BookingData) {
@@ -89,6 +90,7 @@ export async function createBooking(bookingData: BookingData) {
       terms_agreed: true,
       collection_pin: collectionPin,
       delivery_pin: deliveryPin,
+      payment_intent_id: bookingData.paymentIntentId || null,
     }
 
     // Insert booking into database
@@ -108,7 +110,7 @@ export async function createBooking(bookingData: BookingData) {
 
     console.log('Booking created successfully:', data)
 
-    // TODO: Integrate with Stripe for payment processing
+    // Payment processing completed via Stripe before booking creation
     // TODO: Send notifications to user and system
     // TODO: Trigger washer assignment algorithm
 
