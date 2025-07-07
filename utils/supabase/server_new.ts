@@ -36,6 +36,38 @@ export function createClient() {
           }
         },
       },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+// Create a service role client for admin operations
+export function createServiceRoleClient() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn(
+      'SUPABASE_SERVICE_ROLE_KEY not found. Some admin operations may fail.'
+    )
+    return null
+  }
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get: async () => '',
+        set: async () => {},
+        remove: async () => {},
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
     }
   )
 }
