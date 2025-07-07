@@ -40,9 +40,9 @@ CREATE POLICY "Admins can manage all applications"
 ON public.washer_applications
 FOR ALL USING (
   EXISTS (
-    SELECT 1 FROM auth.users 
-    WHERE auth.users.id = auth.uid() 
-    AND auth.users.raw_user_meta_data->>'role' = 'admin'
+    SELECT 1 FROM public.profiles 
+    WHERE profiles.id = auth.uid() 
+    AND profiles.role = 'admin'
   )
 );
 
