@@ -43,3 +43,7 @@ what our users say on the main apge to be palced back.
 
 charlie
 the authentication features are now merged into the main branch and ready for their review. They can pull the latest main to see the changes.
+
+Other on allergies - it might be a random allergy that we dont know about.
+
+maybe implement a reward point system for leaving reviews etc and if you geet certain highamount of points you get money off.
