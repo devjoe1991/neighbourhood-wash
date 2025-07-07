@@ -48,4 +48,4 @@ FOR ALL USING (
 
 COMMENT ON TABLE public.washer_applications IS 'Stores detailed applications submitted by users wishing to become Washers.';
 COMMENT ON COLUMN public.washer_applications.status IS 'The current status of the application, e.g., pending_verification, approved, rejected.';
-COMMENT ON INDEX idx_unique_pending_application IS 'Ensures a user cannot have more than one pending application at a time.'; 
+COMMENT ON INDEX idx_unique_pending_application IS 'Ensures a user cannot have more than one pending application at a time.';
