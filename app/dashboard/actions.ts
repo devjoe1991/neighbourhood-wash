@@ -65,9 +65,10 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
         collection_time_slot,
         total_price,
         status,
-        washer:washer_id (
+        profiles:washer_id (
           email,
-          full_name
+          first_name,
+          last_name
         )
       `
       )
@@ -111,9 +112,9 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
     // Format the data
     const formattedBookings: CompletedBookingNeedingReview[] = unreviewed.map(
       (booking) => {
-        const washer = Array.isArray(booking.washer)
-          ? booking.washer[0]
-          : booking.washer
+        const profile = Array.isArray(booking.profiles)
+          ? booking.profiles[0]
+          : booking.profiles
         return {
           id: booking.id,
           user_id: booking.user_id,
@@ -122,8 +123,11 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
           collection_time_slot: booking.collection_time_slot,
           total_price: booking.total_price,
           status: booking.status,
-          washer_name: washer?.full_name || null,
-          washer_email: washer?.email || null,
+          washer_name:
+            profile?.first_name && profile?.last_name
+              ? `${profile.first_name} ${profile.last_name}`
+              : null,
+          washer_email: profile?.email || null,
         }
       }
     )
