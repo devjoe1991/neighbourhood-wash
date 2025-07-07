@@ -4,6 +4,7 @@ import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server_new'
+import { Toaster } from 'sonner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,6 +35,7 @@ export default async function RootLayout({
         <Header user={user} />
         <main className='flex-grow'>{children}</main>
         <Footer />
+        <Toaster position='top-right' />
       </body>
     </html>
   )
