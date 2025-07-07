@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/server_new' // Using the existing server client utility
+import { createSupabaseServerClient } from '@/utils/supabase/server' // Using the existing server client utility
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const supabase = createClient() // This initializes Supabase client using cookies from next/headers
+    const supabase = createSupabaseServerClient() // This initializes Supabase client using cookies from next/headers
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {

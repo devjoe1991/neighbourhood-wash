@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -24,7 +24,7 @@ import WasherActivation from '@/components/dashboard/WasherActivation'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },

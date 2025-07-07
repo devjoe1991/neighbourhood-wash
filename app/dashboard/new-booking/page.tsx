@@ -207,20 +207,27 @@ export default function NewBookingPage() {
         paymentIntentId, // Add the payment intent ID
       }
 
-      // Call the server action - if successful, it will redirect to confirmation page
-      // If there's an error, it will be caught and handled below
-      await createBooking(bookingData)
+      // Call the server action
+      const result = await createBooking(bookingData)
 
-      // If we reach this point, there was no redirect (error case)
-      // The redirect happens on the server side for successful bookings
+      if (result.success && result.bookingId) {
+        // Success! Redirect to confirmation page
+        window.location.href = `/dashboard/booking-confirmation/${result.bookingId}`
+      } else {
+        // Handle error from server action
+        console.error('Booking creation failed:', result.message)
+        toast.error(
+          result.message || 'Failed to create booking. Please try again.'
+        )
+      }
     } catch (error) {
       console.error('Payment submission error:', error)
 
-      // Handle server action errors
+      // Handle unexpected errors
       if (error && typeof error === 'object' && 'message' in error) {
-        alert(`Error: ${error.message}`)
+        toast.error(`Error: ${error.message}`)
       } else {
-        alert('An unexpected error occurred. Please try again.')
+        toast.error('An unexpected error occurred. Please try again.')
       }
     } finally {
       setIsSubmitting(false)

@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export interface CompletedBookingNeedingReview {
@@ -28,7 +28,7 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -86,7 +86,7 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
     }
 
     // Get existing reviews for these bookings
-    const bookingIds = bookings.map((booking) => booking.id)
+    const bookingIds = bookings.map((booking: { id: number }) => booking.id)
     const { data: existingReviews, error: reviewsError } = await supabase
       .from('reviews')
       .select('booking_id')
@@ -103,15 +103,26 @@ export async function getCompletedBookingsNeedingReview(): Promise<{
 
     // Filter out bookings that already have reviews
     const reviewedBookingIds = new Set(
-      existingReviews.map((review) => review.booking_id)
+      existingReviews.map((review: { booking_id: number }) => review.booking_id)
     )
     const unreviewed = bookings.filter(
-      (booking) => !reviewedBookingIds.has(booking.id)
+      (booking: { id: number }) => !reviewedBookingIds.has(booking.id)
     )
 
     // Format the data
     const formattedBookings: CompletedBookingNeedingReview[] = unreviewed.map(
-      (booking) => {
+      (booking: {
+        id: number
+        user_id: string
+        washer_id: string | null
+        collection_date: string
+        collection_time_slot: string
+        total_price: number
+        status: string
+        profiles:
+          | { first_name?: string; last_name?: string; email?: string }
+          | { first_name?: string; last_name?: string; email?: string }[]
+      }) => {
         const profile = Array.isArray(booking.profiles)
           ? booking.profiles[0]
           : booking.profiles
@@ -151,7 +162,7 @@ export async function submitReview(reviewData: ReviewData): Promise<{
   message: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -258,7 +269,7 @@ export async function addFavouriteWasher(washerId: string): Promise<{
   message: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -334,7 +345,7 @@ export async function checkIfWasherIsFavourite(washerId: string): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {

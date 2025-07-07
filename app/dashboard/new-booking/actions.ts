@@ -1,7 +1,6 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
 import { generatePin } from '@/lib/utils'
 
@@ -25,12 +24,20 @@ export interface BookingData {
   paymentIntentId?: string
 }
 
-export async function createBooking(bookingData: BookingData) {
+export interface BookingResult {
+  success: boolean
+  message: string
+  bookingId?: number
+}
+
+export async function createBooking(
+  bookingData: BookingData
+): Promise<BookingResult> {
   try {
     console.log('Creating booking with data:', bookingData)
 
     // Create server-side Supabase client
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user with enhanced error logging
     console.log('🔍 Attempting to get user from server-side client...')
@@ -140,8 +147,12 @@ export async function createBooking(bookingData: BookingData) {
     // TODO: Send notifications to user and system
     // TODO: Trigger washer assignment algorithm
 
-    // Redirect to confirmation page
-    redirect(`/dashboard/booking-confirmation/${data.id}`)
+    // Return success status - redirect will be handled by the client
+    return {
+      success: true,
+      bookingId: data.id,
+      message: 'Booking created successfully!',
+    }
   } catch (error) {
     console.error('Error creating booking:', error)
     console.error('Error details:', {
