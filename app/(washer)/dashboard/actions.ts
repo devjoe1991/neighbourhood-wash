@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export interface WasherBooking {
@@ -30,7 +30,7 @@ export async function getAssignedBookings(): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -134,7 +134,7 @@ export async function getBookingDetails(bookingId: number): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -233,7 +233,7 @@ export async function verifyPin(
   message: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {

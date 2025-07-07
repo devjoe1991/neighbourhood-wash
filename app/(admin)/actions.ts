@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function updateApplicationStatus(
@@ -8,7 +8,7 @@ export async function updateApplicationStatus(
   userId: string,
   newStatus: 'approved' | 'rejected'
 ) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   // Step 1: Update the status in the washer_applications table
   const { error: appUpdateError } = await supabase
@@ -28,7 +28,10 @@ export async function updateApplicationStatus(
     .eq('id', userId)
 
   if (profileUpdateError) {
-    console.error('CRITICAL: Application updated but profile status update failed:', profileUpdateError)
+    console.error(
+      'CRITICAL: Application updated but profile status update failed:',
+      profileUpdateError
+    )
     // Here you might want to attempt to roll back the application status change
     return { error: 'Failed to update the user profile status.' }
   }
@@ -38,4 +41,4 @@ export async function updateApplicationStatus(
   revalidatePath(`/admin/washers/${applicationId}`)
 
   return { success: true }
-} 
+}

@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { getOrCreateReferralCode } from '@/lib/referral'
 import { Gift, Users, Award, Share2, UserPlus, Star } from 'lucide-react'
@@ -26,7 +26,7 @@ interface ReferralEvent {
 }
 
 export default async function ReferralsPage() {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },

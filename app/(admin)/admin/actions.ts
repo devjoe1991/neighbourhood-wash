@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function updateApplicationStatus(
@@ -8,7 +8,7 @@ export async function updateApplicationStatus(
   userId: string,
   status: 'approved' | 'rejected'
 ) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   try {
     // Step 1: Update the application status

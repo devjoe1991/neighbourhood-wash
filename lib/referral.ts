@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 /**
  * Generates a random alphanumeric string of a given length.
@@ -29,7 +29,7 @@ export async function getOrCreateReferralCode(
     return null
   }
 
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   try {
     // 1. Check if the user already has a code

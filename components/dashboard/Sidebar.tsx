@@ -10,6 +10,7 @@ import {
   WashingMachine,
   Plus,
   Package,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,12 @@ const navLinks = [
     label: 'Become a Washer',
     icon: Briefcase,
     requiresNoRole: 'washer',
+  },
+  {
+    href: '/dashboard/payouts',
+    label: 'Payouts',
+    icon: CreditCard,
+    requiresRole: 'washer',
   },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
