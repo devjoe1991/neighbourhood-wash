@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
 
   // Fetch user details if a session exists to check for admin role
   let userRole = null
+  let validSession = false
   if (session) {
     console.log('[Middleware] Session FOUND')
     const {
@@ -25,16 +26,25 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
     if (userError) {
       console.error('[Middleware] Error fetching user:', userError.message)
+      // Clear invalid session by signing out
+      console.log('[Middleware] Clearing invalid session...')
+      await supabase.auth.signOut()
+      validSession = false
     } else if (user) {
       // Assuming role is stored in user_metadata or app_metadata
       // Adjust 'user_metadata' or 'app_metadata' and the role property name if different
       userRole = user.user_metadata?.role || user.app_metadata?.role
       console.log(`[Middleware] User role: ${userRole}`)
+      validSession = true
     } else {
       console.log('[Middleware] No user object despite session.')
+      // Clear invalid session
+      await supabase.auth.signOut()
+      validSession = false
     }
   } else {
     console.log('[Middleware] Session NOT FOUND')
+    validSession = false
   }
 
   const { pathname } = request.nextUrl
@@ -63,9 +73,9 @@ export async function middleware(request: NextRequest) {
 
   // Rule 1: If trying to access admin path
   if (isAdminPath) {
-    if (!session) {
+    if (!validSession) {
       console.log(
-        '[Middleware] No session, admin route. Redirecting to /signin with type=admin.'
+        '[Middleware] No valid session, admin route. Redirecting to /signin with type=admin.'
       )
       const url = request.nextUrl.clone()
       url.pathname = '/signin'
@@ -76,21 +86,21 @@ export async function middleware(request: NextRequest) {
     // Assuming 'admin' is the role string for administrators
     if (userRole !== 'admin') {
       console.log(
-        `[Middleware] Session found, but user role is "${userRole}", not "admin". Redirecting to /dashboard.`
+        `[Middleware] Valid session found, but user role is "${userRole}", not "admin". Redirecting to /dashboard.`
       )
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard' // Or perhaps a dedicated 'unauthorized' page
       return NextResponse.redirect(url)
     }
-    // If session exists and role is admin, allow access
+    // If valid session exists and role is admin, allow access
     console.log('[Middleware] Admin access GRANTED.')
     return response
   }
 
   // Rule 2: If trying to access other protected paths (e.g., /dashboard)
-  if (!session && isProtectedRoute) {
+  if (!validSession && isProtectedRoute) {
     console.log(
-      '[Middleware] No session, protected route. Redirecting to /signin.'
+      '[Middleware] No valid session, protected route. Redirecting to /signin.'
     )
     const url = request.nextUrl.clone()
     url.pathname = '/signin'
@@ -98,10 +108,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Rule 3: If session exists and trying to access public auth pages
-  if (session && isPublicAuthPath) {
+  // Rule 3: If valid session exists and trying to access public auth pages
+  if (validSession && isPublicAuthPath) {
     console.log(
-      '[Middleware] Session found, public auth path. Redirecting to /dashboard.'
+      '[Middleware] Valid session found, public auth path. Redirecting to /dashboard.'
     )
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
