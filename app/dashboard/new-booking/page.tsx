@@ -66,6 +66,7 @@ export default function NewBookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [paymentInitializing, setPaymentInitializing] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -75,36 +76,55 @@ export default function NewBookingPage() {
     setItemizedBreakdown(breakdown)
   }, [selection])
 
+  // Reset payment state when moving away from payment step
+  useEffect(() => {
+    if (currentStep !== 4) {
+      setClientSecret(null)
+      setPaymentInitializing(false)
+      setPaymentError(null)
+    }
+  }, [currentStep])
+
   // Create payment intent when reaching payment step
   useEffect(() => {
     if (
       currentStep === 4 &&
       totalPrice > 0 &&
       !clientSecret &&
-      !paymentInitializing
+      !paymentInitializing &&
+      !paymentError
     ) {
       console.log('🔄 Initiating payment intent creation for step 4')
       setPaymentInitializing(true)
+      setPaymentError(null)
 
       createPaymentIntent(Math.round(totalPrice * 100))
         .then((result) => {
           if (result.success && result.clientSecret) {
             console.log('✅ Payment intent created successfully')
             setClientSecret(result.clientSecret)
+            setPaymentError(null)
           } else {
             console.error('❌ Failed to create payment intent:', result.error)
-            toast.error('Could not initialize payment. Please try again.')
+            const errorMessage = result.error || 'Payment initialization failed'
+            setPaymentError(errorMessage)
+            toast.error(
+              'Could not initialize payment. Please check your Stripe configuration.'
+            )
           }
         })
         .catch((error) => {
           console.error('❌ Error creating payment intent:', error)
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred'
+          setPaymentError(errorMessage)
           toast.error('Could not initialize payment. Please try again.')
         })
         .finally(() => {
           setPaymentInitializing(false)
         })
     }
-  }, [currentStep, totalPrice, clientSecret, paymentInitializing])
+  }, [currentStep, totalPrice, clientSecret, paymentInitializing, paymentError])
 
   // Fetch user profile for laundry preferences
   useEffect(() => {
@@ -207,6 +227,12 @@ export default function NewBookingPage() {
     }
   }
 
+  const retryPaymentInitialization = () => {
+    setPaymentError(null)
+    setClientSecret(null)
+    setPaymentInitializing(false)
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -263,6 +289,45 @@ export default function NewBookingPage() {
                 <p className='text-sm text-gray-500'>
                   Please wait while we set up your payment form
                 </p>
+              </div>
+            </div>
+          )
+        }
+
+        if (paymentError) {
+          return (
+            <div className='flex min-h-[400px] items-center justify-center'>
+              <div className='space-y-4 rounded-lg border-2 border-dashed border-red-200 bg-red-50 p-8 text-center'>
+                <div className='text-red-400'>
+                  <svg
+                    className='mx-auto h-12 w-12'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
+                    />
+                  </svg>
+                </div>
+                <p className='font-medium text-red-700'>Payment Setup Failed</p>
+                <p className='text-sm text-red-600'>{paymentError}</p>
+                <div className='space-y-2'>
+                  <Button
+                    onClick={retryPaymentInitialization}
+                    variant='outline'
+                    className='border-red-300 text-red-600 hover:bg-red-50'
+                  >
+                    Try Again
+                  </Button>
+                  <p className='text-xs text-red-500'>
+                    If the problem persists, please check your Stripe
+                    configuration
+                  </p>
+                </div>
               </div>
             </div>
           )
