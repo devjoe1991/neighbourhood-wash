@@ -51,3 +51,7 @@ message: "Could not find a relationship between 'bookings' and 'washer_id' in th
 The help/support system for user assistance?
 
 Dashboard analytics for user insights?
+
+Other on allergies - it might be a random allergy that we dont know about.
+
+maybe implement a reward point system for leaving reviews etc and if you geet certain highamount of points you get money off.
