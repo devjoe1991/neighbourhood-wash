@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +15,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { BookingSelection } from '@/lib/pricing'
+import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 interface PaymentStepProps {
   totalPrice: number
@@ -26,7 +28,7 @@ interface PaymentStepProps {
   onTermsChange: (accepted: boolean) => void
   onUserAgreementChange: (accepted: boolean) => void
   onCancellationPolicyChange: (accepted: boolean) => void
-  onPaymentSubmit: () => void
+  onPaymentSubmit: (paymentIntentId: string) => void
   isSubmitting: boolean
 }
 
@@ -44,6 +46,41 @@ export default function PaymentStep({
   onPaymentSubmit,
   isSubmitting,
 }: PaymentStepProps) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
+
+  const handlePaymentSubmit = async () => {
+    if (!stripe || !elements) {
+      return
+    }
+
+    setPaymentProcessing(true)
+
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard/booking-confirmation`,
+        },
+        redirect: 'if_required',
+      })
+
+      if (error) {
+        console.error('Payment failed:', error)
+        alert(`Payment failed: ${error.message}`)
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Payment successful, proceed with booking creation
+        onPaymentSubmit(paymentIntent.id)
+      }
+    } catch (error) {
+      console.error('Error during payment:', error)
+      alert('An error occurred during payment. Please try again.')
+    } finally {
+      setPaymentProcessing(false)
+    }
+  }
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-GB', {
       weekday: 'long',
@@ -220,27 +257,21 @@ export default function PaymentStep({
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
-          {/* Placeholder for Stripe */}
-          <div className='rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8'>
-            <div className='text-center'>
-              <Lock className='mx-auto h-8 w-8 text-gray-400' />
-              <p className='mt-2 text-sm font-medium text-gray-600'>
-                Secure payment form will appear here
-              </p>
-              <p className='mt-1 text-xs text-gray-500'>
-                Powered by Stripe - Your payment details are secure
-              </p>
-            </div>
+          {/* Stripe Payment Element */}
+          <div className='rounded-lg border p-4'>
+            <PaymentElement />
           </div>
 
           {/* Payment Button */}
           <Button
-            onClick={onPaymentSubmit}
-            disabled={!allAgreementsAccepted || isSubmitting}
+            onClick={handlePaymentSubmit}
+            disabled={
+              !allAgreementsAccepted || isSubmitting || paymentProcessing
+            }
             className='w-full'
             size='lg'
           >
-            {isSubmitting ? (
+            {isSubmitting || paymentProcessing ? (
               'Processing...'
             ) : (
               <>

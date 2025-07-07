@@ -25,6 +25,11 @@ import ServiceStep from '@/components/booking/ServiceStep'
 import DetailsStep from '@/components/booking/DetailsStep'
 import PaymentStep from '@/components/booking/PaymentStep'
 import { createBooking, type BookingData } from './actions'
+import { Elements } from '@stripe/react-stripe-js'
+import { stripePromise } from '@/lib/stripe/config'
+import { createPaymentIntent } from '@/lib/stripe/actions'
+import { createClient } from '@/utils/supabase/client'
+import { toast } from 'sonner'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -50,6 +55,8 @@ export default function NewBookingPage() {
   // Step 3: Details state
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([])
+  const [accessNotes, setAccessNotes] = useState('')
+  const [laundryPreferences, setLaundryPreferences] = useState<string>('')
 
   // Step 4: Payment state
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -57,6 +64,8 @@ export default function NewBookingPage() {
   const [cancellationPolicyAccepted, setCancellationPolicyAccepted] =
     useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentInitializing, setPaymentInitializing] = useState(false)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -65,6 +74,61 @@ export default function NewBookingPage() {
     setTotalPrice(total)
     setItemizedBreakdown(breakdown)
   }, [selection])
+
+  // Create payment intent when reaching payment step
+  useEffect(() => {
+    if (
+      currentStep === 4 &&
+      totalPrice > 0 &&
+      !clientSecret &&
+      !paymentInitializing
+    ) {
+      console.log('🔄 Initiating payment intent creation for step 4')
+      setPaymentInitializing(true)
+
+      createPaymentIntent(Math.round(totalPrice * 100))
+        .then((result) => {
+          if (result.success && result.clientSecret) {
+            console.log('✅ Payment intent created successfully')
+            setClientSecret(result.clientSecret)
+          } else {
+            console.error('❌ Failed to create payment intent:', result.error)
+            toast.error('Could not initialize payment. Please try again.')
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Error creating payment intent:', error)
+          toast.error('Could not initialize payment. Please try again.')
+        })
+        .finally(() => {
+          setPaymentInitializing(false)
+        })
+    }
+  }, [currentStep, totalPrice, clientSecret, paymentInitializing])
+
+  // Fetch user profile for laundry preferences
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('laundry_preferences')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.laundry_preferences) {
+          setLaundryPreferences(profile.laundry_preferences)
+        }
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
 
   const updateSelection = (updates: Partial<BookingSelection>) => {
     setSelection((prev) => ({ ...prev, ...updates }))
@@ -102,7 +166,7 @@ export default function NewBookingPage() {
     }
   }
 
-  const handlePaymentSubmit = async () => {
+  const handlePaymentSubmit = async (paymentIntentId: string) => {
     if (!selection.date || !selection.timeSlot || !selection.weightTier) {
       return
     }
@@ -118,7 +182,9 @@ export default function NewBookingPage() {
         selectedAddOns: selection.selectedAddOns,
         specialInstructions,
         stainImageUrls: uploadedImageUrls,
+        accessNotes,
         totalPrice,
+        paymentIntentId, // Add the payment intent ID
       }
 
       // Call the server action - if successful, it will redirect to confirmation page
@@ -181,24 +247,73 @@ export default function NewBookingPage() {
             )}
             uploadedImageUrls={uploadedImageUrls}
             onImageUrlsChange={setUploadedImageUrls}
+            accessNotes={accessNotes}
+            onAccessNotesChange={setAccessNotes}
+            laundryPreferences={laundryPreferences}
           />
         )
       case 4:
+        // Payment step with conditional rendering
+        if (paymentInitializing) {
+          return (
+            <div className='flex min-h-[400px] items-center justify-center'>
+              <div className='space-y-4 text-center'>
+                <div className='mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent'></div>
+                <p className='text-gray-600'>Initializing secure payment...</p>
+                <p className='text-sm text-gray-500'>
+                  Please wait while we set up your payment form
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        if (!clientSecret) {
+          return (
+            <div className='flex min-h-[400px] items-center justify-center'>
+              <div className='space-y-4 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center'>
+                <div className='text-gray-400'>
+                  <svg
+                    className='mx-auto h-12 w-12'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
+                    />
+                  </svg>
+                </div>
+                <p className='text-gray-600'>Payment initialization failed</p>
+                <p className='text-sm text-gray-500'>
+                  Please go back and try again, or refresh the page
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        // Only render PaymentStep when we have clientSecret
         return (
-          <PaymentStep
-            totalPrice={totalPrice}
-            itemizedBreakdown={itemizedBreakdown}
-            selection={selection}
-            specialInstructions={specialInstructions}
-            termsAccepted={termsAccepted}
-            userAgreementAccepted={userAgreementAccepted}
-            cancellationPolicyAccepted={cancellationPolicyAccepted}
-            onTermsChange={setTermsAccepted}
-            onUserAgreementChange={setUserAgreementAccepted}
-            onCancellationPolicyChange={setCancellationPolicyAccepted}
-            onPaymentSubmit={handlePaymentSubmit}
-            isSubmitting={isSubmitting}
-          />
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentStep
+              totalPrice={totalPrice}
+              itemizedBreakdown={itemizedBreakdown}
+              selection={selection}
+              specialInstructions={specialInstructions}
+              termsAccepted={termsAccepted}
+              userAgreementAccepted={userAgreementAccepted}
+              cancellationPolicyAccepted={cancellationPolicyAccepted}
+              onTermsChange={setTermsAccepted}
+              onUserAgreementChange={setUserAgreementAccepted}
+              onCancellationPolicyChange={setCancellationPolicyAccepted}
+              onPaymentSubmit={handlePaymentSubmit}
+              isSubmitting={isSubmitting}
+            />
+          </Elements>
         )
       default:
         return <div>Step not implemented yet</div>
@@ -302,28 +417,16 @@ export default function NewBookingPage() {
                 <ArrowLeft className='h-4 w-4' />
                 Previous
               </Button>
-              <Button
-                onClick={
-                  currentStep === 4 ? handlePaymentSubmit : handleNextStep
-                }
-                disabled={
-                  !canProceedToNextStep() || (currentStep === 4 && isSubmitting)
-                }
-                className='flex items-center gap-2'
-              >
-                {currentStep === 4 ? (
-                  isSubmitting ? (
-                    'Processing...'
-                  ) : (
-                    `Pay £${totalPrice.toFixed(2)}`
-                  )
-                ) : (
-                  <>
-                    Next
-                    <ArrowRight className='h-4 w-4' />
-                  </>
-                )}
-              </Button>
+              {currentStep < 4 && (
+                <Button
+                  onClick={handleNextStep}
+                  disabled={!canProceedToNextStep()}
+                  className='flex items-center gap-2'
+                >
+                  Next
+                  <ArrowRight className='h-4 w-4' />
+                </Button>
+              )}
             </div>
           </div>
 

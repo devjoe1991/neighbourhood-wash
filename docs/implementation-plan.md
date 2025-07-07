@@ -173,11 +173,44 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 #### Week 7: Booking Funnel - Finalisation & Payment
 
-- [x] Develop the "Final Details" step: special instructions and image uploader for stains. _(Notes: Completed. Users can add notes and upload images via a functional uploader connected to Supabase Storage. Created `DetailsStep` component in `components/booking/DetailsStep.tsx` with special instructions textarea and conditional image uploader for stain removal. Image upload utilizes `lib/storage.ts` utility with progress tracking, error handling, and image preview functionality.)_
-- [x] Integrate a placeholder for the Stripe payment gateway. _(Notes: Completed. A placeholder UI for payment is in place with security messaging and payment button that changes to "Pay £X.XX" format. Created `PaymentStep` component with professional payment interface ready for Stripe integration.)_
-- [x] Create the final review/confirmation step, including mandatory checkboxes for T&Cs and the 12-hour cancellation policy. _(Notes: Completed. Legal checkboxes are implemented in the final step with three required agreements: terms of service, user agreement, and cancellation policy. Users cannot proceed to payment without accepting all terms. Complete order summary displays all booking details and itemized pricing.)_
-- [x] Implement the server action to handle the complete booking submission and payment capture. _(Notes: Completed. The 'createBooking' server action saves all details to the 'bookings' table in Supabase including services configuration, pricing, images, and user preferences. Full booking data structure with proper authentication and error handling implemented in `app/dashboard/new-booking/actions.ts`.)_
-- [x] Build the booking confirmation page. _(Notes: Completed. Replaced alert() with a dedicated confirmation page at `/dashboard/booking-confirmation/[id]` to show success and explain next steps to the user. The page displays booking summary, payment confirmation, and a detailed "What Happens Next" section explaining the washer assignment process and PIN system. Updated the `createBooking` server action to redirect to this confirmation page upon successful booking creation. Files: `app/dashboard/booking-confirmation/[id]/page.tsx`, updated `app/dashboard/new-booking/actions.ts`.)_
+**Status**: ✅ **COMPLETED**
+
+**Implementation Notes**:
+
+- ✅ Professional booking confirmation page with secure redirect flow
+- ✅ **Stripe Payment Integration Debugging & Fixes**: Fixed critical issue where payment form was stuck in "initializing" state. Implemented proper conditional rendering with Elements provider, added robust error handling with toast notifications, improved payment intent creation flow with loading states, and added comprehensive debugging. Payment flow now works reliably with proper state management and user feedback.
+- ✅ Complete payment processing with Stripe integration
+- ✅ Secure payment confirmation and booking creation
+- ✅ Professional confirmation page with booking details
+- ✅ Persistent price summary throughout flow
+- ✅ Comprehensive form validation and error handling
+- ✅ Professional loading states and user feedback
+- ✅ Responsive design optimized for all devices
+
+**Key Components**:
+
+- Professional booking confirmation with status tracking
+- Secure payment processing with Stripe Elements
+- Comprehensive error handling and user feedback
+- Optimized mobile experience
+- Persistent price calculations and summary display
+
+**Files Created/Modified**:
+
+- `app/dashboard/booking-confirmation/[id]/page.tsx` - Professional confirmation page
+- `app/dashboard/new-booking/page.tsx` - Fixed payment initialization, conditional Elements rendering, toast error handling
+- `components/booking/PaymentStep.tsx` - Simplified component, removed clientSecret prop dependency
+- `lib/stripe/actions.ts` - Added debugging logs for payment intent creation
+- `app/layout.tsx` - Toaster configuration for error notifications
+
+**Technical Details**:
+
+- Payment intent creation only triggered when reaching step 4 with valid price
+- Conditional Elements provider wrapping prevents form initialization issues
+- Loading states prevent UI from getting stuck during payment setup
+- Toast notifications provide clear feedback for errors
+- Comprehensive error handling prevents crashes during payment failures
+- Server-side debugging helps track payment intent creation success/failure
 
 #### Week 8: Booking Management & Post-Service Flow
 
@@ -306,7 +339,7 @@ This pivot simplifies the user experience by removing the need for manual washer
 - [ ] Set up Supabase Realtime for chat functionality
 - [~] Implement referral tracking and reward system _(Notes: Foundational tracking implemented (see Week 14-15). Reward system itself is TODO.)_
 - [ ] Build analytics data processing
-- [ ] Create secure payment integration with Stripe
+- [x] Create secure payment integration with Stripe _(Notes: **COMPLETED** comprehensive Stripe integration and booking funnel enhancement. Fixed Stripe Elements provider error by wrapping entire booking page component. Removed estimated delivery from ScheduleStep.tsx as it's not needed for collection-based service. Fixed initial pricing logic so collection fee (£4.99) is only added when services are selected, making initial total £0.00. Improved UI formatting in ServiceStep.tsx with proper flex layouts for service pricing. Moved "Own Products" option to separate "Washing Products" card at top with clean green discount display (-£1.50). Added access notes field to database (`access_notes` column via migration `20240801000006_add_access_notes_to_bookings.sql`) and DetailsStep.tsx component with MapPin icon. Implemented auto-population of user preferences from profile `laundry_preferences` field into special instructions textarea. Updated `BookingData` interface and server actions to handle access notes. Fixed all TypeScript errors and successfully built project. **Complete Features:** Stripe Payment Intent generation, secure payment confirmation before booking creation, professional UI formatting, user preference auto-population, access notes collection, fixed pricing logic, eliminated delivery estimates.)_
 - [ ] Implement Stripe Connect for Washer payouts
 - [ ] Add automated email notification system
 - [ ] Build data encryption services for sensitive information
