@@ -6,4 +6,6 @@
 - [ ] User profile creation _(Notes: ...)_
 - [ ] Washer profile creation _(Notes: ...)_
 
-### Phase 3: User Dashboard & Experience 
+### Phase 3: User Dashboard & Experience
+
+- [x] **Build comprehensive "My Bookings" functionality** _(Notes: Implemented complete booking tracking system with list and detail views. Created `app/dashboard/my-bookings/page.tsx` for booking list with empty state handling, `app/dashboard/my-bookings/[id]/page.tsx` for detailed booking view, and `app/dashboard/my-bookings/actions.ts` for server-side data fetching. Added `BookingListItem` component (`components/bookings/BookingListItem.tsx`) with status badges and service summaries, and `StatusTracker` component (`components/bookings/StatusTracker.tsx`) for visual progress tracking. Includes washer profile fetching for assigned bookings, chat placeholder for future functionality, and proper TypeScript definitions. Added "My Bookings" to dashboard sidebar navigation. All ESLint issues resolved.)_ 

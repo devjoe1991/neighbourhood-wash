@@ -1,5 +1,14 @@
 # Enhanced Implementation Plan: Neighbourhood Wash Web Application
 
+## IMPORTANT: Major Workflow Pivot (December 2024)
+
+**BREAKING CHANGE**: The user workflow has been fundamentally changed from a manual "Washer Discovery" system to an automatic "Booking Assignment" system.
+
+**Previous Flow**: User browses available washers → selects preferred washer → creates booking
+**New Flow**: User creates booking with requirements → system automatically assigns best available washer
+
+This pivot simplifies the user experience by removing the need for manual washer selection and comparison. Users now simply specify their laundry needs, and the platform's algorithm handles washer matching and assignment automatically.
+
 ## 1. Project Goals
 
 - Develop and launch a user-friendly, visually appealing Neighbourhood Wash web application that connects users with local "Washers" for laundry services
@@ -140,19 +149,13 @@
 
 - [x] Create responsive dashboard layout with navigation _(Notes: Implemented a two-column dashboard layout with a fixed sidebar (`components/dashboard/Sidebar.tsx`) and main content area for pages like `app/dashboard/page.tsx`, `app/dashboard/referrals/page.tsx`, `app/dashboard/become-washer/page.tsx`. Includes 'Beta Version' notice in sidebar and welcome message on main dashboard. Resolved header overlap issues.)_
 - [x] Implement dashboard overview page _(Notes: Basic overview page at `app/dashboard/page.tsx` created with welcome message and beta notice.)_
-- [ ] Build Washer discovery interface with:
-  - [ ] Search functionality
-  - [ ] Filtering options (services, price, ratings)
-  - [ ] Washer preview cards with:
-    - [ ] Profile image/initials
-    - [ ] First name display
-    - [ ] Rating and review count
-    - [ ] Approximate distance
-    - [ ] Service specialties badges
-    - [ ] Next available slot info
-    - [ ] Verified status indicator
-- [ ] Implement distance-based sorting algorithm
-- [ ] Add favourites functionality
+- [x] Build Washer request interface with automatic assignment: _(Notes: **PIVOTED FROM DISCOVERY TO AUTOMATIC ASSIGNMENT FLOW**. Created "Request a Wash" page at `app/dashboard/request-wash/page.tsx` with comprehensive form for users to submit laundry requirements. Form includes services selection (wash/dry/iron), collection service option, preferred date/time textarea, and special instructions. Added server action at `app/dashboard/request-wash/actions.ts` for form submission with placeholder processing logic. Updated sidebar navigation from "Find a Washer" to "Request a Wash". This replaces the manual discovery/browsing approach with an automatic matching system. Files: `app/dashboard/request-wash/page.tsx`, `app/dashboard/request-wash/actions.ts`, updated `components/dashboard/Sidebar.tsx`. **Note**: Previous discovery components (`WasherCard`, `find-washer` page) remain in codebase but are no longer used in the main flow.)_
+  - [x] Service selection form (wash/dry/iron checkboxes)
+  - [x] Collection service option
+  - [x] Scheduling preference input
+  - [x] Special instructions textarea
+  - [x] Form submission with placeholder server action
+  - [x] User feedback messaging
 - [~] **Create referral section on dashboard with:** _(Notes: Created placeholder page `app/dashboard/referrals/page.tsx`.)_
   - [~] Unique referral code generation _(Notes: Implemented backend logic in `lib/referral.ts` to generate and store unique codes in a new `referrals` table. The `app/dashboard/referrals/page.tsx` now displays this code. RLS policy added for users to read their own codes.)_
   - [ ] Referral status tracking _(Notes: TODO - Requires linking `referral_events` table data to dashboard UI.)_
@@ -160,19 +163,38 @@
   - [ ] Social media sharing links _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
   - [ ] Referral reward explanation _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
 
-#### Week 7: Booking System (User Side)
+#### Week 6: Booking Funnel - Configuration & Scheduling
 
-- [ ] Create service selection interface
-- [ ] Build calendar view for availability selection
-- [ ] Implement time slot selection
-- [ ] Add service cost calculator
-- [ ] Create booking confirmation process
-- [ ] Build special instructions/preferences section
-- [ ] Implement booking history view
-- [ ] Add booking cancellation functionality
+- [x] Design and implement multi-step booking UI with a persistent price summary component. _(Notes: Completed. The 4-step booking funnel is live with a two-column layout and sticky price summary. Created `app/dashboard/new-booking/page.tsx` with progress indicators, step navigation, and comprehensive state management across Schedule → Services → Details → Payment steps.)_
+- [x] Create a dynamic service selection component with live price calculation. _(Notes: Completed. Service selection dynamically updates the total price in real-time. Implemented `ServiceStep` component in `components/booking/ServiceStep.tsx` with live price updates via `lib/pricing.ts` configuration. Price summary component (`components/booking/PriceSummary.tsx`) shows itemized breakdown with live updates.)_
+- [x] Add a "Weight Guide" modal to help users estimate their laundry weight. _(Notes: Completed. The 'HelpCircle' icon opens a dialog with helpful examples (6kg = 5 outfits, 10kg = 8 outfits, etc.). Modal provides practical guidance for users to select appropriate weight tiers.)_
+- [x] Implement options for stain removal and user-provided washing products. _(Notes: Completed. These options are available as checkboxes in the service selection step with dynamic pricing. Stain removal triggers conditional image uploader in Details step. User products option provides discount on total price.)_
+- [x] Build the scheduling interface with a calendar for collection and estimated delivery dates/times. _(Notes: Completed. Users can select a date using shadcn/ui Calendar component (prevents past dates) and choose from predefined time slots. Estimated delivery time is calculated and displayed based on collection time. Created `ScheduleStep` component in `components/booking/ScheduleStep.tsx`.)_
 
-#### Week 8: User Experience Enhancements
+#### Week 7: Booking Funnel - Finalisation & Payment
 
+- [x] Develop the "Final Details" step: special instructions and image uploader for stains. _(Notes: Completed. Users can add notes and upload images via a functional uploader connected to Supabase Storage. Created `DetailsStep` component in `components/booking/DetailsStep.tsx` with special instructions textarea and conditional image uploader for stain removal. Image upload utilizes `lib/storage.ts` utility with progress tracking, error handling, and image preview functionality.)_
+- [x] Integrate a placeholder for the Stripe payment gateway. _(Notes: Completed. A placeholder UI for payment is in place with security messaging and payment button that changes to "Pay £X.XX" format. Created `PaymentStep` component with professional payment interface ready for Stripe integration.)_
+- [x] Create the final review/confirmation step, including mandatory checkboxes for T&Cs and the 12-hour cancellation policy. _(Notes: Completed. Legal checkboxes are implemented in the final step with three required agreements: terms of service, user agreement, and cancellation policy. Users cannot proceed to payment without accepting all terms. Complete order summary displays all booking details and itemized pricing.)_
+- [x] Implement the server action to handle the complete booking submission and payment capture. _(Notes: Completed. The 'createBooking' server action saves all details to the 'bookings' table in Supabase including services configuration, pricing, images, and user preferences. Full booking data structure with proper authentication and error handling implemented in `app/dashboard/new-booking/actions.ts`.)_
+- [x] Build the booking confirmation page. _(Notes: Completed. Replaced alert() with a dedicated confirmation page at `/dashboard/booking-confirmation/[id]` to show success and explain next steps to the user. The page displays booking summary, payment confirmation, and a detailed "What Happens Next" section explaining the washer assignment process and PIN system. Updated the `createBooking` server action to redirect to this confirmation page upon successful booking creation. Files: `app/dashboard/booking-confirmation/[id]/page.tsx`, updated `app/dashboard/new-booking/actions.ts`.)_
+
+#### Week 8: Booking Management & Post-Service Flow
+
+- [x] **Build comprehensive "My Bookings" functionality with:** _(Notes: Implemented complete booking tracking system with list and detail views. Created `app/dashboard/my-bookings/page.tsx` for booking list with empty state handling, `app/dashboard/my-bookings/[id]/page.tsx` for detailed booking view, and `app/dashboard/my-bookings/actions.ts` for server-side data fetching. Added `BookingListItem` component (`components/bookings/BookingListItem.tsx`) with status badges and service summaries, and `StatusTracker` component (`components/bookings/StatusTracker.tsx`) for visual progress tracking. Includes washer profile fetching for assigned bookings, chat placeholder for future functionality, and proper TypeScript definitions. Added "My Bookings" to dashboard sidebar navigation. All ESLint issues resolved.)_
+  - [x] Create booking list page with server-side data fetching
+  - [x] Add detailed booking status page with visual progress tracker
+  - [x] Implement BookingListItem component with status badges and service summaries
+  - [x] Add StatusTracker component showing booking progression
+  - [x] Create server actions for fetching user bookings and booking details
+  - [x] Add My Bookings link to dashboard sidebar navigation
+  - [x] Include washer profile fetching for assigned bookings
+  - [x] Add chat placeholder for future functionality
+  - [x] Handle empty states and error scenarios
+- [x] Implement booking cancellation logic with the 12-hour rule on the "My Bookings" page. _(Notes: Added a 'Cancel Booking' button to the booking detail page which triggers a server action. The action enforces the 12-hour rule on the server before updating the booking status in Supabase. Features: AlertDialog confirmation with cancellation policy explanation, loading states, toast notifications for feedback, automatic page refresh on success. Only visible for non-cancelled/non-completed bookings. Files: updated `app/dashboard/my-bookings/[id]/page.tsx`, added `cancelBooking` function to `app/dashboard/my-bookings/actions.ts`, added Toaster component to `app/layout.tsx`.)_
+- [x] Create the PIN code verification UI for handovers on the booking detail page. _(Notes: Updated the 'bookings' table to store PINs. Implemented PIN generation on booking creation. Created a new component to display the unique Collection and Delivery PINs to the user on their booking detail page, along with verification status. Features: 4-digit PIN generation with duplicate checking, copy-to-clipboard functionality, verification status tracking, visual indicators for verified/unverified PINs, and educational information about how PIN verification works. Only visible for non-cancelled/non-completed bookings. Files: `supabase/migrations/20240801000002_add_pin_verification_to_bookings.sql`, `lib/utils.ts` (generatePin function), updated `app/dashboard/new-booking/actions.ts`, `components/booking/PinVerification.tsx`, updated `app/dashboard/my-bookings/[id]/page.tsx` and `app/dashboard/my-bookings/actions.ts`.)_
+  - [x] Build the post-completion UI on the user dashboard: "Leave a Review" and "Add Washer to Favourites" prompts. _(Notes: Created 'reviews' and 'favourite_washers' tables with proper RLS policies and indexes. Built a conditional prompt system on the main dashboard for users to review and favourite washers after a booking is completed. Implemented comprehensive server actions to handle review submissions and favourite management. Features: 5-star rating system with interactive UI, optional comment field, favourite status checking, duplicate prevention, toast notifications, and automatic UI updates. Only visible to users (not washers) and only for completed bookings without existing reviews. Files: `supabase/migrations/20240801000003_create_reviews_and_favourites_tables.sql`, `components/ui/star-rating.tsx`, `components/dashboard/PostBookingPrompt.tsx`, `app/dashboard/actions.ts`, updated `app/dashboard/page.tsx`.)_
+  - [x] Develop the backend functionality for a user's "Favourite Washers" list. _(Notes: Implemented complete backend functionality with `favourite_washers` table, RLS policies, and server actions for adding/checking favourite status. Includes duplicate prevention, proper authentication, and automatic UI updates. Ready for frontend integration in future booking flows.)_
 - [ ] Build reviews and ratings input interface
 - [~] Implement referral system with code generation _(Notes: Partially implemented. See Week 6 for dashboard UI & code generation. See Phase 6 for backend.)_
 - [ ] Create user notification center
@@ -195,7 +217,7 @@
 
 #### Week 9: Washer Dashboard Layout & Core Features
 
-- [ ] Create Washer-specific dashboard layout
+- [x] **Create Washer-specific dashboard layout:** _(Notes: Implemented comprehensive Washer Dashboard with `(washer)` route group. Created `app/(washer)/layout.tsx` for role-based protection ensuring only approved washers can access the dashboard. Built professional booking list page at `app/(washer)/dashboard/bookings/page.tsx` displaying assigned bookings with customer details, collection dates, status tracking, and verification statuses. Implemented detailed booking view at `app/(washer)/dashboard/bookings/[id]/page.tsx` with complete booking information, service details, and PIN verification interface. Created server actions in `app/(washer)/dashboard/actions.ts` for fetching assigned bookings, booking details, and PIN verification. Built secure PIN verification system with `components/washer/PinInput.tsx` supporting both collection and delivery PIN workflows with real-time UI updates and proper error handling.)_
 - [x] **Implement Full Washer Application Flow:** _(Notes: Replaced the simple "interest registration" with a full multi-step application form. Created `components/dashboard/WasherApplicationForm.tsx` to handle the form logic, state, and validation for personal details, service offerings, and equipment. A new page, `app/dashboard/washer-application/page.tsx`, hosts this form and includes logic to check a user's role and `washer_status` before rendering. The `app/dashboard/become-washer/page.tsx` page was updated to act as a hub, directing users with a 'pending_application' status to the new form, showing a status message to those who have already applied, and keeping the interest registration form for brand new prospective washers.)_
   - [x] Create multi-step application form component (`WasherApplicationForm.tsx`).
   - [x] Implement client-side validation using `zod` and `react-hook-form`.
@@ -203,11 +225,12 @@
   - [x] Add logic to check user's `washer_status` to control access and display appropriate messages.
   - [x] Update the `/dashboard/become-washer` page to intelligently direct users based on their application status.
   - [ ] Server action to save application data to a new `washer_applications` table. _(Note: Placeholder `applyToBeWasher` action exists; needs full implementation)_
+- [x] **Implement PIN verification system for secure handovers:** _(Notes: Core PIN verification system implemented in `components/washer/PinInput.tsx` with separate collection and delivery PIN workflows. Washers can input 4-digit PINs provided by customers to verify handovers. System validates PINs against stored values, updates booking status automatically (to 'in_progress' after collection, 'completed' after delivery), and provides real-time feedback through toast notifications. Server action `verifyPin` in `app/(washer)/dashboard/actions.ts` handles security checks, PIN validation, and database updates with proper error handling.)_
+- [x] **Build comprehensive booking management system:** _(Notes: Complete booking management implemented for washers. Features include: booking list view with status tracking, detailed booking information display, customer contact details, service configuration parsing, special instructions handling, and real-time verification status updates. All booking data is securely filtered to show only assignments for the current washer. The system supports the full booking lifecycle from assignment to completion.)_
 - [ ] Implement dashboard overview with key metrics
 - [ ] Build service management interface
 - [ ] Create availability calendar management
 - [ ] Add service pricing configuration
-- [ ] Implement booking management system
 - [ ] Build customer list view
 - [ ] **Create Washer referral section with:**
   - [ ] Unique Washer referral code generation
@@ -278,7 +301,9 @@
 - [ ] Create booking system backend logic
 - [ ] Build service management APIs
 - [ ] Implement review and rating backend
-- [ ] Add location-based search and filtering
+- [ ] Design and implement the automatic washer matching algorithm (to run 12 hours pre-booking, factoring in location, availability, services, and washer capacity).
+- [ ] Implement backend logic for dynamic price calculation based on selected services.
+- [ ] Set up Supabase Storage for user-uploaded images of clothes.
 - [ ] Create notification system backend
 - [~] Build referral system backend logic _(Notes: Created `referrals` table for storing unique user codes and `referral_events` table for tracking referred signups. Implemented `lib/referral.ts` utility for code generation/retrieval. Deployed `process-referral` Supabase Edge Function (`supabase/functions/process-referral/index.ts`) to validate `submitted_referral_code` from new user signups (via `user_metadata`) and record successful referrals in `referral_events`. Basic RLS added to `referrals` table. **TODO: Implement RLS for `referral_events`. Thoroughly test end-to-end referral flow. Develop logic for updating referral status (e.g., after first wash) and reward distribution.**)_
 
@@ -418,7 +443,7 @@
 
 - [ ] Authentication & Profile Management
 - [ ] User Dashboard Functionality
-- [ ] Washer Discovery & Filtering
+- [ ] New Booking Creation & Auto-Assignment
 - [ ] Booking Process
 - [ ] Communication System
 - [ ] Washer Dashboard Features
