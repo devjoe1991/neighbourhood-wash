@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { getCompletedBookingsNeedingReview } from './actions'
 import PostBookingPrompt from '@/components/dashboard/PostBookingPrompt'
+import WasherActivation from '@/components/dashboard/WasherActivation'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,9 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Conditionally render the activation component for washers */}
+      {isWasher && <WasherActivation />}
 
       {userRole && (
         <div className='rounded-md border border-blue-200 bg-blue-50 p-4'>
