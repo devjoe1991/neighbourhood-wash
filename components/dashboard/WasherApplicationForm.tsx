@@ -200,7 +200,7 @@ export default function WasherApplicationForm({
     const output = await trigger(fields as FieldName[], { shouldFocus: true })
     if (!output) return
 
-    if (currentStep < steps.length - 1) {
+    if (currentStep < steps.length) {
       setCurrentStep((step) => step + 1)
     }
   }
