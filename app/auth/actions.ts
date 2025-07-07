@@ -1,12 +1,12 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { type SignInWithPasswordCredentials } from '@supabase/supabase-js'
 
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const { error } = await supabase.auth.signOut()
 
@@ -23,7 +23,7 @@ export async function signOut() {
 export async function signInWithEmailPassword(
   credentials: SignInWithPasswordCredentials
 ) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const { error: signInError } =
     await supabase.auth.signInWithPassword(credentials)
@@ -63,7 +63,7 @@ export async function signInWithEmailPassword(
 
 export async function registerInterest(location: string) {
   'use server'
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },
@@ -112,7 +112,7 @@ interface WasherApplicationData {
 
 export async function applyToBeWasher(applicationData: WasherApplicationData) {
   'use server'
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },
@@ -121,7 +121,7 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
   if (!user) {
     return { error: { message: 'You must be logged in to apply.' } }
   }
-    
+
   // Fetch the user's profile to get the profile_id
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -134,12 +134,11 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
     return { error: { message: 'Could not find your user profile.' } }
   }
 
-
   // 1. Insert into washer_applications table
   const applicationInsert = {
     user_id: user.id,
     profile_id: profile.id,
-    ...applicationData
+    ...applicationData,
   }
 
   const { error: insertError } = await supabase
@@ -148,8 +147,9 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
 
   if (insertError) {
     console.error('Error inserting washer application:', insertError)
-    if (insertError.code.includes('23505')) { // unique_violation
-        return { error: { message: 'You already have a pending application.' } };
+    if (insertError.code.includes('23505')) {
+      // unique_violation
+      return { error: { message: 'You already have a pending application.' } }
     }
     return { error: { message: 'Failed to submit application.' } }
   }
@@ -167,17 +167,19 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
     // This is a bit tricky. The application was inserted, but status update failed.
     // For now, we'll log it and the user will see a generic error.
     // A more robust solution might involve a transaction or a cleanup job.
-    console.error('CRITICAL: Application inserted but profile status update failed:', updateError)
+    console.error(
+      'CRITICAL: Application inserted but profile status update failed:',
+      updateError
+    )
     return { error: { message: 'Failed to update your application status.' } }
   }
 
-
-  return { data: { message: "Application submitted successfully!" } }
+  return { data: { message: 'Application submitted successfully!' } }
 }
 
 export async function startWasherApplicationProcess() {
   'use server'
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },
@@ -195,7 +197,10 @@ export async function startWasherApplicationProcess() {
     .single()
 
   if (profileError) {
-    console.error('Error fetching profile before starting application:', profileError)
+    console.error(
+      'Error fetching profile before starting application:',
+      profileError
+    )
     return redirect('/dashboard/become-washer?error=profile_fetch_failed')
   }
 
@@ -207,10 +212,10 @@ export async function startWasherApplicationProcess() {
   // Update the user's profile to start the application process
   const { error: updateError } = await supabase
     .from('profiles')
-    .update({ 
-        role: 'washer',
-        washer_status: 'pending_application',
-        updated_at: new Date().toISOString() 
+    .update({
+      role: 'washer',
+      washer_status: 'pending_application',
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 

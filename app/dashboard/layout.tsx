@@ -1,6 +1,6 @@
 import Sidebar from '@/components/dashboard/Sidebar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },

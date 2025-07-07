@@ -170,6 +170,43 @@ export default function PaymentStep({
         </CardContent>
       </Card>
 
+      {/* Cancellation Warning */}
+      <div className='rounded-lg border-2 border-orange-200 bg-orange-50 p-4'>
+        <div className='flex items-start gap-3'>
+          <div className='flex-shrink-0'>
+            <svg
+              className='h-6 w-6 text-orange-600'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
+              />
+            </svg>
+          </div>
+          <div className='space-y-2'>
+            <h4 className='font-semibold text-orange-800'>
+              Important Cancellation Policy
+            </h4>
+            <p className='text-sm leading-relaxed text-orange-700'>
+              <strong>Warning:</strong> If you cancel your booking after a
+              Washer has been assigned to your order, you will be charged the
+              full amount (£{totalPrice.toFixed(2)}). Free cancellation is only
+              available before Washer assignment, which typically occurs within
+              2-4 hours of booking.
+            </p>
+            <p className='text-xs text-orange-600'>
+              You will receive a notification once a Washer has been assigned to
+              your booking.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Legal Agreements */}
       <Card>
         <CardHeader>

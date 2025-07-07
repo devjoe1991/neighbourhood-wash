@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export interface BookingRecord {
   id: number
@@ -36,7 +36,7 @@ export async function getUserBookings(): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -93,7 +93,7 @@ export async function getBookingById(bookingId: string): Promise<{
   message?: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
@@ -172,7 +172,7 @@ export async function cancelBooking(bookingId: string): Promise<{
   message: string
 }> {
   try {
-    const supabase = createClient()
+    const supabase = createSupabaseServerClient()
 
     // Get current user
     const {
