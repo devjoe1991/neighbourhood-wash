@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { HelpCircle, Scale, Shirt, Sparkles } from 'lucide-react'
+import { HelpCircle, Scale, Shirt, Sparkles, Zap } from 'lucide-react'
 import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
 
 interface ServiceStepProps {
@@ -48,6 +48,11 @@ export default function ServiceStep({
     }
   }
 
+  // Filter out own_products from add-ons to display separately
+  const regularAddOns = Object.entries(serviceConfig.addOns).filter(
+    ([key]) => key !== 'own_products'
+  )
+
   return (
     <div className='space-y-6'>
       <div>
@@ -56,6 +61,39 @@ export default function ServiceStep({
           Select the services you need and see the price update in real-time.
         </p>
       </div>
+
+      {/* Washing Products */}
+      <Card>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            <Zap className='h-5 w-5' />
+            Washing Products
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className='flex items-center space-x-2'>
+            <Checkbox
+              id='own_products'
+              checked={selectedAddOns.includes('own_products')}
+              onCheckedChange={(checked) =>
+                handleAddOnToggle('own_products', checked as boolean)
+              }
+            />
+            <Label htmlFor='own_products' className='flex-1 cursor-pointer'>
+              <div className='flex items-center justify-between'>
+                <span>I will supply my own products</span>
+                <span className='font-medium text-green-600'>
+                  -£
+                  {Math.abs(serviceConfig.addOns.own_products.price).toFixed(2)}
+                </span>
+              </div>
+            </Label>
+          </div>
+          <p className='mt-2 text-sm text-gray-600'>
+            Save money by providing your own detergent and fabric softener
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Weight Selection */}
       <Card>
@@ -173,40 +211,39 @@ export default function ServiceStep({
       </Card>
 
       {/* Add-on Services */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Sparkles className='h-5 w-5' />
-            Add-on Services
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='space-y-3'>
-            {Object.entries(serviceConfig.addOns).map(([key, config]) => (
-              <div key={key} className='flex items-center space-x-2'>
-                <Checkbox
-                  id={key}
-                  checked={selectedAddOns.includes(key as AddOn)}
-                  onCheckedChange={(checked) =>
-                    handleAddOnToggle(key as AddOn, checked as boolean)
-                  }
-                />
-                <Label htmlFor={key} className='flex-1 cursor-pointer'>
-                  <div className='flex items-center justify-between'>
-                    <span>{config.label}</span>
-                    <span
-                      className={`font-medium ${config.price < 0 ? 'text-green-600' : 'text-blue-600'}`}
-                    >
-                      {config.price < 0 ? '-' : ''}£
-                      {Math.abs(config.price).toFixed(2)}
-                    </span>
-                  </div>
-                </Label>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {regularAddOns.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Sparkles className='h-5 w-5' />
+              Add-on Services
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-3'>
+              {regularAddOns.map(([key, config]) => (
+                <div key={key} className='flex items-center space-x-2'>
+                  <Checkbox
+                    id={key}
+                    checked={selectedAddOns.includes(key as AddOn)}
+                    onCheckedChange={(checked) =>
+                      handleAddOnToggle(key as AddOn, checked as boolean)
+                    }
+                  />
+                  <Label htmlFor={key} className='flex-1 cursor-pointer'>
+                    <div className='flex items-center justify-between'>
+                      <span>{config.label}</span>
+                      <span className='font-medium text-blue-600'>
+                        £{config.price.toFixed(2)}
+                      </span>
+                    </div>
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
