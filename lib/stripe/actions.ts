@@ -132,3 +132,117 @@ export async function createAndOnboardStripeConnectAccount() {
   // 4. Redirect the user to the onboarding link
   return redirect(accountLink.url)
 }
+
+/**
+ * Creates a Stripe Connect Express account for the washer if they don't already have one
+ */
+export async function createStripeConnectedAccount(): Promise<{
+  success: boolean
+  accountId?: string
+  message?: string
+}> {
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'Authentication error. Please log in again.',
+      }
+    }
+
+    // Get current user's profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('stripe_account_id, email, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return {
+        success: false,
+        message: 'Profile not found. Please try again.',
+      }
+    }
+
+    // Check if user is a washer
+    if (profile.role !== 'washer') {
+      return {
+        success: false,
+        message: 'Only washers can connect payment accounts.',
+      }
+    }
+
+    // If they already have a Stripe account, return it
+    if (profile.stripe_account_id) {
+      return {
+        success: true,
+        accountId: profile.stripe_account_id,
+      }
+    }
+
+    // Create new Stripe Connect Express account
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email: user.email || profile.email,
+      business_type: 'individual',
+      country: 'GB',
+    })
+
+    // Save account ID to user's profile
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ stripe_account_id: account.id })
+      .eq('id', user.id)
+
+    if (updateError) {
+      return {
+        success: false,
+        message: 'Failed to save account information. Please try again.',
+      }
+    }
+
+    return {
+      success: true,
+      accountId: account.id,
+    }
+  } catch (error) {
+    console.error('Error creating Stripe Connect account:', error)
+    return {
+      success: false,
+      message: 'An unexpected error occurred. Please try again.',
+    }
+  }
+}
+
+/**
+ * Creates a Stripe account link for onboarding
+ */
+export async function createStripeAccountLink(accountId: string): Promise<{
+  success: boolean
+  url?: string
+  message?: string
+}> {
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/payouts`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/payouts?connect_success=true`,
+      type: 'account_onboarding',
+    })
+
+    return {
+      success: true,
+      url: accountLink.url,
+    }
+  } catch (error) {
+    console.error('Error creating Stripe account link:', error)
+    return {
+      success: false,
+      message: 'Failed to create onboarding link. Please try again.',
+    }
+  }
+}

@@ -6,11 +6,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { signup } from './actions'
 
-export default function SignupPage({
+export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: { message: string }
+  searchParams: Promise<{ message?: string }>
 }) {
+  const params = await searchParams
   return (
     <div className='flex min-h-screen flex-col justify-center bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100 py-12 sm:px-6 lg:px-8'>
       <div className='sm:mx-auto sm:w-full sm:max-w-md'>
@@ -84,9 +85,9 @@ export default function SignupPage({
               </div>
             </div>
 
-            {searchParams?.message && (
+            {params?.message && (
               <p className='mt-4 bg-gray-100 p-4 text-center text-gray-500'>
-                {searchParams.message}
+                {params.message}
               </p>
             )}
 

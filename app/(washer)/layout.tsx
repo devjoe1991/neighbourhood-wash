@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server_new'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export default async function WasherLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
 
   const {
     data: { user },
