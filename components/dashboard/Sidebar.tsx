@@ -59,7 +59,7 @@ const navLinks = [
     requiresNoRole: 'washer',
   },
   {
-    href: '/dashboard/payouts',
+    href: '/dashboard/user-payouts',
     label: 'Payouts',
     icon: CreditCard,
     requiresRole: 'washer',
