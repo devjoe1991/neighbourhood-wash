@@ -314,6 +314,7 @@ export async function getMonthlyGrowthData(months: number = 12): Promise<Monthly
     // Group by month
     const monthlyData = new Map<string, number>()
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?.forEach((record: Record<string, any>) => {
       const date = new Date(record.created_at)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`

@@ -10,7 +10,6 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
-  PoundSterling,
   Shield,
   Loader2,
 } from 'lucide-react'
@@ -125,7 +124,6 @@ export default function WasherPayoutsPage() {
 
   const isStripeConnected = stripeAccount?.connected
   const canReceivePayouts = stripeAccount?.can_receive_payouts
-  const accountStatus = stripeAccount?.account_status || 'not_connected'
 
   return (
     <div className="space-y-6">

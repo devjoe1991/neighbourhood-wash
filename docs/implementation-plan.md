@@ -464,24 +464,25 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 ### User Referral Features
 
-- [x] Dedicated referral section on User dashboard _(Notes: `app/dashboard/referrals/page.tsx` created.)_
+- [x] **Enhanced User Referral Dashboard** _(Notes: **COMPLETED DECEMBER 2024** - Upgraded `app/dashboard/referrals/page.tsx` with comprehensive referral system. **Shareable Links**: Automatic referral link generation with URL parameter handling in signup page. **Social Sharing**: WhatsApp, Facebook, Twitter, and native share API integration via enhanced `ReferralCodeDisplay` component. **Status Tracking**: Real-time referral event tracking with reward calculations. **Promotional Copy**: Clear messaging and reward explanations integrated throughout dashboard.)_
 - [x] Unique referral code generation _(Notes: Implemented via `lib/referral.ts` and `referrals` table.)_
-- [ ] Shareable referral links _(Notes: TODO - Requires constructing links with the referral code.)_
-- [ ] Referral status tracking _(Notes: TODO - Requires linking `referral_events` table data to dashboard UI.)_
-- [ ] Promotional copy for sharing _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
-- [ ] Social media sharing links _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
-- [ ] Referral reward explanation _(Notes: TODO - Add to `app/dashboard/referrals/page.tsx`.)_
+- [x] Shareable referral links _(Notes: **COMPLETED** - Auto-generated links with ref parameter, pre-populated in signup form.)_
+- [x] Referral status tracking _(Notes: **COMPLETED** - Full activity table with status updates and reward tracking.)_
+- [x] Promotional copy for sharing _(Notes: **COMPLETED** - Integrated into enhanced dashboard design.)_
+- [x] Social media sharing links _(Notes: **COMPLETED** - WhatsApp, Facebook, Twitter, and native sharing via ReferralCodeDisplay.)_
+- [x] Referral reward explanation _(Notes: **COMPLETED** - Detailed how-it-works section and reward breakdown.)_
 
 ### Washer Referral Features
 
-- Dedicated referral section on Washer dashboard
-- Washer-specific referral codes
-- Promotional materials for recruiting
-- Incentives for referring new Washers
-- Tracking for both User and Washer referrals
-- Enhanced rewards for successful Washer recruitment
-- Referral analytics dashboard
-- Promotional copy and messaging templates
+- [x] **Enhanced Washer Referral Dashboard** _(Notes: **COMPLETED DECEMBER 2024** - Built comprehensive washer referral system at `app/(washer)/dashboard/referrals/page.tsx`. **Dual Reward System**: £5 for user referrals, £25 for washer referrals. **Advanced Analytics**: Separate tracking for user vs washer referrals with reward calculations. **Enhanced UI**: Purple/blue gradient design with crown icons, professional reward breakdown, and detailed activity tracking. **Promotional Materials**: Built-in sharing via enhanced ReferralCodeDisplay component with social media integration.)_
+- [x] Dedicated referral section on Washer dashboard _(Notes: **COMPLETED** - Full-featured dashboard with washer-specific design.)_
+- [x] Washer-specific referral codes _(Notes: **COMPLETED** - Same code system but enhanced rewards for washers.)_
+- [x] Promotional materials for recruiting _(Notes: **COMPLETED** - Built-in sharing and promotional copy.)_
+- [x] Incentives for referring new Washers _(Notes: **COMPLETED** - £25 reward for approved washer referrals.)_
+- [x] Tracking for both User and Washer referrals _(Notes: **COMPLETED** - Separate analytics and reward tracking.)_
+- [x] Enhanced rewards for successful Washer recruitment _(Notes: **COMPLETED** - 5x reward multiplier for washer referrals.)_
+- [x] Referral analytics dashboard _(Notes: **COMPLETED** - Comprehensive stats with monthly trends and reward calculations.)_
+- [x] Promotional copy and messaging templates _(Notes: **COMPLETED** - Detailed how-it-works section with role-specific guidance.)_
 
 ## 8. User Acceptance Testing Plan
 

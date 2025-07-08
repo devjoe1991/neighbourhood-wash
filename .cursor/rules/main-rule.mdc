@@ -63,7 +63,7 @@ After completing any [implementation-plan.md](mdc:docs/implementation-plan.md) i
 - [ ] Dashboard layout _(Notes: ...)_
 - [ ] Washer discovery interface _(Notes: ...)_
 - [ ] Booking system _(Notes: ...)_
-- [ ] Referral system _(Notes: ...)_
+- [x] **Enhanced Referral System Dashboard** _(Notes: **COMPLETED DECEMBER 2024** - Built comprehensive dual referral system for platform growth. **User Dashboard**: Enhanced `app/dashboard/referrals/page.tsx` with shareable links, social media sharing (WhatsApp, Facebook, Twitter), automatic URL parameter handling in signup, and real-time tracking. **Washer Dashboard**: Created `app/(washer)/dashboard/referrals/page.tsx` with enhanced £25 washer referral rewards vs £5 user referrals, advanced analytics, and professional UI. **Social Sharing**: Enhanced `ReferralCodeDisplay` component with multi-platform sharing and native share API. **Link Generation**: Automatic referral link creation with signup form pre-population. Files: Enhanced referral dashboards, upgraded signup handling, social sharing components.)_
 
 ### Phase 4: Washer Dashboard & Experience
 
@@ -81,6 +81,7 @@ After completing any [implementation-plan.md](mdc:docs/implementation-plan.md) i
 
 ### Phase 6: Backend Integration & API Development
 
+- [x] **Stripe Connect Onboarding for Washers** _(Notes: **COMPLETED DECEMBER 2024** - Implemented complete washer onboarding flow for Stripe Connect. Created dedicated washer payouts page at `app/(washer)/dashboard/payouts/page.tsx` with professional onboarding interface, enhanced existing server actions for Express account creation and secure onboarding links, and integrated with existing Stripe account validation. Files: `app/(washer)/dashboard/payouts/page.tsx`, `lib/stripe/actions.ts`.)_
 - [ ] Supabase schema setup _(Notes: ...)_
 - [ ] API endpoints implementation _(Notes: ...)_
 - [ ] Real-time chat functionality _(Notes: ...)_

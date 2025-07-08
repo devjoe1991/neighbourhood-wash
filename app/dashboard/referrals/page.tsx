@@ -84,7 +84,6 @@ export default async function ReferralsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <p className='mb-3'>Your unique referral code:</p>
           <ReferralCodeDisplay code={userReferralCode} />
         </CardContent>
       </Card>
