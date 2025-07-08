@@ -5,118 +5,136 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
 import {
   CreditCard,
   CheckCircle,
   AlertCircle,
   ExternalLink,
-  DollarSign,
+  PoundSterling,
   Clock,
   Shield,
+  Loader2,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
 import {
-  createStripeConnectedAccount,
-  createStripeAccountLink,
-} from '@/lib/stripe/actions'
+  getWasherBalance,
+  getStripeAccountStatus,
+  setupStripeAccount,
+} from './actions'
+import PayoutRequestForm from '@/components/dashboard/PayoutRequestForm'
+import PayoutHistory from '@/components/dashboard/PayoutHistory'
 import { toast } from 'sonner'
 
-interface ProfileData {
-  stripe_account_id: string | null
-  stripe_account_status: string | null
-  email: string
-  full_name: string | null
+interface WasherBalance {
+  available_balance: number
+  processing_balance: number
+  total_paid_out: number
+  total_earnings: number
+  available_bookings_count: number
+}
+
+interface StripeAccountData {
+  connected: boolean
+  account_status: string
+  can_receive_payouts: boolean
+  requirements_message: string
 }
 
 export default function PayoutsPage() {
-  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [balance, setBalance] = useState<WasherBalance | null>(null)
+  const [stripeAccount, setStripeAccount] = useState<StripeAccountData | null>(
+    null
+  )
   const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(false)
-  const [connectSuccess, setConnectSuccess] = useState(false)
+  const [settingUpStripe, setSettingUpStripe] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  const [setupSuccess, setSetupSuccess] = useState(false)
 
   useEffect(() => {
     // Check for success message from URL params
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('connect_success') === 'true') {
-      setConnectSuccess(true)
-      toast.success('Stripe account connected successfully!')
+    if (urlParams.get('setup_success') === 'true') {
+      setSetupSuccess(true)
+      toast.success('Stripe account setup completed successfully!')
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard/payouts')
     }
 
-    fetchProfile()
+    fetchData()
   }, [])
 
-  const fetchProfile = async () => {
+  const fetchData = async () => {
+    setLoading(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const [balanceResult, stripeResult] = await Promise.all([
+        getWasherBalance(),
+        getStripeAccountStatus(),
+      ])
 
-      if (!user) return
-
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('stripe_account_id, stripe_account_status, email, full_name')
-        .eq('id', user.id)
-        .single()
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        toast.error('Failed to load profile data')
-        return
+      if (balanceResult.success) {
+        setBalance(balanceResult.data)
       }
 
-      setProfile(profileData)
+      if (stripeResult.success) {
+        setStripeAccount(stripeResult.data)
+      } else {
+        console.error('Error fetching Stripe status:', stripeResult.message)
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error)
-      toast.error('Failed to load profile data')
+      console.error('Error fetching data:', error)
+      toast.error('Failed to load account information')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleConnectStripe = async () => {
-    setConnecting(true)
-
+  const handleSetupStripe = async () => {
+    setSettingUpStripe(true)
     try {
-      // Step 1: Create or get Stripe Connect account
-      const accountResult = await createStripeConnectedAccount()
-
-      if (!accountResult.success || !accountResult.accountId) {
-        toast.error(accountResult.message || 'Failed to create account')
-        return
+      const result = await setupStripeAccount()
+      if (result.success) {
+        window.location.href = result.data.onboarding_url
+      } else {
+        toast.error(result.message || 'Failed to set up Stripe account')
       }
-
-      // Step 2: Create account link for onboarding
-      const linkResult = await createStripeAccountLink(accountResult.accountId)
-
-      if (!linkResult.success || !linkResult.url) {
-        toast.error(linkResult.message || 'Failed to create onboarding link')
-        return
-      }
-
-      // Step 3: Redirect to Stripe onboarding
-      window.location.href = linkResult.url
     } catch (error) {
-      console.error('Error connecting to Stripe:', error)
-      toast.error('An unexpected error occurred. Please try again.')
+      console.error('Error setting up Stripe:', error)
+      toast.error('An unexpected error occurred')
     } finally {
-      setConnecting(false)
+      setSettingUpStripe(false)
     }
   }
+
+  const handlePayoutSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1)
+    fetchData()
+  }
+
+  const formatCurrency = (amount: number) => `£${amount.toFixed(2)}`
 
   if (loading) {
     return (
       <div className='space-y-6'>
         <div className='h-8 w-48 animate-pulse rounded bg-gray-200' />
+        <div className='grid gap-6 md:grid-cols-3'>
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className='h-32 animate-pulse rounded-lg bg-gray-200'
+            />
+          ))}
+        </div>
         <div className='h-64 animate-pulse rounded-lg bg-gray-200' />
       </div>
     )
   }
 
-  const isConnected = profile?.stripe_account_id !== null
+  const isStripeConnected = stripeAccount?.connected
+  const canReceivePayouts = stripeAccount?.can_receive_payouts
+  const accountStatus = stripeAccount?.account_status || 'not_connected'
 
   return (
     <div className='space-y-6'>
@@ -124,32 +142,94 @@ export default function PayoutsPage() {
       <div>
         <h1 className='text-3xl font-bold text-gray-900'>Payouts</h1>
         <p className='mt-2 text-gray-600'>
-          Manage your payment settings and receive payouts for completed
-          bookings
+          Manage your earnings and request payouts securely through our platform
         </p>
       </div>
 
       {/* Success Alert */}
-      {connectSuccess && (
+      {setupSuccess && (
         <Alert className='border-green-200 bg-green-50'>
           <CheckCircle className='h-4 w-4 text-green-600' />
           <AlertDescription className='text-green-800'>
-            Your Stripe account has been successfully connected! You can now
-            receive payouts for completed bookings.
+            Your payment account has been successfully set up! Your account is
+            being verified and you'll be able to request payouts once
+            verification is complete.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Connection Status Card */}
+      {/* Balance Overview Cards */}
+      {balance && (
+        <div className='grid gap-4 md:grid-cols-3'>
+          <Card>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>
+                    Available Balance
+                  </p>
+                  <p className='text-2xl font-bold text-green-600'>
+                    {formatCurrency(balance.available_balance)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    From {balance.available_bookings_count} completed bookings
+                  </p>
+                </div>
+                <Wallet className='h-8 w-8 text-green-600' />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>
+                    Processing
+                  </p>
+                  <p className='text-2xl font-bold text-blue-600'>
+                    {formatCurrency(balance.processing_balance)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    In pending payout requests
+                  </p>
+                </div>
+                <Clock className='h-8 w-8 text-blue-600' />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>
+                    Total Earned
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {formatCurrency(balance.total_earnings)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Lifetime earnings
+                  </p>
+                </div>
+                <TrendingUp className='h-8 w-8 text-gray-600' />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Account Setup/Status */}
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center gap-2'>
             <CreditCard className='h-5 w-5' />
-            Stripe Account Status
+            Payment Account Status
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!isConnected ? (
+          {!isStripeConnected ? (
             <div className='space-y-4'>
               <div className='flex items-center gap-2'>
                 <AlertCircle className='h-5 w-5 text-orange-500' />
@@ -158,18 +238,18 @@ export default function PayoutsPage() {
                   variant='outline'
                   className='border-orange-200 text-orange-700'
                 >
-                  Action Required
+                  Setup Required
                 </Badge>
               </div>
 
               <div className='rounded-lg bg-blue-50 p-4'>
                 <h3 className='font-medium text-blue-900'>
-                  Connect with Stripe to receive payments
+                  Set up your payment account to receive payouts
                 </h3>
                 <p className='mt-2 text-sm text-blue-700'>
                   To receive payouts for your completed bookings, you need to
-                  connect your bank account through Stripe. This process is
-                  secure and only takes a few minutes.
+                  connect your bank account securely. This process is protected
+                  by bank-level security.
                 </p>
                 <ul className='mt-3 space-y-1 text-sm text-blue-700'>
                   <li className='flex items-center gap-2'>
@@ -181,27 +261,27 @@ export default function PayoutsPage() {
                     Setup takes less than 5 minutes
                   </li>
                   <li className='flex items-center gap-2'>
-                    <DollarSign className='h-3 w-3' />
-                    Get paid for completed bookings
+                    <PoundSterling className='h-3 w-3' />
+                    Secure payout requests managed by our team
                   </li>
                 </ul>
               </div>
 
               <Button
-                onClick={handleConnectStripe}
-                disabled={connecting}
+                onClick={handleSetupStripe}
+                disabled={settingUpStripe}
                 className='w-full sm:w-auto'
                 size='lg'
               >
-                {connecting ? (
+                {settingUpStripe ? (
                   <>
-                    <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent' />
-                    Connecting...
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Setting up...
                   </>
                 ) : (
                   <>
                     <CreditCard className='mr-2 h-4 w-4' />
-                    Connect with Stripe
+                    Set Up Payment Account
                   </>
                 )}
               </Button>
@@ -209,41 +289,74 @@ export default function PayoutsPage() {
           ) : (
             <div className='space-y-4'>
               <div className='flex items-center gap-2'>
-                <CheckCircle className='h-5 w-5 text-green-500' />
-                <span className='text-sm text-gray-600'>Connected</span>
-                <Badge
-                  variant='default'
-                  className='bg-green-100 text-green-800'
-                >
-                  Active
-                </Badge>
+                {canReceivePayouts ? (
+                  <>
+                    <CheckCircle className='h-5 w-5 text-green-500' />
+                    <span className='text-sm text-gray-600'>
+                      Connected & Verified
+                    </span>
+                    <Badge className='bg-green-100 text-green-800'>
+                      Active
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <Clock className='h-5 w-5 text-yellow-500' />
+                    <span className='text-sm text-gray-600'>Connected</span>
+                    <Badge
+                      variant='outline'
+                      className='border-yellow-200 text-yellow-700'
+                    >
+                      {accountStatus === 'pending_verification'
+                        ? 'Pending Verification'
+                        : 'Incomplete'}
+                    </Badge>
+                  </>
+                )}
               </div>
 
-              <div className='rounded-lg bg-green-50 p-4'>
-                <h3 className='font-medium text-green-900'>
-                  Your account is connected and ready!
+              <div
+                className={`rounded-lg p-4 ${canReceivePayouts ? 'bg-green-50' : 'bg-yellow-50'}`}
+              >
+                <h3
+                  className={`font-medium ${canReceivePayouts ? 'text-green-900' : 'text-yellow-900'}`}
+                >
+                  {canReceivePayouts
+                    ? 'Your account is ready for payouts!'
+                    : 'Account verification in progress'}
                 </h3>
-                <p className='mt-2 text-sm text-green-700'>
-                  You can now receive payouts for your completed bookings.
-                  Payments are typically processed within 2-7 business days
-                  after a booking is marked as completed.
+                <p
+                  className={`mt-2 text-sm ${canReceivePayouts ? 'text-green-700' : 'text-yellow-700'}`}
+                >
+                  {stripeAccount?.requirements_message}
                 </p>
               </div>
 
-              <div className='flex gap-3'>
-                <Button variant='outline' size='sm' className='gap-2'>
-                  <ExternalLink className='h-3 w-3' />
-                  Manage Payouts
+              {!canReceivePayouts && (
+                <Button
+                  onClick={handleSetupStripe}
+                  variant='outline'
+                  disabled={settingUpStripe}
+                  className='gap-2'
+                >
+                  <ExternalLink className='h-4 w-4' />
+                  Complete Setup
                 </Button>
-                <Button variant='outline' size='sm' className='gap-2'>
-                  <CreditCard className='h-3 w-3' />
-                  View Stripe Dashboard
-                </Button>
-              </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Payout Request Form - Only show if can receive payouts and has balance */}
+      {canReceivePayouts && balance && balance.available_balance > 0 && (
+        <PayoutRequestForm
+          availableBalance={balance.available_balance}
+          minimumPayout={10}
+          withdrawalFee={2.5}
+          onSuccess={handlePayoutSuccess}
+        />
+      )}
 
       {/* Information Cards */}
       <div className='grid gap-6 md:grid-cols-2'>
@@ -258,9 +371,9 @@ export default function PayoutsPage() {
                 1
               </div>
               <div>
-                <p className='text-sm font-medium'>Complete a booking</p>
+                <p className='text-sm font-medium'>Complete bookings</p>
                 <p className='text-xs text-gray-600'>
-                  Customer confirms service completion
+                  Earnings automatically added to your balance
                 </p>
               </div>
             </div>
@@ -269,9 +382,9 @@ export default function PayoutsPage() {
                 2
               </div>
               <div>
-                <p className='text-sm font-medium'>Payment processed</p>
+                <p className='text-sm font-medium'>Request payout</p>
                 <p className='text-xs text-gray-600'>
-                  Funds are transferred to your account
+                  Submit withdrawal request through this page
                 </p>
               </div>
             </div>
@@ -280,43 +393,62 @@ export default function PayoutsPage() {
                 3
               </div>
               <div>
-                <p className='text-sm font-medium'>Receive payout</p>
+                <p className='text-sm font-medium'>Admin approval</p>
                 <p className='text-xs text-gray-600'>
-                  Money appears in your bank account
+                  Our team reviews and processes your request
+                </p>
+              </div>
+            </div>
+            <div className='flex items-start gap-3'>
+              <div className='flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-600'>
+                4
+              </div>
+              <div>
+                <p className='text-sm font-medium'>Receive payment</p>
+                <p className='text-xs text-gray-600'>
+                  Funds transferred to your bank account
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Payout Schedule */}
+        {/* Payout Information */}
         <Card>
           <CardHeader>
-            <CardTitle className='text-lg'>Payout Schedule</CardTitle>
+            <CardTitle className='text-lg'>Payout Information</CardTitle>
           </CardHeader>
           <CardContent className='space-y-3'>
             <div className='flex justify-between text-sm'>
               <span className='text-gray-600'>Processing time:</span>
-              <span className='font-medium'>2-7 business days</span>
+              <span className='font-medium'>2-3 business days</span>
             </div>
             <div className='flex justify-between text-sm'>
-              <span className='text-gray-600'>Payout frequency:</span>
-              <span className='font-medium'>After each booking</span>
+              <span className='text-gray-600'>Minimum withdrawal:</span>
+              <span className='font-medium'>£10.00</span>
             </div>
             <div className='flex justify-between text-sm'>
-              <span className='text-gray-600'>Platform fee:</span>
+              <span className='text-gray-600'>Withdrawal fee:</span>
+              <span className='font-medium'>£2.50 per request</span>
+            </div>
+            <div className='flex justify-between text-sm'>
+              <span className='text-gray-600'>Platform commission:</span>
               <span className='font-medium'>15% per booking</span>
             </div>
-            <div className='mt-4 rounded-lg bg-gray-50 p-3'>
+            <Separator />
+            <div className='rounded-lg bg-gray-50 p-3'>
               <p className='text-xs text-gray-600'>
-                <strong>Note:</strong> Payouts are automatically processed after
-                each completed booking. You'll receive an email confirmation
-                when a payout is sent.
+                <strong>Security:</strong> All payout requests are manually
+                reviewed by our team for security. The withdrawal fee covers
+                payment processing costs and fraud prevention measures.
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Payout History */}
+      <PayoutHistory refreshTrigger={refreshTrigger} />
     </div>
   )
 }
