@@ -75,11 +75,11 @@ export default function PayoutsPage() {
       ])
 
       if (balanceResult.success) {
-        setBalance(balanceResult.data)
+        setBalance(balanceResult.data as WasherBalance)
       }
 
       if (stripeResult.success) {
-        setStripeAccount(stripeResult.data)
+        setStripeAccount(stripeResult.data as StripeAccountData)
       } else {
         console.error('Error fetching Stripe status:', stripeResult.message)
       }
@@ -96,7 +96,8 @@ export default function PayoutsPage() {
     try {
       const result = await setupStripeAccount()
       if (result.success) {
-        window.location.href = result.data.onboarding_url
+        const data = result.data as { onboarding_url: string }
+        window.location.href = data.onboarding_url
       } else {
         toast.error(result.message || 'Failed to set up Stripe account')
       }
