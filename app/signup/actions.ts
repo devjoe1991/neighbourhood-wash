@@ -62,8 +62,8 @@ export async function signup(formData: FormData) {
       // Find the referrer
       const { data: referrerData, error: referrerError } = await supabase
         .from('referrals')
-        .select('user_id, code')
-        .eq('code', metadata.submitted_referral_code)
+        .select('user_id, referral_code')
+        .eq('referral_code', metadata.submitted_referral_code)
         .single()
 
       if (!referrerError && referrerData && referrerData.user_id !== user.id) {

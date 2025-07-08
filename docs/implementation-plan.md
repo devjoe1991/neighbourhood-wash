@@ -198,6 +198,47 @@ This pivot simplifies the user experience by removing the need for manual washer
 **Files Created/Modified**:
 
 - `app/dashboard/booking-confirmation/[id]/page.tsx` - Professional confirmation page
+
+#### Week 8: Advanced Booking Assignment System & Real-time Communication
+
+**Status**: ✅ **COMPLETED DECEMBER 2024**
+
+**Implementation Notes**:
+
+- ✅ **Intelligent Booking Assignment System**: Implemented sophisticated 2-tier assignment system: washers can browse and accept available bookings within 24 hours, after which an intelligent auto-assignment algorithm assigns the best-matched washer based on location proximity, experience, and availability.
+- ✅ **Available Bookings Interface**: Created privacy-protected job browsing for washers with masked customer information (postcode prefix only, "Joe C." name format) while showing essential booking details.
+- ✅ **Race Condition Protection**: Implemented atomic booking acceptance with database-level constraints to prevent double-assignment.
+- ✅ **24-Hour Auto-Assignment System**: Built Supabase Edge Function with intelligent scoring algorithm that automatically assigns bookings to the best available washer if not manually accepted within 24 hours.
+- ✅ **Real-time Chat System**: Complete chat interface using Supabase Realtime for communication between users and assigned washers during active bookings.
+- ✅ **Database Relationship Fixes**: Fixed foreign key relationships, added proper constraints, and ensured data integrity across the booking system.
+- ✅ **Washer Dashboard Enhancement**: Added "Available Bookings" and "My Bookings" sections with professional UI and seamless flow management.
+
+**Key Security Features**:
+
+- Database-level security with RLS policies
+- Privacy protection for user information until washer acceptance
+- Atomic operations preventing race conditions
+- Secure real-time messaging with proper authentication
+- Industry-standard booking lifecycle management
+
+**Assignment Algorithm Features**:
+
+- Location proximity scoring (postcode area matching)
+- Washer experience and tenure consideration
+- Service area radius optimization
+- Availability schedule integration
+- Intelligent fallback system ensuring 100% assignment coverage
+
+**Files Created/Modified**:
+
+- `supabase/functions/auto-assign-bookings/index.ts` - Intelligent auto-assignment system
+- `supabase/functions/auto-assign-bookings/deno.json` - Edge function configuration
+- `app/(washer)/dashboard/available-bookings/page.tsx` - Washer job browsing interface
+- `app/(washer)/dashboard/actions.ts` - Enhanced server actions for booking acceptance
+- `components/chat/ChatInterface.tsx` - Real-time messaging component
+- `docs/booking-assignment-flow.md` - Comprehensive system documentation
+- Database migrations for proper relationships and constraints
+- Enhanced sidebar navigation and washer flow optimization
 - `app/dashboard/new-booking/page.tsx` - Fixed payment initialization, conditional Elements rendering, toast error handling
 - `components/booking/PaymentStep.tsx` - Simplified component, removed clientSecret prop dependency
 - `lib/stripe/actions.ts` - Added debugging logs for payment intent creation

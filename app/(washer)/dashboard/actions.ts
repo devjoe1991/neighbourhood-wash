@@ -74,7 +74,7 @@ export async function getAssignedBookings(): Promise<{
         collection_verified_at,
         delivery_verified_at,
         created_at,
-        user:user_id (
+        profiles!user_id (
           full_name,
           email
         )
@@ -94,7 +94,9 @@ export async function getAssignedBookings(): Promise<{
 
     // Format the data
     const formattedBookings: WasherBooking[] = bookings.map((booking) => {
-      const user = Array.isArray(booking.user) ? booking.user[0] : booking.user
+      const profile = Array.isArray(booking.profiles)
+        ? booking.profiles[0]
+        : booking.profiles
       return {
         id: booking.id,
         user_id: booking.user_id,
@@ -110,7 +112,7 @@ export async function getAssignedBookings(): Promise<{
         collection_verified_at: booking.collection_verified_at,
         delivery_verified_at: booking.delivery_verified_at,
         created_at: booking.created_at,
-        user: user,
+        user: profile,
       }
     })
 
@@ -169,7 +171,7 @@ export async function getBookingDetails(bookingId: number): Promise<{
         collection_verified_at,
         delivery_verified_at,
         created_at,
-        user:user_id (
+        profiles!user_id (
           full_name,
           email
         )
@@ -189,9 +191,9 @@ export async function getBookingDetails(bookingId: number): Promise<{
     }
 
     // Format the data
-    const userInfo = Array.isArray(booking.user)
-      ? booking.user[0]
-      : booking.user
+    const profile = Array.isArray(booking.profiles)
+      ? booking.profiles[0]
+      : booking.profiles
     const formattedBooking: WasherBooking = {
       id: booking.id,
       user_id: booking.user_id,
@@ -207,7 +209,7 @@ export async function getBookingDetails(bookingId: number): Promise<{
       collection_verified_at: booking.collection_verified_at,
       delivery_verified_at: booking.delivery_verified_at,
       created_at: booking.created_at,
-      user: userInfo,
+      user: profile,
     }
 
     return {
@@ -219,6 +221,181 @@ export async function getBookingDetails(bookingId: number): Promise<{
     return {
       success: false,
       data: null,
+      message: 'An unexpected error occurred.',
+    }
+  }
+}
+
+export async function getAvailableBookings(): Promise<{
+  success: boolean
+  data: Array<{
+    id: number
+    collection_date: string
+    collection_time_slot: string
+    total_price: number
+    services_config: Record<string, unknown>
+    special_instructions: string | null
+    created_at: string
+    user: {
+      first_name: string
+      last_name: string
+      postcode: string
+    }
+  }>
+  message?: string
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
+
+    // Get current user (washer)
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        data: [],
+        message: 'Authentication error. Please log in again.',
+      }
+    }
+
+    // Get washer's location/service area to find nearby bookings
+    // For now, get all awaiting_assignment bookings
+    // In production, you'd filter by location/service area
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select(
+        `
+        id,
+        collection_date,
+        collection_time_slot,
+        total_price,
+        services_config,
+        special_instructions,
+        created_at,
+        user_id,
+        profiles!user_id (
+          first_name,
+          last_name,
+          postcode
+        )
+      `
+      )
+      .eq('status', 'awaiting_assignment')
+      .order('collection_date', { ascending: true })
+
+    if (error) {
+      console.error('Database error:', error)
+      return {
+        success: false,
+        data: [],
+        message: 'Failed to fetch available bookings.',
+      }
+    }
+
+    // Format the data for the frontend
+    const formattedBookings = bookings.map((booking) => {
+      const profile = Array.isArray(booking.profiles)
+        ? booking.profiles[0]
+        : booking.profiles
+      return {
+        id: booking.id,
+        collection_date: booking.collection_date,
+        collection_time_slot: booking.collection_time_slot,
+        total_price: booking.total_price,
+        services_config: booking.services_config,
+        special_instructions: booking.special_instructions,
+        created_at: booking.created_at,
+        user: {
+          first_name: profile?.first_name || 'Customer',
+          last_name: profile?.last_name || 'User',
+          postcode: profile?.postcode || 'Unknown',
+        },
+      }
+    })
+
+    return {
+      success: true,
+      data: formattedBookings,
+    }
+  } catch (error) {
+    console.error('Error fetching available bookings:', error)
+    return {
+      success: false,
+      data: [],
+      message: 'An unexpected error occurred.',
+    }
+  }
+}
+
+export async function acceptBooking(bookingId: number): Promise<{
+  success: boolean
+  message: string
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
+
+    // Get current user (washer)
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'Authentication error. Please log in again.',
+      }
+    }
+
+    // Check if booking is still available
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('id, status, washer_id')
+      .eq('id', bookingId)
+      .eq('status', 'awaiting_assignment')
+      .single()
+
+    if (fetchError || !booking) {
+      return {
+        success: false,
+        message: 'Booking is no longer available or already assigned.',
+      }
+    }
+
+    // Assign the washer to the booking
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({
+        washer_id: user.id,
+        status: 'washer_assigned',
+      })
+      .eq('id', bookingId)
+      .eq('status', 'awaiting_assignment') // Double-check it's still available
+
+    if (updateError) {
+      console.error('Database error:', updateError)
+      return {
+        success: false,
+        message:
+          'Failed to accept booking. It may have been claimed by another washer.',
+      }
+    }
+
+    revalidatePath('/dashboard/bookings')
+    revalidatePath('/dashboard/available-bookings')
+
+    return {
+      success: true,
+      message:
+        'Booking accepted successfully! You can now view it in your bookings.',
+    }
+  } catch (error) {
+    console.error('Error accepting booking:', error)
+    return {
+      success: false,
       message: 'An unexpected error occurred.',
     }
   }

@@ -33,6 +33,18 @@ const navLinks = [
     icon: Package,
     requiresRole: 'user',
   },
+  {
+    href: '/dashboard/available-bookings',
+    label: 'Available Bookings',
+    icon: Plus,
+    requiresRole: 'washer',
+  },
+  {
+    href: '/dashboard/bookings',
+    label: 'My Bookings',
+    icon: Package,
+    requiresRole: 'washer',
+  },
   { href: '/dashboard/referrals', label: 'Referrals', icon: Handshake },
   {
     href: '/dashboard/laundry-preferences',
