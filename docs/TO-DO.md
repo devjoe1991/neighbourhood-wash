@@ -57,3 +57,7 @@ Enhanced Booking Flow: Improvements to the existing 4-step booking process
 Other on allergies - it might be a random allergy that we dont know about.
 
 maybe implement a reward point system for leaving reviews etc and if you geet certain highamount of points you get money off.
+
+Real-time Chat System for booking communications
+Mobile App Development for enhanced user experience
+Payment Optimization and additional payment methods
