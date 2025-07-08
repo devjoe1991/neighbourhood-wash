@@ -23,7 +23,7 @@ import {
   Calendar,
   PoundSterling,
 } from 'lucide-react'
-import { getPayoutRequests } from '@/app/dashboard/payouts/actions'
+import { getPayoutRequests } from '@/app/dashboard/user-payouts/actions'
 import { format } from 'date-fns'
 
 interface PayoutRequest {
@@ -58,7 +58,7 @@ export default function PayoutHistory({ refreshTrigger }: PayoutHistoryProps) {
     try {
       const result = await getPayoutRequests()
       if (result.success) {
-        setPayoutRequests(result.data || [])
+        setPayoutRequests((result.data as PayoutRequest[]) || [])
       }
     } catch (error) {
       console.error('Error fetching payout requests:', error)

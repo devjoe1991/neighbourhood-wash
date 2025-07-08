@@ -23,7 +23,7 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react'
-import { createPayoutRequest } from '@/app/dashboard/payouts/actions'
+import { createPayoutRequest } from '@/app/dashboard/user-payouts/actions'
 import { toast } from 'sonner'
 
 interface PayoutRequestFormProps {

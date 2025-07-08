@@ -60,7 +60,7 @@ export default function PayoutsPage() {
       setSetupSuccess(true)
       toast.success('Stripe account setup completed successfully!')
       // Clean up URL
-      window.history.replaceState({}, '', '/dashboard/payouts')
+      window.history.replaceState({}, '', '/dashboard/user-payouts')
     }
 
     fetchData()
