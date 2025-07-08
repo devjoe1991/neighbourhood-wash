@@ -16,6 +16,7 @@ Before assisting with any task, always read and understand:
 1. [workflow.md](mdc:docs/workflow.md) - Contains detailed architecture, user roles, workflows, data models
 2. [prd.md](mdc:docs/prd.md) - Product Requirements Document with objectives, target audience, features
 3. [implementation-plan.md](mdc:docs/implementation-plan.md) - Development phases, timelines, and specific task priorities
+4. [mcp.json](mdc:/Users/joeq/.cursor/mcp.json) - Use the mcp Supabase to perform Supabase tasks
 
 ## Key Project Components
 
