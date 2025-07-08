@@ -294,7 +294,7 @@ export async function createPayoutRequest(
     // Update earnings status to 'processing' for the requested amount
     await updateEarningsStatusForPayout(user.id, amount)
 
-    revalidatePath('/dashboard/payouts')
+    revalidatePath('/dashboard/user-payouts')
 
     return {
       success: true,
@@ -410,8 +410,8 @@ export async function setupStripeAccount(): Promise<PayoutActionResult> {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/payouts`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/payouts?setup_success=true`,
+      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts?setup_success=true`,
       type: 'account_onboarding',
     })
 
