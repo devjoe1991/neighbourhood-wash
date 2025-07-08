@@ -9,7 +9,7 @@ import { signup } from './actions'
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>
+  searchParams: Promise<{ message?: string; ref?: string }>
 }) {
   const params = await searchParams
   return (
@@ -69,8 +69,14 @@ export default async function SignupPage({
                   name='referral_code'
                   type='text'
                   placeholder='Enter referral code'
+                  defaultValue={params?.ref || ''}
                 />
               </div>
+              {params?.ref && (
+                <p className='mt-1 text-sm text-green-600'>
+                  Referral code applied! You'll get 50% off your first wash.
+                </p>
+              )}
             </div>
 
             <div>

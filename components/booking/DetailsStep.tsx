@@ -16,6 +16,7 @@ import {
   AlertCircle,
   MapPin,
 } from 'lucide-react'
+import Image from 'next/image'
 import { uploadBookingImages, type UploadProgress } from '@/lib/storage'
 import { createClient } from '@/utils/supabase/client'
 
@@ -235,9 +236,11 @@ export default function DetailsStep({
                 <div className='grid grid-cols-2 gap-2'>
                   {uploadedImageUrls.map((url, index) => (
                     <div key={index} className='relative'>
-                      <img
+                      <Image
                         src={url}
                         alt={`Stain ${index + 1}`}
+                        width={200}
+                        height={96}
                         className='h-24 w-full rounded-lg border object-cover'
                       />
                       <Button
