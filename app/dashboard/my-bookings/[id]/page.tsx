@@ -37,6 +37,8 @@ import {
 } from '../actions'
 import StatusTracker from '@/components/bookings/StatusTracker'
 import PinVerification from '@/components/booking/PinVerification'
+import ChatInterface from '@/components/chat/ChatInterface'
+import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 
 interface BookingDetailPageProps {
@@ -49,6 +51,8 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
   const [isCancelling, setIsCancelling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookingId, setBookingId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const supabase = createClient()
 
   useEffect(() => {
     const initializeParams = async () => {
@@ -57,6 +61,19 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
     }
     initializeParams()
   }, [params])
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id)
+      }
+    }
+    getCurrentUser()
+  }, [supabase])
 
   useEffect(() => {
     if (!bookingId) return
@@ -453,27 +470,39 @@ export default function BookingDetailPage({ params }: BookingDetailPageProps) {
               </CardContent>
             </Card>
 
-            {/* Chat Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  <MessageCircle className='h-5 w-5' />
-                  Chat with Washer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='py-8 text-center'>
-                  <MessageCircle className='mx-auto mb-4 h-12 w-12 text-gray-400' />
-                  <p className='mb-2 text-gray-600'>
-                    Chat with your washer will be enabled once they are assigned
-                  </p>
-                  <Button disabled className='gap-2'>
-                    <MessageCircle className='h-4 w-4' />
-                    Start Chat
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Chat Interface */}
+            {booking.washer_id &&
+            currentUserId &&
+            (booking.status === 'washer_assigned' ||
+              booking.status === 'in_progress') ? (
+              <ChatInterface
+                bookingId={booking.id}
+                currentUserId={currentUserId}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className='flex items-center gap-2'>
+                    <MessageCircle className='h-5 w-5' />
+                    Chat with Washer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='py-8 text-center'>
+                    <MessageCircle className='mx-auto mb-4 h-12 w-12 text-gray-400' />
+                    <p className='mb-2 text-gray-600'>
+                      {!booking.washer_id
+                        ? 'Chat with your washer will be enabled once they are assigned'
+                        : 'Chat is only available during active bookings'}
+                    </p>
+                    <Button disabled className='gap-2'>
+                      <MessageCircle className='h-4 w-4' />
+                      Start Chat
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -17,12 +17,16 @@ import {
 } from 'lucide-react'
 import { getBookingDetails, WasherBooking } from '../../actions'
 import PinInput from '@/components/washer/PinInput'
+import ChatInterface from '@/components/chat/ChatInterface'
+import { createClient } from '@/utils/supabase/client'
 
 export default function WasherBookingDetailPage() {
   const params = useParams()
   const [booking, setBooking] = useState<WasherBooking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const supabase = createClient()
 
   const fetchBookingDetails = useCallback(async () => {
     if (!params.id) return
@@ -47,6 +51,19 @@ export default function WasherBookingDetailPage() {
   useEffect(() => {
     fetchBookingDetails()
   }, [fetchBookingDetails])
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id)
+      }
+    }
+    getCurrentUser()
+  }, [supabase])
 
   const handleVerificationSuccess = () => {
     // Refetch booking details to update the UI
@@ -312,12 +329,22 @@ export default function WasherBookingDetailPage() {
             )}
           </div>
 
-          {/* Right Column - PIN Verification */}
-          <div>
+          {/* Right Column - PIN Verification & Chat */}
+          <div className='space-y-6'>
             <PinInput
               booking={booking}
               onVerificationSuccess={handleVerificationSuccess}
             />
+
+            {/* Chat Interface */}
+            {currentUserId &&
+            (booking.status === 'washer_assigned' ||
+              booking.status === 'in_progress') ? (
+              <ChatInterface
+                bookingId={booking.id}
+                currentUserId={currentUserId}
+              />
+            ) : null}
           </div>
         </div>
       </div>
