@@ -27,9 +27,9 @@ export default async function AdminRevenueDashboard() {
   // Fetch all revenue data in parallel
   const [
     metrics,
-    dailyRevenue,
-    topWashers,
-    growthData
+    _dailyRevenue,
+    _topWashers,
+    _growthData
   ] = await Promise.all([
     getRevenueMetrics().catch(() => null),
     getDailyRevenue(30).catch(() => []),

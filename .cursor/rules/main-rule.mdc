@@ -74,8 +74,9 @@ After completing any [implementation-plan.md](mdc:docs/implementation-plan.md) i
 
 ### Phase 5: Admin Dashboard & Management Tools
 
-- [ ] Admin dashboard _(Notes: ...)_
-- [ ] User/Washer management _(Notes: ...)_
+- [x] **Revenue dashboard with withdrawal fee tracking** _(Notes: **COMPLETED DECEMBER 2024** - Built comprehensive revenue dashboard displaying both booking commission (15%) and withdrawal fee revenue (£2.50 per payout) in UK pounds. Tracks total platform revenue, monthly growth, financial health indicators, and cash flow metrics. Files: `app/(admin)/admin/revenue/page.tsx`, `app/(admin)/admin/revenue/actions.ts`.)_
+- [x] Admin dashboard _(Notes: Initial layout and navigation implemented.)_
+- [x] User/Washer management _(Notes: Comprehensive user and washer management systems completed.)_
 - [ ] Platform analytics _(Notes: ...)_
 
 ### Phase 6: Backend Integration & API Development
