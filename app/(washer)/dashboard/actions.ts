@@ -277,6 +277,7 @@ export async function getAvailableBookings(): Promise<{
         created_at,
         user_id,
         profiles!user_id (
+          full_name,
           first_name,
           last_name,
           postcode
@@ -300,6 +301,20 @@ export async function getAvailableBookings(): Promise<{
       const profile = Array.isArray(booking.profiles)
         ? booking.profiles[0]
         : booking.profiles
+
+      // Handle name formatting - use first_name/last_name if available, otherwise split full_name
+      let firstName = 'Customer'
+      let lastName = 'User'
+
+      if (profile?.first_name && profile?.last_name) {
+        firstName = profile.first_name
+        lastName = profile.last_name
+      } else if (profile?.full_name) {
+        const nameParts = profile.full_name.split(' ')
+        firstName = nameParts[0] || 'Customer'
+        lastName = nameParts.slice(1).join(' ') || 'User'
+      }
+
       return {
         id: booking.id,
         collection_date: booking.collection_date,
@@ -309,8 +324,8 @@ export async function getAvailableBookings(): Promise<{
         special_instructions: booking.special_instructions,
         created_at: booking.created_at,
         user: {
-          first_name: profile?.first_name || 'Customer',
-          last_name: profile?.last_name || 'User',
+          first_name: firstName,
+          last_name: lastName,
           postcode: profile?.postcode || 'Unknown',
         },
       }
