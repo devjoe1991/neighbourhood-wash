@@ -1,15 +1,6 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-interface EarningsRecord {
-  created_at: string
-  platform_fee: number
-  booking_total: number
-  washer_id: string
-  profiles?: {
-    first_name: string
-    last_name: string
-  }
-}
+
 
 export interface RevenueMetrics {
   totalRevenue: number
@@ -200,7 +191,8 @@ export async function getDailyRevenue(days: number = 30): Promise<DailyRevenue[]
     }>()
     
     // Process earnings data
-    data?.forEach((record: Record<string, any>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?.forEach((record: any) => {
       const date = new Date(record.created_at).toISOString().split('T')[0]
       const existing = dailyData.get(date) || { bookings: 0, grossRevenue: 0, commission: 0, withdrawalFees: 0, withdrawalRequests: 0 }
       
@@ -214,7 +206,8 @@ export async function getDailyRevenue(days: number = 30): Promise<DailyRevenue[]
     })
     
     // Process withdrawal data
-    withdrawalData?.forEach((record: Record<string, any>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    withdrawalData?.forEach((record: any) => {
       const date = new Date(record.created_at).toISOString().split('T')[0]
       const existing = dailyData.get(date) || { bookings: 0, grossRevenue: 0, commission: 0, withdrawalFees: 0, withdrawalRequests: 0 }
       
@@ -271,7 +264,8 @@ export async function getTopWashers(limit: number = 10): Promise<TopWasher[]> {
       totalBookingValue: number
     }>()
     
-    data?.forEach((record: Record<string, any>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?.forEach((record: any) => {
       const washerName = `${record.profiles?.first_name || ''} ${record.profiles?.last_name || ''}`.trim() || 'Unknown'
       const existing = washerData.get(record.washer_id) || {
         washerName,
