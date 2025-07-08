@@ -19,8 +19,22 @@ interface SidebarProps {
   isMobile?: boolean
 }
 
+const getUserSpecificRoute = (
+  userRole: string | null | undefined,
+  userPath: string,
+  washerPath: string
+) => {
+  return userRole === 'washer' ? washerPath : userPath
+}
+
 const navLinks = [
-  { href: '/dashboard', label: 'Overview', icon: Home },
+  {
+    href: '/dashboard',
+    label: 'Overview',
+    icon: Home,
+    userPath: '/dashboard',
+    washerPath: '/washer/dashboard',
+  },
   {
     href: '/dashboard/new-booking',
     label: 'New Booking',
@@ -34,13 +48,13 @@ const navLinks = [
     requiresRole: 'user',
   },
   {
-    href: '/dashboard/available-bookings',
+    href: '/washer/dashboard/available-bookings',
     label: 'Available Bookings',
     icon: Plus,
     requiresRole: 'washer',
   },
   {
-    href: '/dashboard/bookings',
+    href: '/washer/dashboard/bookings',
     label: 'My Bookings',
     icon: Package,
     requiresRole: 'washer',
@@ -59,7 +73,7 @@ const navLinks = [
     requiresNoRole: 'washer',
   },
   {
-    href: '/dashboard/user-payouts',
+    href: '/washer/dashboard/payouts',
     label: 'Payouts',
     icon: CreditCard,
     requiresRole: 'washer',
@@ -85,7 +99,13 @@ export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
       <nav className='flex-grow'>
         <ul className='space-y-2'>
           {navLinks.map((link) => {
-            const isActive = pathname === link.href
+            // Use dynamic route for Overview based on user role
+            const href =
+              link.userPath && link.washerPath
+                ? getUserSpecificRoute(userRole, link.userPath, link.washerPath)
+                : link.href
+
+            const isActive = pathname === href
 
             // Conditional rendering for "Become a Washer"
             if (link.requiresNoRole === 'washer' && userRole === 'washer') {
@@ -97,9 +117,9 @@ export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
             }
 
             return (
-              <li key={link.href}>
+              <li key={href}>
                 <Link
-                  href={link.href}
+                  href={href}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-gray-300 transition-all hover:bg-gray-700 hover:text-white',
                     {

@@ -229,8 +229,8 @@ export async function createStripeAccountLink(accountId: string): Promise<{
   try {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts?connect_success=true`,
+      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
       type: 'account_onboarding',
     })
 

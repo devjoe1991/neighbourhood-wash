@@ -49,15 +49,25 @@ export async function signInWithEmailPassword(
     return redirect('/dashboard')
   }
 
-  // Check for admin role - adjust if you store the role differently (e.g., app_metadata)
-  const userRole = user.user_metadata?.role || user.app_metadata?.role
+  // Check user profile for role (more reliable than metadata)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const userRole =
+    profile?.role || user.user_metadata?.role || user.app_metadata?.role
 
   if (userRole === 'admin') {
     console.log('Admin user identified, redirecting to /admin/dashboard')
     return redirect('/admin/dashboard')
+  } else if (userRole === 'washer') {
+    console.log('Washer user identified, redirecting to /washer/dashboard')
+    return redirect('/washer/dashboard')
   }
 
-  console.log('Non-admin user, redirecting to /dashboard')
+  console.log('Regular user, redirecting to /dashboard')
   return redirect('/dashboard')
 }
 

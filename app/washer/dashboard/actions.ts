@@ -399,8 +399,8 @@ export async function acceptBooking(bookingId: number): Promise<{
       }
     }
 
-    revalidatePath('/dashboard/bookings')
-    revalidatePath('/dashboard/available-bookings')
+    revalidatePath('/washer/dashboard/bookings')
+    revalidatePath('/washer/dashboard/available-bookings')
 
     return {
       success: true,
@@ -521,8 +521,8 @@ export async function verifyPin(
     }
 
     // Revalidate relevant pages
-    revalidatePath('/dashboard/bookings')
-    revalidatePath(`/dashboard/bookings/${bookingId}`)
+    revalidatePath('/washer/dashboard/bookings')
+    revalidatePath(`/washer/dashboard/bookings/${bookingId}`)
     revalidatePath('/dashboard/my-bookings') // For user's page
 
     return {

@@ -4,17 +4,51 @@ import { createSupabaseServerClient } from '@/utils/supabase/server' // Using th
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // If "next" is in params, use it, otherwise default to "/dashboard"
-  // This allows for flexibility if Supabase sends a 'next' parameter in the future
-  const next = searchParams.get('next') ?? '/dashboard'
+  // If "next" is in params, use it, otherwise determine based on user role
+  const next = searchParams.get('next')
 
   if (code) {
     const supabase = createSupabaseServerClient() // This initializes Supabase client using cookies from next/headers
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Redirect to the 'next' path (defaulting to /dashboard)
-      return NextResponse.redirect(`${origin}${next}`)
+      // If we have a specific next path, use it
+      if (next) {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+
+      // Otherwise, determine redirect based on user role
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        if (user) {
+          // Check user profile for role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle()
+
+          const userRole = profile?.role || user.user_metadata?.selected_role
+
+          // Redirect based on role
+          if (userRole === 'admin') {
+            return NextResponse.redirect(`${origin}/admin/dashboard`)
+          } else if (userRole === 'washer') {
+            return NextResponse.redirect(`${origin}/washer/dashboard`)
+          } else {
+            // Default to regular user dashboard
+            return NextResponse.redirect(`${origin}/dashboard`)
+          }
+        }
+      } catch (roleError) {
+        console.error('Error fetching user role:', roleError)
+      }
+
+      // Fallback to dashboard if role detection fails
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
     console.error('Auth callback error during code exchange:', error.message)
   } else {
