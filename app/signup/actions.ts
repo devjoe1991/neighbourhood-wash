@@ -88,6 +88,10 @@ export async function signup(formData: FormData) {
     }
   }
 
-  // Success! Redirect to the dashboard or confirmation page
-  return redirect('/dashboard')
+  // Success! Redirect based on user role
+  if (metadata.selected_role === 'washer') {
+    return redirect('/washer/dashboard')
+  } else {
+    return redirect('/dashboard')
+  }
 }

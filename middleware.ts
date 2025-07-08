@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Define protected and public paths
-  const protectedPaths = ['/dashboard']
+  const protectedPaths = ['/dashboard', '/washer']
   const adminPaths = ['/admin']
   const publicAuthPaths = [
     '/signin',
@@ -86,10 +86,15 @@ export async function middleware(request: NextRequest) {
     // Assuming 'admin' is the role string for administrators
     if (userRole !== 'admin') {
       console.log(
-        `[Middleware] Valid session found, but user role is "${userRole}", not "admin". Redirecting to /dashboard.`
+        `[Middleware] Valid session found, but user role is "${userRole}", not "admin". Redirecting to appropriate dashboard.`
       )
       const url = request.nextUrl.clone()
-      url.pathname = '/dashboard' // Or perhaps a dedicated 'unauthorized' page
+      // Redirect to appropriate dashboard based on user role
+      if (userRole === 'washer') {
+        url.pathname = '/washer/dashboard'
+      } else {
+        url.pathname = '/dashboard'
+      }
       return NextResponse.redirect(url)
     }
     // If valid session exists and role is admin, allow access
@@ -111,10 +116,17 @@ export async function middleware(request: NextRequest) {
   // Rule 3: If valid session exists and trying to access public auth pages
   if (validSession && isPublicAuthPath) {
     console.log(
-      '[Middleware] Valid session found, public auth path. Redirecting to /dashboard.'
+      '[Middleware] Valid session found, public auth path. Redirecting to appropriate dashboard.'
     )
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    // Redirect to appropriate dashboard based on user role
+    if (userRole === 'admin') {
+      url.pathname = '/admin/dashboard'
+    } else if (userRole === 'washer') {
+      url.pathname = '/washer/dashboard'
+    } else {
+      url.pathname = '/dashboard'
+    }
     return NextResponse.redirect(url)
   }
 

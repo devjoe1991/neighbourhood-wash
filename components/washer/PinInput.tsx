@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Shield, Check, Clock, Package, Truck } from 'lucide-react'
-import { WasherBooking } from '@/app/(washer)/dashboard/actions'
-import { verifyPin } from '@/app/(washer)/dashboard/actions'
+import { WasherBooking } from '@/app/washer/dashboard/actions'
+import { verifyPin } from '@/app/washer/dashboard/actions'
 import { toast } from 'sonner'
 
 interface PinInputProps {

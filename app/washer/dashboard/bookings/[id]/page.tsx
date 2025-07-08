@@ -146,7 +146,7 @@ export default function WasherBookingDetailPage() {
               </h3>
               <p className='mb-4 text-gray-600'>{error}</p>
               <Button asChild variant='outline'>
-                <Link href='/dashboard/bookings'>
+                <Link href='/washer/dashboard/bookings'>
                   <ArrowLeft className='mr-2 h-4 w-4' />
                   Back to Bookings
                 </Link>
@@ -166,7 +166,7 @@ export default function WasherBookingDetailPage() {
         {/* Header */}
         <div className='mb-8'>
           <Button asChild variant='outline' className='mb-4'>
-            <Link href='/dashboard/bookings'>
+            <Link href='/washer/dashboard/bookings'>
               <ArrowLeft className='mr-2 h-4 w-4' />
               Back to Bookings
             </Link>

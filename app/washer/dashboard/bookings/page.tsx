@@ -220,7 +220,7 @@ export default async function WasherBookingsPage() {
 
                     <div className='flex justify-end'>
                       <Button asChild variant='outline'>
-                        <Link href={`/dashboard/bookings/${booking.id}`}>
+                        <Link href={`/washer/dashboard/bookings/${booking.id}`}>
                           View Details
                         </Link>
                       </Button>
