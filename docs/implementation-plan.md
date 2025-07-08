@@ -474,7 +474,7 @@ This pivot simplifies the user experience by removing the need for manual washer
 
 ### Washer Referral Features
 
-- [x] **Enhanced Washer Referral Dashboard** _(Notes: **COMPLETED DECEMBER 2024** - Built comprehensive washer referral system at `app/(washer)/dashboard/referrals/page.tsx`. **Dual Reward System**: £5 for user referrals, £15 for washer referrals. **Advanced Analytics**: Separate tracking for user vs washer referrals with reward calculations. **Enhanced UI**: Purple/blue gradient design with crown icons, professional reward breakdown, and detailed activity tracking. **Promotional Materials**: Built-in sharing via enhanced ReferralCodeDisplay component with social media integration.)_
+- [x] **Enhanced Washer Referral Dashboard** _(Notes: **COMPLETED DECEMBER 2024** - Built comprehensive washer referral system at `app/(washer)/dashboard/washer-referrals/page.tsx`. **Dual Reward System**: £5 for user referrals, £15 for washer referrals. **Advanced Analytics**: Separate tracking for user vs washer referrals with reward calculations. **Enhanced UI**: Purple/blue gradient design with crown icons, professional reward breakdown, and detailed activity tracking. **Promotional Materials**: Built-in sharing via enhanced ReferralCodeDisplay component with social media integration.)_
 - [x] Dedicated referral section on Washer dashboard _(Notes: **COMPLETED** - Full-featured dashboard with washer-specific design.)_
 - [x] Washer-specific referral codes _(Notes: **COMPLETED** - Same code system but enhanced rewards for washers.)_
 - [x] Promotional materials for recruiting _(Notes: **COMPLETED** - Built-in sharing and promotional copy.)_
