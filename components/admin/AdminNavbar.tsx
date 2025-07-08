@@ -5,6 +5,7 @@ import {
   Users,
   Briefcase,
   LayoutDashboard,
+  DollarSign,
 } from 'lucide-react'
 // import { createClient } from '@/utils/supabase/server_new'; // For server-side sign out
 // import { redirect } from 'next/navigation';
@@ -37,6 +38,11 @@ const AdminNavbar = () => {
       href: '/admin/bookings',
       label: 'Bookings',
       icon: <Briefcase className='mr-2 h-5 w-5' />,
+    },
+    {
+      href: '/admin/revenue',
+      label: 'Revenue',
+      icon: <DollarSign className='mr-2 h-5 w-5' />,
     },
     {
       href: '/admin/settings',
