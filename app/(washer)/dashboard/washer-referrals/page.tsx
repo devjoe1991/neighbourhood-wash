@@ -64,11 +64,11 @@ export default function WasherReferralsPage() {
       // Get or create referral code via database query
       const { data: existingReferral } = await supabase
         .from('referrals')
-        .select('code')
+        .select('referral_code')
         .eq('user_id', user.id)
         .single()
 
-      let code = existingReferral?.code
+      let code = existingReferral?.referral_code
 
       if (!code) {
         // Generate new code if none exists
@@ -82,7 +82,7 @@ export default function WasherReferralsPage() {
 
         const { error: insertError } = await supabase
           .from('referrals')
-          .insert({ user_id: user.id, code: newCode })
+          .insert({ user_id: user.id, referral_code: newCode })
 
         if (!insertError) {
           code = newCode

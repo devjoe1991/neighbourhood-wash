@@ -35,7 +35,7 @@ export async function getOrCreateReferralCode(
     // 1. Check if the user already has a code
     const { data: existingReferral, error: fetchError } = await supabase
       .from('referrals')
-      .select('code')
+      .select('referral_code')
       .eq('user_id', userId)
       .single()
 
@@ -46,7 +46,7 @@ export async function getOrCreateReferralCode(
     }
 
     if (existingReferral) {
-      return existingReferral.code
+      return existingReferral.referral_code
     }
 
     // 2. If not, generate a new unique code
@@ -59,8 +59,8 @@ export async function getOrCreateReferralCode(
       newCode = generateRandomCode(6) // Generate a 6-character code
       const { data: codeCheck, error: checkError } = await supabase
         .from('referrals')
-        .select('code')
-        .eq('code', newCode)
+        .select('referral_code')
+        .eq('referral_code', newCode)
         .maybeSingle() // Use maybeSingle as code might not exist
 
       if (checkError) {
@@ -84,7 +84,7 @@ export async function getOrCreateReferralCode(
     // 3. Insert the new code for the user
     const { error: insertError } = await supabase
       .from('referrals')
-      .insert({ user_id: userId, code: newCode })
+      .insert({ user_id: userId, referral_code: newCode })
 
     if (insertError) {
       console.error('Error inserting new referral code:', insertError)
@@ -94,7 +94,7 @@ export async function getOrCreateReferralCode(
         // Try fetching again, maybe it was just created
         const { data: retryReferral, error: retryError } = await supabase
           .from('referrals')
-          .select('code')
+          .select('referral_code')
           .eq('user_id', userId)
           .single()
         if (retryError) {
@@ -104,7 +104,7 @@ export async function getOrCreateReferralCode(
           )
           return null
         }
-        return retryReferral?.code || null
+        return retryReferral?.referral_code || null
       }
       return null
     }
