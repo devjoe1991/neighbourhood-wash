@@ -61,3 +61,8 @@ maybe implement a reward point system for leaving reviews etc and if you geet ce
 Real-time Chat System for booking communications
 Mobile App Development for enhanced user experience
 Payment Optimization and additional payment methods
+
+washer needs to declare wether or not they offer delivery and hte fee currently the platofrm charges user and gives them the option
+
+app/washer/dashboard/actions.ts
+getAvailableBookings @actions.ts is not returning bookings which have a status of awaiting_assignment when it should.
