@@ -233,38 +233,21 @@ export async function getAvailableBookings(): Promise<{
     collection_date: string
     collection_time_slot: string
     total_price: number
-    services_config: Record<string, unknown>
+    services_config: Record<string, unknown> | null
     special_instructions: string | null
     created_at: string
-    user: {
-      first_name: string
-      last_name: string
-      postcode: string
-    }
+    user_profile: {
+      first_name: string | null
+      last_name: string | null
+      postcode: string | null
+    } | null
   }>
   message?: string
 }> {
   try {
     const supabase = createSupabaseServerClient()
 
-    // Get current user (washer)
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return {
-        success: false,
-        data: [],
-        message: 'Authentication error. Please log in again.',
-      }
-    }
-
-    // Get washer's location/service area to find nearby bookings
-    // For now, get all awaiting_assignment bookings
-    // In production, you'd filter by location/service area
-    const { data: bookings, error } = await supabase
+    const { data, error } = await supabase
       .from('bookings')
       .select(
         `
@@ -275,72 +258,33 @@ export async function getAvailableBookings(): Promise<{
         services_config,
         special_instructions,
         created_at,
-        user_id,
-        profiles!fk_bookings_user_id(
-          full_name,
-          first_name,
-          last_name,
-          postcode
-        )
+        user_profile:profiles!inner(*)
       `
       )
       .eq('status', 'awaiting_assignment')
-      .order('collection_date', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('Database error:', error)
-      return {
-        success: false,
-        data: [],
-        message: 'Failed to fetch available bookings.',
-      }
+      console.error('Error fetching available bookings:', error)
+      return { success: false, data: [], message: error.message }
     }
 
-    // Format the data for the frontend
-    const formattedBookings = bookings.map((booking) => {
-      const profile = Array.isArray(booking.profiles)
-        ? booking.profiles[0]
-        : booking.profiles
+    // Supabase returns an array for the joined profile, so we flatten it
+    const formattedData = data?.map((booking) => ({
+      ...booking,
+      user_profile: Array.isArray(booking.user_profile)
+        ? booking.user_profile[0]
+        : booking.user_profile,
+    }))
 
-      // Handle name formatting - use first_name/last_name if available, otherwise split full_name
-      let firstName = 'Customer'
-      let lastName = 'User'
-
-      if (profile?.first_name && profile?.last_name) {
-        firstName = profile.first_name
-        lastName = profile.last_name
-      } else if (profile?.full_name) {
-        const nameParts = profile.full_name.split(' ')
-        firstName = nameParts[0] || 'Customer'
-        lastName = nameParts.slice(1).join(' ') || 'User'
-      }
-
-      return {
-        id: booking.id,
-        collection_date: booking.collection_date,
-        collection_time_slot: booking.collection_time_slot,
-        total_price: booking.total_price,
-        services_config: booking.services_config,
-        special_instructions: booking.special_instructions,
-        created_at: booking.created_at,
-        user: {
-          first_name: firstName,
-          last_name: lastName,
-          postcode: profile?.postcode || 'Unknown',
-        },
-      }
-    })
-
-    return {
-      success: true,
-      data: formattedBookings,
-    }
-  } catch (error) {
-    console.error('Error fetching available bookings:', error)
+    return { success: true, data: formattedData || [], message: '' }
+  } catch (err) {
+    const error = err as Error
+    console.error('Unexpected error fetching available bookings:', error)
     return {
       success: false,
       data: [],
-      message: 'An unexpected error occurred.',
+      message: 'An unexpected server error occurred.',
     }
   }
 }
@@ -351,68 +295,42 @@ export async function acceptBooking(bookingId: number): Promise<{
 }> {
   try {
     const supabase = createSupabaseServerClient()
-
-    // Get current user (washer)
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      return {
-        success: false,
-        message: 'Authentication error. Please log in again.',
-      }
+    if (!user) {
+      return { success: false, message: 'You must be logged in to do that.' }
     }
 
-    // Check if booking is still available
-    const { data: booking, error: fetchError } = await supabase
-      .from('bookings')
-      .select('id, status, washer_id')
-      .eq('id', bookingId)
-      .eq('status', 'awaiting_assignment')
-      .single()
-
-    if (fetchError || !booking) {
-      return {
-        success: false,
-        message: 'Booking is no longer available or already assigned.',
-      }
-    }
-
-    // Assign the washer to the booking
-    const { error: updateError } = await supabase
+    // Atomically update the booking
+    const { data, error } = await supabase
       .from('bookings')
       .update({
         washer_id: user.id,
         status: 'washer_assigned',
       })
       .eq('id', bookingId)
-      .eq('status', 'awaiting_assignment') // Double-check it's still available
+      .eq('status', 'awaiting_assignment') // Prevents race conditions
+      .select()
+      .single()
 
-    if (updateError) {
-      console.error('Database error:', updateError)
+    if (error || !data) {
       return {
         success: false,
         message:
-          'Failed to accept booking. It may have been claimed by another washer.',
+          'This booking is no longer available. It may have been accepted by another washer.',
       }
     }
 
-    revalidatePath('/washer/dashboard/bookings')
     revalidatePath('/washer/dashboard/available-bookings')
+    revalidatePath('/washer/dashboard/bookings')
 
-    return {
-      success: true,
-      message:
-        'Booking accepted successfully! You can now view it in your bookings.',
-    }
-  } catch (error) {
+    return { success: true, message: 'Booking accepted successfully!' }
+  } catch (err) {
+    const error = err as Error
     console.error('Error accepting booking:', error)
-    return {
-      success: false,
-      message: 'An unexpected error occurred.',
-    }
+    return { success: false, message: 'An unexpected server error occurred.' }
   }
 }
 
