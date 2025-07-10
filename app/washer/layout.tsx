@@ -22,28 +22,30 @@ export default async function WasherLayout({
     )
   }
 
-  // Check if user has washer role
+  // Verify user is a washer and approved
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, is_approved')
+    .select('role, washer_status')
     .eq('id', user.id)
     .single()
 
   if (profileError || !profile) {
-    // This case might happen if the profile doesn't exist for some reason
-    return redirect('/user/dashboard?message=Profile not found.')
+    console.error('WASHER LAYOUT PROFILE FETCH ERROR:', profileError)
+    // Redirect to a generic error page or show a message
+    // For now, redirecting to user dashboard with an error message
+    return redirect('/user/dashboard?message=Profile+fetch+error')
   }
 
   if (profile.role !== 'washer') {
     return redirect(
-      '/user/dashboard?message=Access denied. Washer role required.'
+      '/user/dashboard?message=Access+denied.+Washer+role+required.'
     )
   }
 
   // Check if washer application is approved
-  if (!profile.is_approved) {
+  if (profile.washer_status !== 'approved') {
     return redirect(
-      '/user/dashboard/become-washer?message=Your washer application is not yet approved.'
+      '/user/dashboard/become-washer?message=Your+washer+application+is+not+yet+approved.'
     )
   }
 

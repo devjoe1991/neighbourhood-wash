@@ -258,14 +258,15 @@ export async function getAvailableBookings(): Promise<{
         services_config,
         special_instructions,
         created_at,
-        user_profile: user_id (
+        user_profile:profiles!fk_bookings_user_id (
           first_name,
           last_name,
           postcode
         )
       `
       )
-      .eq('status', 'awaiting_assignment')
+      .eq('status', 'pending_washer_assignment')
+      .is('washer_id', null)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -273,18 +274,26 @@ export async function getAvailableBookings(): Promise<{
       return { success: false, data: [], message: error.message }
     }
 
-    // Supabase returns an array for the joined profile, so we flatten it
-    const formattedData = data?.map((booking) => ({
+    if (!data) {
+      return {
+        success: true,
+        data: [],
+      }
+    }
+
+    const formattedData = data.map((booking) => ({
       ...booking,
       user_profile: Array.isArray(booking.user_profile)
-        ? booking.user_profile[0]
+        ? (booking.user_profile[0] ?? null)
         : booking.user_profile,
     }))
 
-    return { success: true, data: formattedData || [], message: '' }
-  } catch (err) {
-    const error = err as Error
-    console.error('Unexpected error fetching available bookings:', error)
+    return {
+      success: true,
+      data: formattedData,
+    }
+  } catch (error) {
+    console.error('Unexpected error in getAvailableBookings:', error)
     return {
       success: false,
       data: [],
