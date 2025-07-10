@@ -92,6 +92,6 @@ export async function signup(formData: FormData) {
   if (metadata.selected_role === 'washer') {
     return redirect('/washer/dashboard')
   } else {
-    return redirect('/dashboard')
+    return redirect('/user/dashboard')
   }
 }

@@ -42,13 +42,15 @@ export default async function WasherDashboardPage() {
 
   // Redirect if not a washer
   if (userRole !== 'washer') {
-    return redirect('/dashboard?message=Access denied. Washer role required.')
+    return redirect(
+      '/user/dashboard?message=Access denied. Washer role required.'
+    )
   }
 
   // Check if washer is approved
   if (washerStatus !== 'approved') {
     return redirect(
-      '/dashboard/become-washer?message=Your washer application is not yet approved.'
+      '/user/dashboard/become-washer?message=Your washer application is not yet approved.'
     )
   }
 
@@ -181,7 +183,7 @@ export default async function WasherDashboardPage() {
           </CardContent>
           <div className='p-6 pt-0'>
             <Button asChild className='w-full' variant='secondary'>
-              <Link href='/dashboard/referrals'>View Referrals</Link>
+              <Link href='/user/dashboard/referrals'>View Referrals</Link>
             </Button>
           </div>
         </Card>
@@ -209,7 +211,7 @@ export default async function WasherDashboardPage() {
           </CardContent>
           <div className='p-6 pt-0'>
             <Button asChild className='w-full' variant='secondary'>
-              <Link href='/dashboard/settings'>Go to Settings</Link>
+              <Link href='/user/dashboard/settings'>Go to Settings</Link>
             </Button>
           </div>
         </Card>

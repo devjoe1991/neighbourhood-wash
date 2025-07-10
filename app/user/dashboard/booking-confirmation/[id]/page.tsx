@@ -215,7 +215,7 @@ export default async function BookingConfirmationPage({
 
         {/* Action Buttons */}
         <div className='mt-8 flex flex-col justify-center gap-4 sm:flex-row'>
-          <Link href={`/dashboard/my-bookings/${booking.id}`}>
+          <Link href={`/user/dashboard/my-bookings/${booking.id}`}>
             <Button size='lg' className='w-full gap-2 sm:w-auto'>
               <Package className='h-4 w-4' />
               View Booking Details
@@ -234,7 +234,7 @@ export default async function BookingConfirmationPage({
           <p className='text-sm text-gray-600'>
             Questions about your booking?{' '}
             <Link
-              href='/dashboard/my-bookings'
+              href='/user/dashboard/my-bookings'
               className='font-medium text-blue-600 hover:text-blue-800'
             >
               Visit your bookings page

@@ -249,7 +249,7 @@ export async function submitReview(reviewData: ReviewData): Promise<{
     }
 
     // Revalidate the dashboard page to update the UI
-    revalidatePath('/dashboard')
+    revalidatePath('/user/dashboard')
 
     return {
       success: true,
@@ -324,7 +324,7 @@ export async function addFavouriteWasher(washerId: string): Promise<{
     }
 
     // Revalidate the dashboard page to update the UI
-    revalidatePath('/dashboard')
+    revalidatePath('/user/dashboard')
 
     return {
       success: true,

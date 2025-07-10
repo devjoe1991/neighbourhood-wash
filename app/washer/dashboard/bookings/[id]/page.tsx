@@ -162,7 +162,7 @@ export default async function WasherBookingDetailPage({
   }
 
   if (error === 'Washer access required') {
-    redirect('/dashboard')
+    redirect('/user/dashboard')
   }
 
   if (error || !booking) {

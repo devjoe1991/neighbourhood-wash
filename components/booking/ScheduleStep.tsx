@@ -28,8 +28,9 @@ export default function ScheduleStep({
 }: ScheduleStepProps) {
   const isDateDisabled = (date: Date) => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return date < today
+    today.setHours(0, 0, 0, 0) // Ensure we're comparing dates only
+    // Disable today and all past dates
+    return date <= today
   }
 
   return (
@@ -54,7 +55,7 @@ export default function ScheduleStep({
             <Calendar
               mode='single'
               selected={date || undefined}
-              onSelect={onDateChange}
+              onSelect={(day: Date | undefined) => onDateChange(day)}
               disabled={isDateDisabled}
               className='rounded-md border'
             />

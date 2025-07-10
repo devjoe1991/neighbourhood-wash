@@ -46,7 +46,7 @@ export async function signInWithEmailPassword(
       getUserError
     )
     // Fallback redirect if user data can't be fetched, though this is unlikely after successful sign-in
-    return redirect('/dashboard')
+    return redirect('/user/dashboard')
   }
 
   // Check user profile for role (more reliable than metadata)
@@ -67,8 +67,8 @@ export async function signInWithEmailPassword(
     return redirect('/washer/dashboard')
   }
 
-  console.log('Regular user, redirecting to /dashboard')
-  return redirect('/dashboard')
+  console.log('Regular user, redirecting to /user/dashboard')
+  return redirect('/user/dashboard')
 }
 
 export async function registerInterest(location: string) {
@@ -211,12 +211,12 @@ export async function startWasherApplicationProcess() {
       'Error fetching profile before starting application:',
       profileError
     )
-    return redirect('/dashboard/become-washer?error=profile_fetch_failed')
+    return redirect('/user/dashboard/become-washer?error=profile_fetch_failed')
   }
 
   // If they are already in the process, just redirect them
   if (profile.washer_status) {
-    return redirect('/dashboard/become-washer')
+    return redirect('/user/dashboard/become-washer')
   }
 
   // Update the user's profile to start the application process
@@ -231,13 +231,13 @@ export async function startWasherApplicationProcess() {
 
   if (updateError) {
     console.error('Error updating profile to start application:', updateError)
-    return redirect('/dashboard/become-washer?error=profile_update_failed')
+    return redirect('/user/dashboard/become-washer?error=profile_update_failed')
   }
 
   // Revalidate the paths to ensure the UI updates correctly after the redirect.
-  revalidatePath('/dashboard/become-washer')
-  revalidatePath('/dashboard/washer-application')
+  revalidatePath('/user/dashboard/become-washer')
+  revalidatePath('/user/dashboard/washer-application')
 
   // On success, redirect to the application form
-  redirect('/dashboard/washer-application')
+  redirect('/user/dashboard/washer-application')
 }

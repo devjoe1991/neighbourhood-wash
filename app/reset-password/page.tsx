@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabaseClient'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { PAGE_PATHS } from '@/lib/constants'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -80,7 +81,7 @@ export default function ResetPasswordPage() {
       )
       // Optionally clear the hash or redirect after a delay
       setTimeout(() => {
-        router.push('/signin')
+        router.push(PAGE_PATHS.SIGN_IN)
       }, 3000)
     }
   }
@@ -189,7 +190,7 @@ export default function ResetPasswordPage() {
             {message && (
               <div className='mt-6 text-center'>
                 <Link
-                  href='/signin'
+                  href={PAGE_PATHS.SIGN_IN}
                   className='font-medium text-blue-600 hover:text-blue-500'
                 >
                   Proceed to Sign In

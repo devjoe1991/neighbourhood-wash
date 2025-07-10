@@ -41,7 +41,7 @@ async function BookingsList() {
                 done?
               </p>
             </div>
-            <Link href='/dashboard/new-booking'>
+            <Link href='/user/dashboard/new-booking'>
               <Button className='gap-2'>
                 <Plus className='h-4 w-4' />
                 Create Your First Booking
@@ -101,12 +101,12 @@ export default function MyBookingsPage() {
               Track and manage all your laundry bookings
             </p>
           </div>
-          <Link href='/dashboard/new-booking'>
-            <Button className='gap-2'>
+          <Button asChild>
+            <Link href='/user/dashboard/new-booking'>
               <Plus className='h-4 w-4' />
               New Booking
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* Bookings List */}

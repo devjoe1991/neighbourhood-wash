@@ -34,13 +34,14 @@ export async function GET(request: NextRequest) {
           const userRole = profile?.role || user.user_metadata?.selected_role
 
           // Redirect based on role
-          if (userRole === 'admin') {
-            return NextResponse.redirect(`${origin}/admin/dashboard`)
-          } else if (userRole === 'washer') {
-            return NextResponse.redirect(`${origin}/washer/dashboard`)
-          } else {
-            // Default to regular user dashboard
-            return NextResponse.redirect(`${origin}/dashboard`)
+          switch (userRole) {
+            case 'admin':
+              return NextResponse.redirect(`${origin}/admin/dashboard`)
+            case 'washer':
+              return NextResponse.redirect(`${origin}/washer/dashboard`)
+            default:
+              // Default to regular user dashboard
+              return NextResponse.redirect(`${origin}/user/dashboard`)
           }
         }
       } catch (roleError) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Fallback to dashboard if role detection fails
-      return NextResponse.redirect(`${origin}/dashboard`)
+      return NextResponse.redirect(`${origin}/user/dashboard`)
     }
     console.error('Auth callback error during code exchange:', error.message)
   } else {

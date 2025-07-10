@@ -160,7 +160,7 @@ export default async function DashboardPage() {
             </CardContent>
             <div className='p-6 pt-0'>
               <Button asChild className='w-full' variant='secondary'>
-                <Link href='/dashboard/become-washer'>
+                <Link href='/user/dashboard/become-washer'>
                   {washerStatus
                     ? 'Check Application Status'
                     : 'Start Your Application'}
@@ -283,7 +283,7 @@ export default async function DashboardPage() {
           </CardContent>
           <div className='p-6 pt-0'>
             <Button asChild className='w-full' variant='secondary'>
-              <Link href='/dashboard/settings'>Go to Settings</Link>
+              <Link href='/user/dashboard/settings'>Go to Settings</Link>
             </Button>
           </div>
         </Card>
