@@ -1,10 +1,30 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CreditCard, CheckCircle, AlertCircle, Shield } from 'lucide-react'
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { getStripeAccountStatus } from '@/app/dashboard/user-payouts/actions'
+import { Separator } from '@/components/ui/separator'
+import {
+  CreditCard,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react'
+import { getWasherBalance, getWasherStripeAccountStatus } from './actions'
+import PayoutRequestForm from '@/components/dashboard/PayoutRequestForm'
+import PayoutHistory from '@/components/dashboard/PayoutHistory'
+import { toast } from 'sonner'
 import StripeConnectClient from './StripeConnectClient'
+
+interface WasherBalance {
+  available_balance: number
+  processing_balance: number
+  total_paid_out: number
+  total_earnings: number
+  available_bookings_count: number
+}
 
 interface StripeAccountData {
   connected: boolean
@@ -13,60 +33,75 @@ interface StripeAccountData {
   requirements_message: string
 }
 
-async function fetchStripeStatus(): Promise<{
-  data: StripeAccountData | null
-  error: string | null
-}> {
-  try {
-    const result = await getStripeAccountStatus()
-    if (result.success) {
-      return { data: result.data as StripeAccountData, error: null }
-    } else {
-      // Fallback: assume not connected
-      const fallbackData: StripeAccountData = {
-        connected: false,
-        account_status: 'not_connected',
-        can_receive_payouts: false,
-        requirements_message: result.message || 'Account not connected',
+export default function PayoutsPage() {
+  const [balance, setBalance] = useState<WasherBalance | null>(null)
+  const [stripeAccount, setStripeAccount] = useState<StripeAccountData | null>(
+    null
+  )
+  const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  useEffect(() => {
+    // Check for success message from URL params
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('connect_success') === 'true') {
+      toast.success('Stripe account connected successfully!')
+      // Clean up URL
+      window.history.replaceState({}, '', '/washer/dashboard/payouts')
+    }
+
+    fetchData()
+  }, [refreshTrigger])
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const [balanceResult, stripeResult] = await Promise.all([
+        getWasherBalance(),
+        getWasherStripeAccountStatus(),
+      ])
+
+      if (balanceResult.success) {
+        setBalance(balanceResult.data as WasherBalance)
+      } else {
+        toast.error(balanceResult.message || 'Failed to load balance')
       }
-      return { data: fallbackData, error: null }
+
+      if (stripeResult.success) {
+        setStripeAccount(stripeResult.data as StripeAccountData)
+      } else {
+        toast.error(stripeResult.message || 'Failed to load Stripe status')
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      toast.error('Failed to load account information')
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error('Error fetching Stripe status:', error)
-    // Fallback: assume not connected
-    const fallbackData: StripeAccountData = {
-      connected: false,
-      account_status: 'not_connected',
-      can_receive_payouts: false,
-      requirements_message: 'Failed to load account status',
-    }
-    return { data: fallbackData, error: 'Failed to load account status' }
-  }
-}
-
-export default async function WasherPayoutsPage() {
-  // Authentication and authorization checks
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/signin')
   }
 
-  // Verify user is a washer
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'washer') {
-    redirect('/dashboard')
+  const handlePayoutSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1)
   }
 
-  const { data: stripeAccount } = await fetchStripeStatus()
+  const formatCurrency = (amount: number) => `£${amount.toFixed(2)}`
+
+  if (loading) {
+    return (
+      <div className='space-y-6'>
+        <div className='h-8 w-48 animate-pulse rounded bg-gray-200' />
+        <div className='grid gap-6 md:grid-cols-3'>
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className='h-32 animate-pulse rounded-lg bg-gray-200'
+            />
+          ))}
+        </div>
+        <div className='h-64 animate-pulse rounded-lg bg-gray-200' />
+      </div>
+    )
+  }
 
   const isStripeConnected = stripeAccount?.connected
   const canReceivePayouts = stripeAccount?.can_receive_payouts
@@ -77,134 +112,154 @@ export default async function WasherPayoutsPage() {
       <div>
         <h1 className='text-3xl font-bold text-gray-900'>Payouts</h1>
         <p className='mt-2 text-gray-600'>
-          Connect your bank account to receive payments for completed bookings
+          Manage your earnings and request payouts securely through our platform
         </p>
       </div>
 
-      {/* Main Content */}
-      {!isStripeConnected ? (
-        // Not connected - Show connection UI
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <CreditCard className='h-5 w-5' />
-              Connect with Stripe
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-6'>
-            <div className='rounded-lg border border-blue-200 bg-blue-50 p-4'>
-              <div className='flex items-start gap-3'>
-                <Shield className='mt-0.5 h-5 w-5 text-blue-600' />
+      {/* Balance Overview Cards */}
+      {balance && (
+        <div className='grid gap-4 md:grid-cols-3'>
+          <Card>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
                 <div>
-                  <h3 className='font-medium text-blue-900'>
-                    Why connect with Stripe?
-                  </h3>
-                  <p className='mt-1 text-sm text-blue-700'>
-                    Connect with Stripe to receive payments for your completed
-                    bookings. Stripe is a secure, industry-standard payment
-                    processor used by millions of businesses worldwide.
+                  <p className='text-sm font-medium text-gray-600'>
+                    Available Balance
+                  </p>
+                  <p className='text-2xl font-bold text-green-600'>
+                    {formatCurrency(balance.available_balance)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    From {balance.available_bookings_count} completed bookings
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <div className='space-y-3'>
-              <div className='flex items-center gap-2 text-sm text-gray-600'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                Bank-level security and encryption
-              </div>
-              <div className='flex items-center gap-2 text-sm text-gray-600'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                Fast and secure money transfers
-              </div>
-              <div className='flex items-center gap-2 text-sm text-gray-600'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                Real-time payment tracking
-              </div>
-              <div className='flex items-center gap-2 text-sm text-gray-600'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                Direct deposit to your bank account
-              </div>
-            </div>
-
-            <StripeConnectClient />
-          </CardContent>
-        </Card>
-      ) : (
-        // Connected - Show account status
-        <div className='space-y-6'>
-          {/* Connection Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <CheckCircle className='h-5 w-5 text-green-500' />
-                Stripe Account Connected
-              </CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-4'>
-              <div className='flex items-center gap-2'>
-                <CheckCircle className='h-4 w-4 text-green-500' />
-                <span className='text-sm'>
-                  Your Stripe account is connected
-                </span>
-              </div>
-
-              {canReceivePayouts ? (
-                <div className='flex items-center gap-2'>
-                  <CheckCircle className='h-4 w-4 text-green-500' />
-                  <span className='text-sm'>You can receive payouts</span>
-                </div>
-              ) : (
-                <Alert>
-                  <AlertCircle className='h-4 w-4' />
-                  <AlertDescription>
-                    {stripeAccount?.requirements_message ||
-                      'Additional information required to receive payouts'}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Earnings Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Earnings Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
-                <div className='rounded-lg border p-4'>
-                  <div className='text-2xl font-bold'>£0.00</div>
-                  <div className='text-sm text-gray-600'>Total Earnings</div>
-                </div>
-                <div className='rounded-lg border p-4'>
-                  <div className='text-2xl font-bold'>£0.00</div>
-                  <div className='text-sm text-gray-600'>This Month</div>
-                </div>
-                <div className='rounded-lg border p-4'>
-                  <div className='text-2xl font-bold'>£0.00</div>
-                  <div className='text-sm text-gray-600'>Available</div>
-                </div>
+                <Wallet className='h-8 w-8 text-green-600' />
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Transactions */}
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='py-8 text-center'>
-                <p className='text-gray-500'>No transactions yet</p>
-                <p className='mt-1 text-sm text-gray-400'>
-                  Complete your first booking to see earnings here
-                </p>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>
+                    Processing
+                  </p>
+                  <p className='text-2xl font-bold text-blue-600'>
+                    {formatCurrency(balance.processing_balance)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    In pending payout requests
+                  </p>
+                </div>
+                <Clock className='h-8 w-8 text-blue-600' />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className='p-6'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <p className='text-sm font-medium text-gray-600'>
+                    Total Earned
+                  </p>
+                  <p className='text-2xl font-bold text-gray-900'>
+                    {formatCurrency(balance.total_earnings)}
+                  </p>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Lifetime earnings
+                  </p>
+                </div>
+                <TrendingUp className='h-8 w-8 text-gray-600' />
               </div>
             </CardContent>
           </Card>
         </div>
       )}
+
+      {/* Main Content Area */}
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-3'>
+        {/* Left Column - Payout Request & History */}
+        <div className='space-y-6 lg:col-span-2'>
+          {isStripeConnected && canReceivePayouts ? (
+            <PayoutRequestForm
+              availableBalance={balance?.available_balance || 0}
+              minimumPayout={10.0}
+              withdrawalFee={2.5}
+              onPayoutSuccess={handlePayoutSuccess}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Request Payout</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert variant='destructive'>
+                  <AlertCircle className='h-4 w-4' />
+                  <AlertDescription>
+                    Your Stripe account must be connected and verified before
+                    you can request a payout. Please complete the steps in the
+                    "Payment Account Status" section.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
+          <PayoutHistory key={refreshTrigger} />
+        </div>
+
+        {/* Right Column - Account Status */}
+        <div className='space-y-6 lg:col-span-1'>
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <CreditCard className='h-5 w-5' />
+                Payment Account Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!isStripeConnected ? (
+                <div className='space-y-4'>
+                  <Alert>
+                    <AlertCircle className='h-4 w-4' />
+                    <AlertDescription>
+                      Connect your bank account via Stripe to receive payouts.
+                    </AlertDescription>
+                  </Alert>
+                  <StripeConnectClient />
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  <div className='flex items-center gap-2'>
+                    <CheckCircle className='h-5 w-5 text-green-500' />
+                    <span className='text-sm font-medium text-gray-700'>
+                      Account Connected
+                    </span>
+                  </div>
+                  <Separator />
+                  {canReceivePayouts ? (
+                    <Alert className='border-green-200 bg-green-50 text-green-800'>
+                      <CheckCircle className='h-4 w-4' />
+                      <AlertDescription>
+                        Your account is verified and ready to receive payouts.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert variant='destructive'>
+                      <AlertCircle className='h-4 w-4' />
+                      <AlertDescription>
+                        {stripeAccount?.requirements_message ||
+                          'Additional information required to receive payouts.'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

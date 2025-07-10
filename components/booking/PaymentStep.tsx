@@ -61,7 +61,7 @@ export default function PaymentStep({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/dashboard/booking-confirmation`,
+          return_url: `${window.location.origin}/user/dashboard/booking-confirmation`,
         },
         redirect: 'if_required',
       })

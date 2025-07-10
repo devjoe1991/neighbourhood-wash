@@ -13,12 +13,12 @@ import {
   PoundSterling,
 } from 'lucide-react'
 import StarRating from '@/components/ui/star-rating'
-import { CompletedBookingNeedingReview } from '@/app/dashboard/actions'
+import { CompletedBookingNeedingReview } from '@/app/user/dashboard/actions'
 import {
   submitReview,
   addFavouriteWasher,
   checkIfWasherIsFavourite,
-} from '@/app/dashboard/actions'
+} from '@/app/user/dashboard/actions'
 import { toast } from 'sonner'
 
 interface PostBookingPromptProps {

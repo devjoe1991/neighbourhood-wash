@@ -29,20 +29,20 @@ const getUserSpecificRoute = (
 
 const navLinks = [
   {
-    href: '/dashboard',
+    href: '/dashboard', // This will be dynamically replaced
+    userPath: '/user/dashboard',
+    washerPath: '/washer/dashboard',
     label: 'Overview',
     icon: Home,
-    userPath: '/dashboard',
-    washerPath: '/washer/dashboard',
   },
   {
-    href: '/dashboard/new-booking',
+    href: '/user/dashboard/new-booking',
     label: 'New Booking',
     icon: Plus,
     requiresRole: 'user',
   },
   {
-    href: '/dashboard/my-bookings',
+    href: '/user/dashboard/my-bookings',
     label: 'My Bookings',
     icon: Package,
     requiresRole: 'user',
@@ -59,15 +59,15 @@ const navLinks = [
     icon: Package,
     requiresRole: 'washer',
   },
-  { href: '/dashboard/referrals', label: 'Referrals', icon: Handshake },
+  { href: '/user/dashboard/referrals', label: 'Referrals', icon: Handshake },
   {
-    href: '/dashboard/laundry-preferences',
+    href: '/user/dashboard/laundry-preferences',
     label: 'Laundry Preferences',
     icon: WashingMachine,
     requiresRole: 'user',
   },
   {
-    href: '/dashboard/become-washer',
+    href: '/user/dashboard/become-washer',
     label: 'Become a Washer',
     icon: Briefcase,
     requiresNoRole: 'washer',
@@ -78,7 +78,7 @@ const navLinks = [
     icon: CreditCard,
     requiresRole: 'washer',
   },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/user/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {

@@ -1,17 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CreditCard, CheckCircle, Loader2 } from 'lucide-react'
-import {
-  createStripeConnectedAccount,
-  createStripeAccountLink,
-} from '@/lib/stripe/actions'
+import { createStripeOnboardingLink } from './actions' // UPDATED IMPORT
 import { toast } from 'sonner'
 
 export default function StripeConnectClient() {
-  const [connectingStripe, setConnectingStripe] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [connectSuccess, setConnectSuccess] = useState(false)
 
   useEffect(() => {
@@ -25,44 +22,18 @@ export default function StripeConnectClient() {
     }
   }, [])
 
-  const handleConnectStripe = async () => {
-    setConnectingStripe(true)
-    try {
-      // Step 1: Create or get Stripe Connected Account
-      const accountResult = await createStripeConnectedAccount()
+  const handleConnectStripe = () => {
+    startTransition(async () => {
+      const result = await createStripeOnboardingLink()
 
-      if (!accountResult.success) {
-        toast.error(accountResult.message || 'Failed to create Stripe account')
-        return
+      if (result.success && result.url) {
+        // Redirect to Stripe onboarding
+        toast.success('Redirecting to Stripe for account setup...')
+        window.location.href = result.url
+      } else {
+        toast.error(result.message || 'An unexpected error occurred.')
       }
-
-      if (!accountResult.accountId) {
-        toast.error('No account ID returned')
-        return
-      }
-
-      // Step 2: Create account link for onboarding
-      const linkResult = await createStripeAccountLink(accountResult.accountId)
-
-      if (!linkResult.success) {
-        toast.error(linkResult.message || 'Failed to create onboarding link')
-        return
-      }
-
-      if (!linkResult.url) {
-        toast.error('No onboarding URL returned')
-        return
-      }
-
-      // Step 3: Redirect to Stripe onboarding
-      toast.success('Redirecting to Stripe for account setup...')
-      window.location.href = linkResult.url
-    } catch (error) {
-      console.error('Error connecting Stripe:', error)
-      toast.error('An unexpected error occurred. Please try again.')
-    } finally {
-      setConnectingStripe(false)
-    }
+    })
   }
 
   return (
@@ -80,11 +51,11 @@ export default function StripeConnectClient() {
 
       <Button
         onClick={handleConnectStripe}
-        disabled={connectingStripe}
+        disabled={isPending}
         size='lg'
         className='w-full'
       >
-        {connectingStripe ? (
+        {isPending ? (
           <>
             <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             Setting up connection...
