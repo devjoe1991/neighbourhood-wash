@@ -12,6 +12,7 @@ import {
   Shield,
   Search,
   ArrowRight,
+  ArrowLeft,
 } from 'lucide-react'
 import { getBookingById } from '@/app/user/dashboard/my-bookings/actions'
 
@@ -220,8 +221,9 @@ export default async function BookingConfirmationPage({
               View Booking Details
             </Button>
           </Link>
-          <Link href='/dashboard'>
+          <Link href='/user/dashboard'>
             <Button variant='outline' size='lg' className='w-full sm:w-auto'>
+              <ArrowLeft className='mr-2 h-4 w-4' />
               Back to Dashboard
             </Button>
           </Link>

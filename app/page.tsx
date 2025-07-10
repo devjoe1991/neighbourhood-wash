@@ -194,11 +194,11 @@ export default function HomePage() {
         className='border-b border-gray-100'
       >
         <div className='mb-8 grid gap-4 sm:mb-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3'>
-          <CategoryLinkCard title='Find a Washer' href='/dashboard' />
+          <CategoryLinkCard title='Find a Washer' href='/user/dashboard' />
           <CategoryLinkCard title='Our Services' href='/how-it-works' />
           <CategoryLinkCard
             title='Become a Washer'
-            href='/signup?role=washer'
+            href='/user/dashboard/become-washer'
             className='sm:col-span-2 lg:col-span-1'
           />
         </div>

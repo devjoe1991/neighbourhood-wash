@@ -29,7 +29,6 @@ const getUserSpecificRoute = (
 
 const navLinks = [
   {
-    href: '/dashboard', // This will be dynamically replaced
     userPath: '/user/dashboard',
     washerPath: '/washer/dashboard',
     label: 'Overview',
@@ -59,7 +58,12 @@ const navLinks = [
     icon: Package,
     requiresRole: 'washer',
   },
-  { href: '/user/dashboard/referrals', label: 'Referrals', icon: Handshake },
+  {
+    userPath: '/user/dashboard/referrals',
+    washerPath: '/user/dashboard/referrals', // TODO: Update when washer referrals page exists
+    label: 'Referrals',
+    icon: Handshake,
+  },
   {
     href: '/user/dashboard/laundry-preferences',
     label: 'Laundry Preferences',
@@ -78,7 +82,12 @@ const navLinks = [
     icon: CreditCard,
     requiresRole: 'washer',
   },
-  { href: '/user/dashboard/settings', label: 'Settings', icon: Settings },
+  {
+    userPath: '/user/dashboard/settings',
+    washerPath: '/washer/dashboard/my-settings',
+    label: 'Settings',
+    icon: Settings,
+  },
 ]
 
 export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
@@ -103,7 +112,7 @@ export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
             const href =
               link.userPath && link.washerPath
                 ? getUserSpecificRoute(userRole, link.userPath, link.washerPath)
-                : link.href
+                : link.href!
 
             const isActive = pathname === href
 
