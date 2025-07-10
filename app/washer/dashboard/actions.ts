@@ -258,7 +258,7 @@ export async function getAvailableBookings(): Promise<{
         services_config,
         special_instructions,
         created_at,
-        user_profile:profiles!fk_bookings_user_id(
+        user_profile: user_id (
           first_name,
           last_name,
           postcode
