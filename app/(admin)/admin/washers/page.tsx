@@ -21,6 +21,8 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import WashersTableClient from './WashersTableClient'
 
+export const dynamic = 'force-dynamic'
+
 // Function to determine badge variant based on status
 const getBadgeVariant = (status: string) => {
   switch (status) {

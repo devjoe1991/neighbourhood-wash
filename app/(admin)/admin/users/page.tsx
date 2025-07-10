@@ -6,6 +6,8 @@ import { Users } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import UsersTable from './UsersTable'
 
+export const dynamic = 'force-dynamic'
+
 // Define a more specific User type for our admin page needs
 export type AdminPageUser = {
   id: string

@@ -17,6 +17,8 @@ import {
 import UserProfileForm from './UserProfileForm'
 import NotificationSettingsForm from './NotificationSettingsForm'
 
+export const dynamic = 'force-dynamic'
+
 // Define a type for our profile data for better type safety
 interface ProfileData {
   id: string

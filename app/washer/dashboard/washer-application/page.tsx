@@ -11,6 +11,8 @@ import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 interface UserProfile {
   role: string
   washer_status: string
