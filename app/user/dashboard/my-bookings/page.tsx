@@ -6,6 +6,8 @@ import { Plus, Package, AlertCircle } from 'lucide-react'
 import { getUserBookings } from './actions'
 import BookingListItem from '@/components/bookings/BookingListItem'
 
+export const dynamic = 'force-dynamic'
+
 async function BookingsList() {
   const result = await getUserBookings()
 

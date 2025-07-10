@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/layout/Header'
@@ -14,7 +14,13 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Neighbourhood Wash',
   description: 'Connect with local washers for convenient laundry services',
-  themeColor: [{ media: '(prefers-color-scheme: light)', color: 'white' }],
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
 }
 
 export default async function RootLayout({

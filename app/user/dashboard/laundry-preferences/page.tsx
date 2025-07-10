@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { CogIcon } from 'lucide-react'
 import LaundryPreferencesForm from './LaundryPreferencesForm'
 
+export const dynamic = 'force-dynamic'
+
 interface ProfileData {
   id: string
   // Storing selections as an array of strings
