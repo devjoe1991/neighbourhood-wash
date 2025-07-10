@@ -15,11 +15,11 @@ import {
   HelpCircle,
   ClipboardList,
   LayoutGrid,
-  WashingMachine,
 } from 'lucide-react'
 import { getCompletedBookingsNeedingReview } from './actions'
 import PostBookingPrompt from '@/components/dashboard/PostBookingPrompt'
 import WasherActivation from '@/components/dashboard/WasherActivation'
+import LaundryPreferencesCard from '@/components/dashboard/LaundryPreferencesCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,13 +36,15 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, washer_status')
+    .select('role, washer_status, product_preferences')
     .eq('id', user.id)
     .maybeSingle()
 
   const userRole = profile?.role || user.user_metadata?.selected_role
   const isWasher = userRole === 'washer'
   const washerStatus = profile?.washer_status
+  const preferencesExist =
+    !!profile?.product_preferences && profile.product_preferences.length > 0
 
   // Get completed bookings that need review (only for users, not washers)
   const completedBookingsResult = !isWasher
@@ -106,34 +108,7 @@ export default async function DashboardPage() {
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
         {/* Card for Setting Laundry Preferences (for Users) */}
         {!isWasher && (
-          <Card className='flex flex-col'>
-            <CardHeader>
-              <div className='flex items-center space-x-3'>
-                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
-                  <WashingMachine className='text-primary h-6 w-6' />
-                </div>
-                <div>
-                  <CardTitle>Set Your Laundry Preferences</CardTitle>
-                  <CardDescription>
-                    Get ready for our full launch!
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className='flex-grow'>
-              <p>
-                Tell us about your allergies and product choices now so
-                we&apos;re ready to match you with the perfect Washer.
-              </p>
-            </CardContent>
-            <div className='p-6 pt-0'>
-              <Button asChild className='w-full'>
-                <Link href='/dashboard/laundry-preferences'>
-                  Set Preferences
-                </Link>
-              </Button>
-            </div>
-          </Card>
+          <LaundryPreferencesCard preferencesExist={preferencesExist} />
         )}
 
         {/* Card for Becoming a Washer - Now shown as a secondary option for users */}

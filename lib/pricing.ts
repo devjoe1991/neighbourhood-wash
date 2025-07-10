@@ -71,14 +71,14 @@ export const serviceConfig = {
     ironing: { label: 'Ironing Service', price: 12.5 },
     own_products: { label: 'User supplies own products', price: -1.5 }, // A discount
   },
-  collectionFee: 4.99,
+  weCollectFee: 4.99,
 }
 
 export type WeightTier = keyof typeof weightTiers
 export type AddOn = keyof typeof serviceConfig.addOns
 export type ItemCategory = keyof typeof itemCategories
 export type ItemKey = {
-  [C in ItemCategory]: keyof typeof itemCategories[C]['items']
+  [C in ItemCategory]: keyof (typeof itemCategories)[C]['items']
 }[ItemCategory]
 
 export interface BookingSelection {
@@ -118,9 +118,7 @@ export const calculateTotalWeight = (
   return totalWeight
 }
 
-export const determineWeightTier = (
-  totalWeight: number
-): WeightTier | null => {
+export const determineWeightTier = (totalWeight: number): WeightTier | null => {
   if (totalWeight === 0) return null
   if (totalWeight <= weightTiers['0-6kg'].maxWeight) return '0-6kg'
   if (totalWeight <= weightTiers['6-10kg'].maxWeight) return '6-10kg'
@@ -143,7 +141,7 @@ export const calculateTotal = (selection: BookingSelection): number => {
 
   // Collection fee - only add if services are selected and method is collection
   if (hasServices && selection.deliveryMethod === 'collection') {
-    total += serviceConfig.collectionFee
+    total += serviceConfig.weCollectFee
   }
 
   return Math.max(0, total) // Ensure total is never negative
@@ -188,8 +186,8 @@ export const getItemizedBreakdown = (selection: BookingSelection) => {
   // Collection fee - only add if services are selected and method is collection
   if (selection.weightTier && selection.deliveryMethod === 'collection') {
     items.push({
-      label: 'Collection & Delivery',
-      price: serviceConfig.collectionFee,
+      label: 'We Collect Fee',
+      price: serviceConfig.weCollectFee,
     })
   }
 
