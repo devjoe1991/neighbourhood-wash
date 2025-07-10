@@ -1,36 +1,13 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import React from 'react'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { User as SupabaseUser } from '@supabase/supabase-js'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import { Search, Users, Loader2 } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { Users } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import UsersTable from './UsersTable'
 
 // Define a more specific User type for our admin page needs
-type AdminPageUser = {
+export type AdminPageUser = {
   id: string
   email: string | undefined
   created_at: string
@@ -41,134 +18,107 @@ type AdminPageUser = {
   last_name?: string | null
 }
 
-export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminPageUser[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<AdminPageUser[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [error, setError] = useState<string | null>(null)
+// Server-side data fetching function with admin verification
+async function fetchUsers(): Promise<{
+  users: AdminPageUser[] | null
+  error: string | null
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
 
-  const supabase = createClient()
+    // Verify user authentication and admin role
+    const {
+      data: { user },
+      error: userAuthError,
+    } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    fetchUsers()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (userAuthError || !user) {
+      return { users: null, error: 'Authentication required' }
+    }
 
-  useEffect(() => {
-    filterUsers()
-  }, [users, searchTerm, roleFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Verify admin role
+    const { data: profile, error: userProfileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+    if (userProfileError || !profile) {
+      return { users: null, error: 'Failed to verify user permissions' }
+    }
 
-      // Fetch auth users (requires service role key)
-      const {
-        data: { users: authUsers },
-        error: authError,
-      } = await supabase.auth.admin.listUsers()
+    if (profile.role !== 'admin') {
+      return { users: null, error: 'Admin access required' }
+    }
 
-      if (authError) {
-        setError('Failed to fetch users. Admin access required.')
-        return
+    // Fetch auth users (requires service role key)
+    const {
+      data: { users: authUsers },
+      error: authError,
+    } = await supabase.auth.admin.listUsers()
+
+    if (authError) {
+      return {
+        users: null,
+        error: 'Failed to fetch users. Admin access required.',
       }
+    }
 
-      if (!authUsers) {
-        setUsers([])
-        return
-      }
+    if (!authUsers) {
+      return { users: [], error: null }
+    }
 
-      // Get user IDs to fetch profile data
-      const userIds = authUsers.map((user) => user.id)
+    // Get user IDs to fetch profile data
+    const userIds = authUsers.map((user) => user.id)
 
-      // Fetch profile data for all users
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', userIds)
+    // Fetch profile data for all users
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .in('id', userIds)
 
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError)
-      }
+    if (profileError) {
+      console.error('Error fetching profiles:', profileError)
+    }
 
-      // Combine auth and profile data
-      const combinedUsers: AdminPageUser[] = authUsers.map(
-        (user: SupabaseUser) => {
-          const profile = profiles?.find((p) => p.id === user.id)
-          return {
-            id: user.id,
-            email: user.email,
-            created_at: user.created_at,
-            last_sign_in_at: user.last_sign_in_at || null,
-            role: user.user_metadata?.role || user.app_metadata?.role || 'user',
-            email_confirmed_at: user.email_confirmed_at || null,
-            first_name: profile?.first_name || null,
-            last_name: profile?.last_name || null,
-          }
+    // Combine auth and profile data
+    const combinedUsers: AdminPageUser[] = authUsers.map(
+      (user: SupabaseUser) => {
+        const profile = profiles?.find((p) => p.id === user.id)
+        return {
+          id: user.id,
+          email: user.email,
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at || null,
+          role: user.user_metadata?.role || user.app_metadata?.role || 'user',
+          email_confirmed_at: user.email_confirmed_at || null,
+          first_name: profile?.first_name || null,
+          last_name: profile?.last_name || null,
         }
-      )
-
-      setUsers(combinedUsers)
-    } catch (err) {
-      console.error('Error fetching users:', err)
-      setError('An unexpected error occurred while fetching users.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const filterUsers = () => {
-    let filtered = users
-
-    // Filter by search term (email or name)
-    if (searchTerm) {
-      filtered = filtered.filter((user) => {
-        const fullName =
-          `${user.first_name || ''} ${user.last_name || ''}`.trim()
-        const email = user.email || ''
-        return (
-          email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          fullName.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      })
-    }
-
-    // Filter by role
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter((user) => user.role === roleFilter)
-    }
-
-    setFilteredUsers(filtered)
-  }
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'destructive'
-      case 'washer':
-        return 'default'
-      case 'user':
-        return 'secondary'
-      default:
-        return 'outline'
-    }
-  }
-
-  const getStatusBadgeVariant = (confirmed: boolean) => {
-    return confirmed ? 'default' : 'secondary'
-  }
-
-  if (loading) {
-    return (
-      <div className='flex min-h-screen items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='mx-auto mb-4 h-8 w-8 animate-spin text-blue-600' />
-          <p className='text-gray-600'>Loading users...</p>
-        </div>
-      </div>
+      }
     )
+
+    return { users: combinedUsers, error: null }
+  } catch (err) {
+    console.error('Error fetching users:', err)
+    return {
+      users: null,
+      error: 'An unexpected error occurred while fetching users.',
+    }
+  }
+}
+
+// Server Component with security redirect
+export default async function AdminUsersPage() {
+  const { users, error } = await fetchUsers()
+
+  // Handle authentication/authorization errors
+  if (error === 'Authentication required') {
+    redirect('/signin')
+  }
+
+  if (error === 'Admin access required') {
+    redirect('/dashboard')
   }
 
   if (error) {
@@ -198,108 +148,7 @@ export default function AdminUsersPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Users className='h-5 w-5' />
-            All Users ({filteredUsers.length})
-          </CardTitle>
-          <CardDescription>
-            Search and filter users by role and personal information
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Search and Filter Controls */}
-          <div className='mb-6 flex flex-col gap-4 sm:flex-row'>
-            <div className='relative flex-1'>
-              <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400' />
-              <Input
-                placeholder='Search by email or name...'
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className='pl-10'
-              />
-            </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className='w-full sm:w-40'>
-                <SelectValue placeholder='Filter by role' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All Roles</SelectItem>
-                <SelectItem value='user'>Users</SelectItem>
-                <SelectItem value='washer'>Washers</SelectItem>
-                <SelectItem value='admin'>Admins</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Users Table */}
-          <div className='overflow-x-auto'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Last Login</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className='font-medium'>
-                        {user.first_name && user.last_name
-                          ? `${user.first_name} ${user.last_name}`
-                          : 'No name set'}
-                      </TableCell>
-                      <TableCell>{user.email || 'No email'}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={getRoleBadgeVariant(user.role || 'user')}
-                        >
-                          {(user.role || 'user').charAt(0).toUpperCase() +
-                            (user.role || 'user').slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={getStatusBadgeVariant(
-                            !!user.email_confirmed_at
-                          )}
-                        >
-                          {user.email_confirmed_at ? 'Verified' : 'Pending'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className='text-sm text-gray-600'>
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className='text-sm text-gray-600'>
-                        {user.last_sign_in_at
-                          ? new Date(user.last_sign_in_at).toLocaleDateString()
-                          : 'Never'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className='py-8 text-center'>
-                      <Users className='mx-auto mb-2 h-8 w-8 text-gray-400' />
-                      <p className='text-gray-500'>
-                        {searchTerm || roleFilter !== 'all'
-                          ? 'No users match your search criteria'
-                          : 'No users found'}
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <UsersTable users={users || []} />
     </div>
   )
 }

@@ -1,8 +1,5 @@
-'use client'
-
-import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { notFound, redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,122 +13,156 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { getBookingDetails, WasherBooking } from '../../actions'
-import PinInput from '@/components/washer/PinInput'
-import ChatInterface from '@/components/chat/ChatInterface'
-import { createClient } from '@/utils/supabase/client'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+import WasherBookingClient from './WasherBookingClient'
 
-export default function WasherBookingDetailPage() {
-  const params = useParams()
-  const [booking, setBooking] = useState<WasherBooking | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const supabase = createClient()
+interface WasherBookingDetailPageProps {
+  params: Promise<{ id: string }>
+}
 
-  const fetchBookingDetails = useCallback(async () => {
-    if (!params.id) return
+async function fetchBookingAndUser(bookingId: number): Promise<{
+  booking: WasherBooking | null
+  currentUserId: string | null
+  error: string | null
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
 
-    setIsLoading(true)
-    try {
-      const result = await getBookingDetails(Number(params.id))
-      if (result.success && result.data) {
-        setBooking(result.data)
-        setError(null)
-      } else {
-        setError(result.message || 'Failed to fetch booking details')
-      }
-    } catch (error) {
-      console.error('Error fetching booking:', error)
-      setError('An unexpected error occurred')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [params.id])
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    fetchBookingDetails()
-  }, [fetchBookingDetails])
-
-  // Get current user ID
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        setCurrentUserId(user.id)
-      }
-    }
-    getCurrentUser()
-  }, [supabase])
-
-  const handleVerificationSuccess = () => {
-    // Refetch booking details to update the UI
-    fetchBookingDetails()
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-    }).format(price)
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'awaiting_assignment':
-        return 'bg-orange-100 text-orange-800'
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800'
-      case 'completed':
-        return 'bg-green-100 text-green-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const parseServicesConfig = (config: Record<string, unknown>) => {
-    try {
+    if (authError || !user) {
       return {
-        weightTier: config.weightTier as string,
-        baseService: config.baseService as { name: string; price: number },
-        selectedItems: config.selectedItems as Array<{
-          key: string
-          name: string
-          price: number
-        }>,
-        selectedAddOns: config.selectedAddOns as Array<{
-          key: string
-          name: string
-          price: number
-        }>,
-        collectionFee: config.collectionFee as number,
+        booking: null,
+        currentUserId: null,
+        error: 'Authentication required',
       }
-    } catch {
-      return null
+    }
+
+    // Verify user is a washer
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return {
+        booking: null,
+        currentUserId: null,
+        error: 'Failed to verify user permissions',
+      }
+    }
+
+    if (profile.role !== 'washer') {
+      return {
+        booking: null,
+        currentUserId: null,
+        error: 'Washer access required',
+      }
+    }
+
+    // Get booking details
+    const result = await getBookingDetails(bookingId)
+
+    if (!result.success || !result.data) {
+      return {
+        booking: null,
+        currentUserId: user.id,
+        error: result.message || 'Failed to fetch booking details',
+      }
+    }
+
+    // Note: Authorization already handled by getBookingDetails which filters by washer_id
+    return {
+      booking: result.data,
+      currentUserId: user.id,
+      error: null,
+    }
+  } catch (error) {
+    console.error('Error fetching booking:', error)
+    return {
+      booking: null,
+      currentUserId: null,
+      error: 'An unexpected error occurred',
     }
   }
+}
 
-  if (isLoading) {
-    return (
-      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
-        <div className='text-center'>
-          <div className='mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600'></div>
-          <p className='text-gray-600'>Loading booking details...</p>
-        </div>
-      </div>
-    )
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(price)
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'awaiting_assignment':
+      return 'bg-orange-100 text-orange-800'
+    case 'in_progress':
+      return 'bg-blue-100 text-blue-800'
+    case 'completed':
+      return 'bg-green-100 text-green-800'
+    case 'cancelled':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const parseServicesConfig = (config: Record<string, unknown>) => {
+  try {
+    return {
+      weightTier: config.weightTier as string,
+      baseService: config.baseService as { name: string; price: number },
+      selectedItems: config.selectedItems as Array<{
+        key: string
+        name: string
+        price: number
+      }>,
+      selectedAddOns: config.selectedAddOns as Array<{
+        key: string
+        name: string
+        price: number
+      }>,
+      collectionFee: config.collectionFee as number,
+    }
+  } catch {
+    return null
+  }
+}
+
+export default async function WasherBookingDetailPage({
+  params,
+}: WasherBookingDetailPageProps) {
+  const { id } = await params
+  const bookingId = Number(id)
+
+  if (isNaN(bookingId)) {
+    notFound()
+  }
+
+  const { booking, currentUserId, error } = await fetchBookingAndUser(bookingId)
+
+  if (error === 'Authentication required') {
+    redirect('/signin')
+  }
+
+  if (error === 'Washer access required') {
+    redirect('/dashboard')
   }
 
   if (error || !booking) {
@@ -204,46 +235,56 @@ export default function WasherBookingDetailPage() {
                   Customer Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className='space-y-4'>
+              <CardContent className='space-y-3'>
                 <div>
-                  <p className='text-sm font-medium text-gray-500'>Name</p>
-                  <p className='text-lg font-semibold'>
+                  <span className='text-sm font-medium text-gray-600'>
+                    Name:
+                  </span>
+                  <p className='text-gray-900'>
                     {booking.user?.full_name || 'Customer'}
                   </p>
                 </div>
                 <div>
-                  <p className='text-sm font-medium text-gray-500'>Email</p>
+                  <span className='text-sm font-medium text-gray-600'>
+                    Email:
+                  </span>
                   <p className='text-gray-900'>{booking.user?.email}</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Schedule Information */}
+            {/* Booking Details */}
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
                   <Calendar className='h-5 w-5' />
-                  Schedule
+                  Booking Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <p className='text-sm font-medium text-gray-500'>
-                      Collection Date
-                    </p>
-                    <p className='text-gray-900'>
-                      {formatDate(booking.collection_date)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className='text-sm font-medium text-gray-500'>
-                      Time Slot
-                    </p>
-                    <p className='text-gray-900'>
-                      {booking.collection_time_slot}
-                    </p>
-                  </div>
+              <CardContent className='space-y-3'>
+                <div>
+                  <span className='text-sm font-medium text-gray-600'>
+                    Collection Date:
+                  </span>
+                  <p className='text-gray-900'>
+                    {formatDate(booking.collection_date)}
+                  </p>
+                </div>
+                <div>
+                  <span className='text-sm font-medium text-gray-600'>
+                    Time Slot:
+                  </span>
+                  <p className='text-gray-900'>
+                    {booking.collection_time_slot}
+                  </p>
+                </div>
+                <div>
+                  <span className='text-sm font-medium text-gray-600'>
+                    Total Price:
+                  </span>
+                  <p className='text-lg font-semibold text-gray-900'>
+                    {formatPrice(booking.total_price)}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -259,46 +300,49 @@ export default function WasherBookingDetailPage() {
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   <div>
-                    <p className='font-semibold'>
-                      {servicesConfig.baseService.name}
-                    </p>
-                    <p className='text-sm text-gray-600'>
-                      Weight Tier: {servicesConfig.weightTier}
-                    </p>
-                    <p className='text-sm font-medium'>
-                      {formatPrice(servicesConfig.baseService.price)}
+                    <span className='text-sm font-medium text-gray-600'>
+                      Weight Tier:
+                    </span>
+                    <p className='text-gray-900'>{servicesConfig.weightTier}</p>
+                  </div>
+
+                  <div>
+                    <span className='text-sm font-medium text-gray-600'>
+                      Base Service:
+                    </span>
+                    <p className='text-gray-900'>
+                      {servicesConfig.baseService?.name} -{' '}
+                      {formatPrice(servicesConfig.baseService?.price || 0)}
                     </p>
                   </div>
 
-                  {servicesConfig.selectedItems.length > 0 && (
+                  {servicesConfig.selectedItems?.length > 0 && (
                     <div>
-                      <Separator className='my-3' />
-                      <p className='mb-2 font-medium'>Special Items:</p>
-                      {servicesConfig.selectedItems.map((item, index) => (
-                        <div
-                          key={index}
-                          className='flex justify-between text-sm'
-                        >
-                          <span>{item.name}</span>
-                          <span>{formatPrice(item.price)}</span>
-                        </div>
-                      ))}
+                      <span className='text-sm font-medium text-gray-600'>
+                        Items:
+                      </span>
+                      <ul className='mt-1 space-y-1'>
+                        {servicesConfig.selectedItems.map((item, index) => (
+                          <li key={index} className='text-sm text-gray-900'>
+                            • {item.name} - {formatPrice(item.price)}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
 
-                  {servicesConfig.selectedAddOns.length > 0 && (
+                  {servicesConfig.selectedAddOns?.length > 0 && (
                     <div>
-                      <Separator className='my-3' />
-                      <p className='mb-2 font-medium'>Add-ons:</p>
-                      {servicesConfig.selectedAddOns.map((addon, index) => (
-                        <div
-                          key={index}
-                          className='flex justify-between text-sm'
-                        >
-                          <span>{addon.name}</span>
-                          <span>{formatPrice(addon.price)}</span>
-                        </div>
-                      ))}
+                      <span className='text-sm font-medium text-gray-600'>
+                        Add-ons:
+                      </span>
+                      <ul className='mt-1 space-y-1'>
+                        {servicesConfig.selectedAddOns.map((addon, index) => (
+                          <li key={index} className='text-sm text-gray-900'>
+                            • {addon.name} - {formatPrice(addon.price)}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
 
@@ -321,7 +365,7 @@ export default function WasherBookingDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className='text-gray-700'>
+                  <p className='text-gray-900'>
                     {booking.special_instructions}
                   </p>
                 </CardContent>
@@ -329,23 +373,11 @@ export default function WasherBookingDetailPage() {
             )}
           </div>
 
-          {/* Right Column - PIN Verification & Chat */}
-          <div className='space-y-6'>
-            <PinInput
-              booking={booking}
-              onVerificationSuccess={handleVerificationSuccess}
-            />
-
-            {/* Chat Interface */}
-            {currentUserId &&
-            (booking.status === 'washer_assigned' ||
-              booking.status === 'in_progress') ? (
-              <ChatInterface
-                bookingId={booking.id}
-                currentUserId={currentUserId}
-              />
-            ) : null}
-          </div>
+          {/* Right Column - Interactive Components */}
+          <WasherBookingClient
+            booking={booking}
+            currentUserId={currentUserId}
+          />
         </div>
       </div>
     </div>

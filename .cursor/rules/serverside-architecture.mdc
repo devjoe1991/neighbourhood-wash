@@ -1,0 +1,113 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Next.js Server-Side Architecture, Security & Clean Build Rule
+
+### ALWAYS Use Server-First Data Fetching Strategy
+
+You MUST prioritize server-side data fetching over client-side data fetching for all initial page loads. When encountering any data fetching that can be moved to the server, you MUST refactor it immediately while maintaining strict security practices.
+
+### Server Component Security Requirements
+
+Use async server components with `createSupabaseServerClient()` for:
+- All database queries and initial data fetching with proper authentication validation
+- Authentication validation and redirects using `redirect()` from `next/navigation`
+- Any data that doesn't require browser APIs or user interaction
+- Pages that need SEO-friendly content in HTML source
+
+NEVER expose sensitive data or environment variables to client components. Always validate user permissions before fetching data on the server.
+
+### Client Component Security Restrictions
+
+Only use `'use client'` directive when absolutely necessary for:
+- Interactive features requiring event handlers (onClick, onChange, form submissions)
+- Browser-specific APIs (localStorage, geolocation, real-time WebSocket)
+- State management with useState, useContext
+- Components that need useEffect for user-triggered actions (NOT initial data fetching)
+
+NEVER pass sensitive data, API keys, or internal system information as props to client components.
+
+### Data Security & Validation
+
+You MUST implement proper security measures:
+- Validate and sanitize ALL user input using TypeScript interfaces and validation libraries
+- Never trust client-side data - always re-validate on server
+- Use Row Level Security (RLS) policies in Supabase for data access control
+- Never expose more data than necessary - fetch only what the user needs and is authorized to see
+- Implement proper error handling that doesn't leak sensitive information to the client
+
+### Authentication & Authorization
+
+For all server components handling user data:
+- Always verify user authentication with `createSupabaseServerClient().auth.getUser()`
+- Check user permissions before fetching or displaying data
+- Use `redirect()` to handle unauthenticated users on the server
+- Never assume client-side authentication state is valid
+- Validate user access to specific resources (bookings, profiles, admin data)
+
+### PROHIBITED Data Fetching Patterns
+
+NEVER implement client-side data fetching patterns like:
+- useEffect with data fetching on component mount
+- Loading states for initial page data
+- Client-side authentication checks that could be done on server
+- Any pattern that shows loading spinners on first page render
+- Exposing sensitive data through client-side state management
+
+If you encounter these patterns in existing code, you MUST refactor them to server-side rendering with proper security controls.
+
+### Environment Variable Security
+
+- Use environment variables only on server-side unless prefixed with `NEXT_PUBLIC_`
+- Never expose API keys, database credentials, or secrets to client components
+- Keep sensitive configuration server-only through proper component separation
+
+### Error Handling Security
+
+- Never expose raw errors, stack traces, or internal system details to the frontend
+- Log errors privately on the server while showing generic user-friendly messages
+- Implement proper error boundaries that don't leak sensitive information
+- Handle authentication errors gracefully with appropriate redirects
+
+### Component Separation Strategy
+
+When refactoring pages:
+1. Create async server component for the main page with authenticated data fetching
+2. Validate user permissions before fetching any data
+3. Extract interactive features into separate client components with 'Client' suffix
+4. Pass only necessary, non-sensitive data as props to client components
+5. Use proper TypeScript interfaces for all prop types with security considerations
+6. Ensure authentication and redirects happen on server before rendering
+
+### Build Quality & Security Enforcement
+
+You MUST maintain 100% clean builds with security best practices:
+- Run `pnpm build` after any code changes to verify zero errors
+- Fix ALL TypeScript errors, ESLint warnings, and unused imports immediately
+- Never use `any` types - always create proper interfaces with security validation
+- Ensure all new components are properly typed, secure, and importable
+- Verify no sensitive data is accessible in client-side bundle
+
+If build fails or security vulnerabilities are detected, you MUST stop development and fix all issues before proceeding.
+
+### Performance & Security Standards
+
+Every page you create or modify MUST:
+- Render complete content on server with proper authentication (no client-side loading states)
+- Have SEO-friendly HTML content visible in page source without sensitive data
+- Use minimal JavaScript for initial render with no exposed secrets
+- Only load client-side JavaScript for interactive features with validated data
+- Implement proper rate limiting and input validation for user interactions
+
+### Security Validation Protocol
+
+Before making any changes to existing pages:
+1. Identify what data is being fetched and validate user permissions
+2. Determine if data fetching can be moved to server with proper security controls
+3. Plan which parts need client interactivity vs secure server rendering
+4. Implement server component pattern with authentication first, then add secure client components
+5. Verify no sensitive information is exposed to client-side
+
+You MUST apply this rule to ALL future development, maintain strict security practices, and immediately refactor any existing patterns that violate these security and architectural principles when you encounter them.
