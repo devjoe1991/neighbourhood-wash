@@ -7,6 +7,8 @@ import { type User } from '@supabase/supabase-js'
 import { signOut } from '@/app/auth/actions'
 // import { ThemeToggle } from '@/components/ThemeToggle';
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -23,6 +25,18 @@ interface HeaderProps {
 
 export default function Header({ user }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    const result = await signOut()
+    if (result?.error) {
+      toast.error(result.error.message)
+    } else {
+      toast.success('You have been signed out.')
+      router.push('/')
+      router.refresh() // Ensures the server-side state is fully updated
+    }
+  }
 
   return (
     <header className='sticky top-0 z-50 border-b bg-white shadow-sm'>
@@ -52,7 +66,7 @@ export default function Header({ user }: HeaderProps) {
                   <Button variant='outline' size='sm' asChild>
                     <Link href='/user/dashboard'>Dashboard</Link>
                   </Button>
-                  <form action={signOut as (formData: FormData) => void}>
+                  <form action={handleSignOut}>
                     <Button
                       type='submit'
                       variant='ghost'
@@ -118,10 +132,7 @@ export default function Header({ user }: HeaderProps) {
                 >
                   Dashboard
                 </Link>
-                <form
-                  action={signOut as (formData: FormData) => void}
-                  className='w-full'
-                >
+                <form action={handleSignOut} className='w-full'>
                   <Button
                     type='submit'
                     variant='ghost'
