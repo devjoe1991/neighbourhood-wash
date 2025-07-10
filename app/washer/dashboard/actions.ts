@@ -276,7 +276,7 @@ export async function getAvailableBookings(): Promise<{
         special_instructions,
         created_at,
         user_id,
-        profiles!user_id (
+        profiles!fk_bookings_user_id(
           full_name,
           first_name,
           last_name,
