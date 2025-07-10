@@ -1,5 +1,18 @@
 {
   "imports": {
     "supabase": "https://esm.sh/@supabase/supabase-js@2"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "useTabs": false,
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
   }
 }

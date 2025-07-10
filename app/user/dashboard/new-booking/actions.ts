@@ -102,7 +102,7 @@ export async function createBooking(
       total_price: bookingData.totalPrice,
       special_instructions: bookingData.specialInstructions || null,
       stain_images: bookingData.stainImageUrls,
-      status: 'awaiting_assignment',
+      status: 'pending_washer_assignment', // Corrected status
       cancellation_policy_agreed: true,
       terms_agreed: true,
       collection_pin: collectionPin,
@@ -117,7 +117,7 @@ export async function createBooking(
       collection_date: bookingData.date.toISOString(),
       collection_time_slot: bookingData.timeSlot,
       total_price: bookingData.totalPrice,
-      status: 'awaiting_assignment',
+      status: 'pending_washer_assignment', // Corrected status
     })
 
     // Insert booking into database

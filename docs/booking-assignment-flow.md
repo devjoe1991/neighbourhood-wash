@@ -14,18 +14,36 @@ _User initiates service request_
 
 ```mermaid
 graph TD
-    A[User Creates Booking] --> B[Payment Processing]
-    B --> C[Booking Saved with Status: 'awaiting_assignment']
-    C --> D[24-Hour Assignment Timer Starts]
-    D --> E[Booking Appears in Available Bookings Pool]
+    A[Start] --> B(User Creates Booking);
+    B --> C{Booking Saved with Status: 'pending_washer_assignment'};
+    C --> D{Washer Available?};
+    D -- Yes --> E[Assign Washer];
+    D -- No --> F[Hold in Pool];
+    F --> G((Auto-Assign Cron Job));
+    G --> E;
+    E --> H(Notify User & Washer);
+    H --> I[End];
 ```
 
-**Key Features:**
+## Workflow Explanation
 
-- ✅ Secure payment capture via Stripe
-- ✅ Booking persists with `awaiting_assignment` status
-- ✅ Privacy-protected information for washers
-- ✅ Automatic 24-hour countdown begins
+1.  **User Creates Booking:** A customer initiates and pays for a laundry booking.
+2.  **Booking Saved:** Upon successful payment, a new record is created in the `bookings` table with a status of `pending_washer_assignment`.
+3.  **Washer Availability Check:** The system immediately checks for available washers who can service the booking's location and requirements.
+4.  **Manual Acceptance Pool:** The booking is available in the "Available Bookings" pool for any verified washer to accept manually. This gives proactive washers a chance to claim jobs first.
+5.  **Auto-Assignment Cron Job:** If a booking remains unassigned for a set period (e.g., 10 minutes), a scheduled Supabase Edge Function (`auto-assign-bookings`) runs.
+6.  **Assign Washer:** The cron job's algorithm selects the most suitable washer based on location, availability, and other metrics, and assigns them the booking. The booking status is updated to `washer_assigned`.
+7.  **Notifications:** Both the user and the assigned washer receive notifications about the confirmed booking details.
+8.  **End:** The assignment process is complete.
+
+## Key Components
+
+-   **`createBooking` Server Action:** Creates the initial booking record.
+-   **`AvailableBookingsClient` Component:** Displays unassigned bookings to washers.
+-   **`acceptBooking` Server Action:** Allows washers to manually accept a booking.
+-   **`auto-assign-bookings` Edge Function:** The cron job that automatically assigns bookings.
+-   **`booking_statuses` Table:** Manages the different states a booking can be in.
+-   **Notifications System:** (To be implemented) For alerting users and washers.
 
 ---
 

@@ -10,6 +10,7 @@ import {
   Package,
   PoundSterling,
   ArrowRight,
+  UserCheck,
 } from 'lucide-react'
 import { BookingRecord } from '@/app/user/dashboard/my-bookings/actions'
 
@@ -29,7 +30,7 @@ export default function BookingListItem({ booking }: BookingListItemProps) {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'awaiting_assignment':
+      case 'pending_washer_assignment':
         return 'secondary' // Gray/blue
       case 'washer_assigned':
         return 'default' // Blue
@@ -37,7 +38,8 @@ export default function BookingListItem({ booking }: BookingListItemProps) {
         return 'outline' // White with border
       case 'completed':
         return 'default' // Green
-      case 'cancelled':
+      case 'cancelled_by_user':
+      case 'cancelled_by_washer':
         return 'destructive' // Red
       default:
         return 'secondary'
@@ -46,15 +48,16 @@ export default function BookingListItem({ booking }: BookingListItemProps) {
 
   const getStatusLabel = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'awaiting_assignment':
-        return 'Awaiting Assignment'
+      case 'pending_washer_assignment':
+        return 'Awaiting Washer'
       case 'washer_assigned':
         return 'Washer Assigned'
       case 'in_progress':
         return 'In Progress'
       case 'completed':
         return 'Completed'
-      case 'cancelled':
+      case 'cancelled_by_user':
+      case 'cancelled_by_washer':
         return 'Cancelled'
       default:
         return status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
@@ -103,6 +106,77 @@ export default function BookingListItem({ booking }: BookingListItemProps) {
 
     return parts.join(', ') || 'Standard Service'
   }
+
+  // const getStatusProps = (status: string) => {
+  //   switch (status) {
+  //     case 'pending_washer_assignment':
+  //       return {
+  //         text: 'Awaiting Washer',
+  //         color: 'bg-yellow-100 text-yellow-800',
+  //         icon: <UserCheck className='h-4 w-4' />,
+  //       }
+  //     case 'washer_assigned':
+  //       return {
+  //         text: 'Washer Assigned',
+  //         color: 'bg-blue-100 text-blue-800',
+  //         icon: null,
+  //       }
+  //     case 'in_progress':
+  //       return {
+  //         text: 'In Progress',
+  //         color: 'bg-green-100 text-green-800',
+  //         icon: null,
+  //       }
+  //     case 'completed':
+  //       return {
+  //         text: 'Completed',
+  //         color: 'bg-green-100 text-green-800',
+  //         icon: null,
+  //       }
+  //     case 'cancelled_by_user':
+  //     case 'cancelled_by_washer':
+  //       return {
+  //         text: 'Cancelled',
+  //         color: 'bg-red-100 text-red-800',
+  //         icon: null,
+  //       }
+  //     default:
+  //       return { text: status, color: 'bg-gray-100 text-gray-800', icon: null }
+  //   }
+  // }
+
+  // const getActionProps = (status: string, bookingId: number) => {
+  //   switch (status) {
+  //     case 'pending_washer_assignment':
+  //     case 'washer_assigned':
+  //       return {
+  //         text: 'Track Booking',
+  //         href: `/user/dashboard/my-bookings/${bookingId}`,
+  //         icon: <ArrowRight className='h-3 w-3' />,
+  //       }
+  //     case 'in_progress':
+  //       return {
+  //         text: 'View Details',
+  //         href: `/user/dashboard/my-bookings/${bookingId}`,
+  //         icon: <ArrowRight className='h-3 w-3' />,
+  //       }
+  //     case 'completed':
+  //       return {
+  //         text: 'View Details',
+  //         href: `/user/dashboard/my-bookings/${bookingId}`,
+  //         icon: <ArrowRight className='h-3 w-3' />,
+  //       }
+  //     case 'cancelled_by_user':
+  //     case 'cancelled_by_washer':
+  //       return {
+  //         text: 'View Details',
+  //         href: `/user/dashboard/my-bookings/${bookingId}`,
+  //         icon: <ArrowRight className='h-3 w-3' />,
+  //       }
+  //     default:
+  //       return { text: 'View Details', href: `/user/dashboard/my-bookings/${bookingId}`, icon: <ArrowRight className='h-3 w-3' /> }
+  //   }
+  // }
 
   return (
     <Card className='transition-shadow hover:shadow-md'>
