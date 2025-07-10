@@ -1,17 +1,18 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
+import { WeightTier, AddOn, ItemKey } from '@/lib/pricing'
 import { generatePin } from '@/lib/utils'
 
 export interface BookingData {
   // Step 1: Schedule
   date: Date
-  timeSlot: string
+  timeSlot: string | null
+  deliveryMethod: 'collection' | 'drop-off'
 
   // Step 2: Services
-  weightTier: WeightTier
-  selectedItems: SpecialItem[]
+  weightTier: WeightTier | null
+  selectedItems: { [key in ItemKey]?: number }
   selectedAddOns: AddOn[]
 
   // Step 3: Details
@@ -72,16 +73,8 @@ export async function createBooking(
     // Prepare services configuration for database
     const servicesConfig = {
       weightTier: bookingData.weightTier,
-      baseService: serviceConfig.baseWashDry[bookingData.weightTier],
-      selectedItems: bookingData.selectedItems.map((item) => ({
-        key: item,
-        ...serviceConfig.specialItems[item],
-      })),
-      selectedAddOns: bookingData.selectedAddOns.map((addon) => ({
-        key: addon,
-        ...serviceConfig.addOns[addon],
-      })),
-      collectionFee: serviceConfig.collectionFee,
+      selectedItems: bookingData.selectedItems,
+      selectedAddOns: bookingData.selectedAddOns,
     }
 
     // Generate unique PINs for secure handovers
@@ -98,6 +91,7 @@ export async function createBooking(
       user_id: user.id,
       collection_date: bookingData.date.toISOString(),
       collection_time_slot: bookingData.timeSlot,
+      delivery_method: bookingData.deliveryMethod,
       services_config: servicesConfig,
       total_price: bookingData.totalPrice,
       special_instructions: bookingData.specialInstructions || null,
@@ -116,6 +110,7 @@ export async function createBooking(
       user_id: user.id,
       collection_date: bookingData.date.toISOString(),
       collection_time_slot: bookingData.timeSlot,
+      delivery_method: bookingData.deliveryMethod,
       total_price: bookingData.totalPrice,
       status: 'pending_washer_assignment', // Corrected status
     })

@@ -16,10 +16,15 @@ import {
 } from 'lucide-react'
 import { BookingSelection } from '@/lib/pricing'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { cn } from '@/lib/utils'
 
 interface PaymentStepProps {
   totalPrice: number
-  itemizedBreakdown: Array<{ label: string; price: number }>
+  itemizedBreakdown: Array<{
+    label: string
+    price: number | null
+    isSubItem?: boolean
+  }>
   selection: BookingSelection
   specialInstructions: string
   termsAccepted: boolean
@@ -133,16 +138,25 @@ export default function PaymentStep({
             <h4 className='text-sm font-medium'>Services</h4>
             <div className='space-y-2'>
               {itemizedBreakdown.map((item, index) => (
-                <div key={index} className='flex items-center justify-between'>
+                <div
+                  key={index}
+                  className={cn(
+                    'flex items-center justify-between',
+                    item.isSubItem && 'pl-4'
+                  )}
+                >
                   <span className='text-sm text-gray-600'>{item.label}</span>
-                  <span
-                    className={`text-sm font-medium ${
-                      item.price < 0 ? 'text-green-600' : 'text-gray-900'
-                    }`}
-                  >
-                    {item.price < 0 ? '-' : ''}£
-                    {Math.abs(item.price).toFixed(2)}
-                  </span>
+                  {item.price !== null && (
+                    <span
+                      className={cn(
+                        'text-sm font-medium',
+                        item.price < 0 ? 'text-green-600' : 'text-gray-900'
+                      )}
+                    >
+                      {item.price < 0 ? '-' : ''}£
+                      {Math.abs(item.price).toFixed(2)}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

@@ -14,11 +14,10 @@ import {
 } from 'lucide-react'
 import {
   BookingSelection,
-  WeightTier,
-  SpecialItem,
-  AddOn,
   calculateTotal,
   getItemizedBreakdown,
+  calculateTotalWeight,
+  determineWeightTier,
 } from '@/lib/pricing'
 import ScheduleStep from '@/components/booking/ScheduleStep'
 import ServiceStep from '@/components/booking/ServiceStep'
@@ -30,6 +29,7 @@ import { stripePromise } from '@/lib/stripe/client'
 import { createPaymentIntent } from '@/lib/stripe/actions'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -42,15 +42,27 @@ export default function NewBookingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [selection, setSelection] = useState<BookingSelection>({
     weightTier: null,
-    selectedItems: [],
+    selectedItems: {},
     selectedAddOns: [],
     date: null,
     timeSlot: null,
+    deliveryMethod: 'collection',
   })
   const [totalPrice, setTotalPrice] = useState(0)
   const [itemizedBreakdown, setItemizedBreakdown] = useState<
-    Array<{ label: string; price: number }>
+    Array<{ label: string; price: number | null; isSubItem?: boolean }>
   >([])
+
+  // Step 2: Item selection state
+  const [estimatedWeight, setEstimatedWeight] = useState(0)
+
+  // Auto-calculate weight and determine tier when items change
+  useEffect(() => {
+    const totalWeight = calculateTotalWeight(selection.selectedItems)
+    const tier = determineWeightTier(totalWeight)
+    setEstimatedWeight(totalWeight)
+    updateSelection({ weightTier: tier })
+  }, [selection.selectedItems])
 
   // Step 3: Details state
   const [specialInstructions, setSpecialInstructions] = useState('')
@@ -156,10 +168,13 @@ export default function NewBookingPage() {
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      return selection.date && selection.timeSlot
+      if (selection.deliveryMethod === 'drop-off') {
+        return !!selection.date
+      }
+      return !!(selection.date && selection.timeSlot)
     }
     if (currentStep === 2) {
-      return selection.weightTier
+      return !!selection.weightTier
     }
     if (currentStep === 3) {
       // Details step - no required fields, special instructions are optional
@@ -187,7 +202,10 @@ export default function NewBookingPage() {
   }
 
   const handlePaymentSubmit = async (paymentIntentId: string) => {
-    if (!selection.date || !selection.timeSlot || !selection.weightTier) {
+    if (!selection.date || !selection.weightTier) {
+      return
+    }
+    if (selection.deliveryMethod === 'collection' && !selection.timeSlot) {
       return
     }
 
@@ -197,6 +215,7 @@ export default function NewBookingPage() {
       const bookingData: BookingData = {
         date: selection.date,
         timeSlot: selection.timeSlot,
+        deliveryMethod: selection.deliveryMethod,
         weightTier: selection.weightTier,
         selectedItems: selection.selectedItems,
         selectedAddOns: selection.selectedAddOns,
@@ -248,27 +267,24 @@ export default function NewBookingPage() {
           <ScheduleStep
             date={selection.date}
             timeSlot={selection.timeSlot}
-            onDateChange={(date: Date | undefined) => updateSelection({ date })}
+            deliveryMethod={selection.deliveryMethod}
+            onDateChange={(date: Date | undefined) => {
+              updateSelection({ date, timeSlot: null }) // Reset time slot when date changes
+            }}
             onTimeSlotChange={(timeSlot: string) =>
               updateSelection({ timeSlot })
+            }
+            onDeliveryMethodChange={(deliveryMethod: 'collection' | 'drop-off') =>
+              updateSelection({ deliveryMethod, timeSlot: null })
             }
           />
         )
       case 2:
         return (
           <ServiceStep
-            weightTier={selection.weightTier}
-            selectedItems={selection.selectedItems}
-            selectedAddOns={selection.selectedAddOns}
-            onWeightTierChange={(weightTier: WeightTier) =>
-              updateSelection({ weightTier })
-            }
-            onItemsChange={(selectedItems: SpecialItem[]) =>
-              updateSelection({ selectedItems })
-            }
-            onAddOnsChange={(selectedAddOns: AddOn[]) =>
-              updateSelection({ selectedAddOns })
-            }
+            selection={selection}
+            onSelectionChange={updateSelection}
+            estimatedWeight={estimatedWeight}
           />
         )
       case 3:
@@ -287,84 +303,28 @@ export default function NewBookingPage() {
           />
         )
       case 4:
-        // Payment step with conditional rendering
         if (paymentInitializing) {
           return (
-            <div className='flex min-h-[400px] items-center justify-center'>
-              <div className='space-y-4 text-center'>
-                <div className='mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent'></div>
-                <p className='text-gray-600'>Initializing secure payment...</p>
-                <p className='text-sm text-gray-500'>
-                  Please wait while we set up your payment form
-                </p>
-              </div>
+            <div className='flex flex-col items-center justify-center p-8 text-center'>
+              <div className='loader mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent'></div>
+              <p className='text-lg font-semibold'>Initializing Secure Payment</p>
+              <p className='text-sm text-gray-600'>
+                Please wait while we set up your transaction...
+              </p>
             </div>
           )
         }
 
         if (paymentError) {
           return (
-            <div className='flex min-h-[400px] items-center justify-center'>
-              <div className='space-y-4 rounded-lg border-2 border-dashed border-red-200 bg-red-50 p-8 text-center'>
-                <div className='text-red-400'>
-                  <svg
-                    className='mx-auto h-12 w-12'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
-                    />
-                  </svg>
-                </div>
-                <p className='font-medium text-red-700'>Payment Setup Failed</p>
-                <p className='text-sm text-red-600'>{paymentError}</p>
-                <div className='space-y-2'>
-                  <Button
-                    onClick={retryPaymentInitialization}
-                    variant='outline'
-                    className='border-red-300 text-red-600 hover:bg-red-50'
-                  >
-                    Try Again
-                  </Button>
-                  <p className='text-xs text-red-500'>
-                    If the problem persists, please check your Stripe
-                    configuration
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        }
-
-        if (!clientSecret) {
-          return (
-            <div className='flex min-h-[400px] items-center justify-center'>
-              <div className='space-y-4 rounded-lg border-2 border-dashed border-gray-300 p-8 text-center'>
-                <div className='text-gray-400'>
-                  <svg
-                    className='mx-auto h-12 w-12'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z'
-                    />
-                  </svg>
-                </div>
-                <p className='text-gray-600'>Payment initialization failed</p>
-                <p className='text-sm text-gray-500'>
-                  Please go back and try again, or refresh the page
-                </p>
-              </div>
+            <div className='flex flex-col items-center justify-center rounded-lg bg-red-50 p-8 text-center'>
+              <p className='mb-4 text-lg font-semibold text-red-700'>
+                Payment Error
+              </p>
+              <p className='mb-4 text-sm text-red-600'>{paymentError}</p>
+              <Button onClick={retryPaymentInitialization}>
+                Try Again
+              </Button>
             </div>
           )
         }
@@ -402,7 +362,7 @@ export default function NewBookingPage() {
             Create New Booking
           </h1>
           <p className='mt-2 text-gray-600'>
-            Schedule your laundry collection and customize your service
+            Schedule your laundry service and customize your order
           </p>
         </div>
 
@@ -480,30 +440,26 @@ export default function NewBookingPage() {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className='mt-6 flex justify-between'>
+            <div className='mt-8 flex justify-between'>
               <Button
-                variant='outline'
                 onClick={handlePrevStep}
                 disabled={currentStep === 1}
-                className='flex items-center gap-2'
+                variant='outline'
               >
-                <ArrowLeft className='h-4 w-4' />
-                Previous
+                <ArrowLeft className='mr-2 h-4 w-4' /> Previous
               </Button>
-              {currentStep < 4 && (
+              {currentStep < STEPS.length && (
                 <Button
                   onClick={handleNextStep}
                   disabled={!canProceedToNextStep()}
-                  className='flex items-center gap-2'
                 >
-                  Next
-                  <ArrowRight className='h-4 w-4' />
+                  Next <ArrowRight className='ml-2 h-4 w-4' />
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Right Column - Price Summary */}
+          {/* Right Column - Order Summary */}
           <div className='lg:col-span-1'>
             <div className='sticky top-8'>
               <Card>
@@ -513,13 +469,27 @@ export default function NewBookingPage() {
                 <CardContent>
                   <div className='space-y-2'>
                     {itemizedBreakdown.map((item, index) => (
-                      <div key={index} className='flex justify-between'>
+                      <div
+                        key={index}
+                        className={cn(
+                          'flex justify-between',
+                          item.isSubItem && 'pl-4'
+                        )}
+                      >
                         <span className='text-sm text-gray-600'>
                           {item.label}
                         </span>
-                        <span className='text-sm font-medium'>
-                          £{item.price.toFixed(2)}
-                        </span>
+                        {item.price !== null && (
+                          <span
+                            className={cn(
+                              'text-sm font-medium',
+                              item.price < 0 ? 'text-green-600' : 'text-gray-900'
+                            )}
+                          >
+                            {item.price < 0 ? '-' : ''}£
+                            {Math.abs(item.price).toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
