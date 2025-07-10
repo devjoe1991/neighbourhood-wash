@@ -121,7 +121,7 @@ export default async function WasherApplicationPage() {
       <div className='container mx-auto max-w-4xl py-10'>
         <div className='mb-4'>
           <Link
-            href='/dashboard'
+            href='/washer/dashboard'
             className='flex items-center text-sm text-gray-600 hover:text-gray-900'
           >
             <ArrowLeft className='mr-2 h-4 w-4' />
@@ -134,5 +134,5 @@ export default async function WasherApplicationPage() {
   }
 
   // Fallback for any other state
-  redirect('/dashboard')
+  redirect('/washer/dashboard')
 }

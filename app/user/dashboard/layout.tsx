@@ -40,7 +40,10 @@ export default async function DashboardLayout({
       <div className='flex flex-1 flex-col md:pl-64'>
         {/* Mobile-only Header */}
         <header className='sticky top-0 z-10 flex h-16 items-center justify-between bg-white px-4 shadow-sm md:hidden'>
-          <Link href='/dashboard' className='text-lg font-bold text-blue-600'>
+          <Link
+            href='/user/dashboard'
+            className='text-lg font-bold text-blue-600'
+          >
             NW
           </Link>
           <Sheet>
