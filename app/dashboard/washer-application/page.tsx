@@ -1,6 +1,4 @@
-'use client'
-
-import { createClient } from '@/utils/supabase/client'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import WasherApplicationForm from '@/components/dashboard/WasherApplicationForm'
 import {
@@ -12,56 +10,57 @@ import {
 import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
 
-export default function WasherApplicationPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<{
-    role: string
-    washer_status: string
-  } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface UserProfile {
+  role: string
+  washer_status: string
+}
 
-  useEffect(() => {
-    const fetchUserAndProfile = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+async function getUserAndProfile(): Promise<{
+  user: { id: string; phone?: string | null } | null
+  profile: UserProfile | null
+  error: string | null
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
 
-      if (user) {
-        setUser(user)
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, washer_status')
-          .eq('id', user.id)
-          .single()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-        if (profileError) {
-          console.error('Error fetching profile:', profileError)
-          setError(
-            'Could not load your profile information. Please try again later.'
-          )
-        } else {
-          setProfile(profileData)
-        }
-      } else {
-        redirect('/signin')
-      }
-      setLoading(false)
+    if (authError || !user) {
+      return { user: null, profile: null, error: 'Authentication required' }
     }
 
-    fetchUserAndProfile()
-  }, [])
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, washer_status')
+      .eq('id', user.id)
+      .single()
 
-  if (loading) {
-    return (
-      <div className='flex h-screen items-center justify-center'>
-        <div className='loader'>Loading...</div>
-      </div>
-    )
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      return {
+        user,
+        profile: null,
+        error:
+          'Could not load your profile information. Please try again later.',
+      }
+    }
+
+    return { user, profile: profileData, error: null }
+  } catch (error) {
+    console.error('Error in getUserAndProfile:', error)
+    return { user: null, profile: null, error: 'An unexpected error occurred' }
+  }
+}
+
+export default async function WasherApplicationPage() {
+  const { user, profile, error } = await getUserAndProfile()
+
+  if (!user) {
+    redirect('/signin')
   }
 
   if (error) {
