@@ -12,12 +12,10 @@ export async function signOut() {
 
   if (error) {
     console.error('Error signing out:', error)
-    // Optionally, redirect to an error page or show a message
-    // For now, we'll still try to redirect to home,
-    // as sign out errors are less common and often session becomes invalid anyway.
+    return { error: { message: 'Failed to sign out. Please try again.' } }
   }
 
-  return redirect('/') // Redirect to the homepage after sign out
+  revalidatePath('/', 'layout')
 }
 
 export async function signInWithEmailPassword(
