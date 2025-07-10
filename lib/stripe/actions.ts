@@ -1,14 +1,10 @@
 'use server'
 
+import { stripe } from '@/lib/stripe/config'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import Stripe from 'stripe'
 
-// Initialize Stripe with the secret key from environment variables
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil',
-})
 const supabase = createSupabaseServerClient()
 
 /**
@@ -66,8 +62,8 @@ export async function createOnboardingFeeCheckoutSession() {
         quantity: 1,
       },
     ],
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment_success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment_cancelled=true`,
+    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/user/dashboard?payment_success=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/user/dashboard?payment_cancelled=true`,
     // We use the user's ID as the client reference to identify them in the webhook
     client_reference_id: user.id,
   })
@@ -117,8 +113,8 @@ export async function createAndOnboardStripeConnectAccount() {
   // 3. Create the unique, single-use onboarding link
   const accountLink = await stripe.accountLinks.create({
     account: account.id,
-    refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?connect_success=true`,
+    refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/user/dashboard`,
+    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/user/dashboard?connect_success=true`,
     type: 'account_onboarding',
   })
 
@@ -127,7 +123,7 @@ export async function createAndOnboardStripeConnectAccount() {
   }
 
   // Revalidate path to ensure profile data is fresh on the client
-  revalidatePath('/dashboard')
+  revalidatePath('/user/dashboard')
 
   // 4. Redirect the user to the onboarding link
   return redirect(accountLink.url)

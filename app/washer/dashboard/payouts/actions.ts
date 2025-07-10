@@ -1,25 +1,12 @@
 'use server'
 
+import { stripe } from '@/lib/stripe/config'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
-import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil',
-})
-
-interface PayoutActionResult {
+interface ActionResult {
   success: boolean
-  message?: string
+  message: string
   data?: unknown
-}
-
-interface WasherBalance {
-  available_balance: number
-  processing_balance: number
-  total_paid_out: number
-  total_earnings: number
-  available_bookings_count: number
 }
 
 interface StripeAccountDetails {
@@ -39,9 +26,15 @@ interface StripeAccountDetails {
 }
 
 /**
- * Get current user's washer balance and earnings summary
+ * Creates a Stripe Connect account if one doesn't exist,
+ * and returns a unique onboarding link for the washer.
+ * This is a single action for the client to call.
  */
-export async function getWasherBalance(): Promise<PayoutActionResult> {
+export async function createStripeOnboardingLink(): Promise<{
+  success: boolean
+  message: string
+  url?: string
+}> {
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -50,57 +43,82 @@ export async function getWasherBalance(): Promise<PayoutActionResult> {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return {
-        success: false,
-        message: 'Authentication required. Please log in again.',
-      }
+      return { success: false, message: 'Authentication failed.' }
     }
 
-    // Verify user is a washer
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('stripe_account_id, email, role')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'washer') {
+    if (profileError || !profile) {
+      return { success: false, message: 'Profile not found.' }
+    }
+
+    if (profile.role !== 'washer') {
       return {
         success: false,
-        message: 'Only washers can access balance information.',
+        message: 'Only washers can connect payment accounts.',
       }
     }
 
-    // Get balance from view
-    const { data: balance, error: balanceError } = await supabase
-      .from('washer_balances')
-      .select('*')
-      .eq('washer_id', user.id)
-      .single()
+    let accountId = profile.stripe_account_id
 
-    if (balanceError) {
+    // Create a new Stripe Connect Express account if the user doesn't have one
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: user.email || profile.email,
+        business_type: 'individual',
+        country: 'GB',
+      })
+      accountId = account.id
+
+      // Save the new account ID to the user's profile in Supabase
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ stripe_account_id: accountId })
+        .eq('id', user.id)
+
+      if (updateError) {
+        return {
+          success: false,
+          message: 'Failed to save account information.',
+        }
+      }
+    }
+
+    // Create the unique, single-use onboarding link
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
+      type: 'account_onboarding',
+    })
+
+    if (!accountLink.url) {
       return {
         success: false,
-        message: 'Unable to fetch balance information.',
+        message: 'Could not create Stripe onboarding link.',
       }
     }
 
     return {
       success: true,
-      data: balance,
+      message: 'Onboarding link created successfully.',
+      url: accountLink.url,
     }
   } catch (error) {
-    console.error('Error getting washer balance:', error)
-    return {
-      success: false,
-      message: 'An unexpected error occurred.',
-    }
+    console.error('Error creating Stripe onboarding link:', error)
+    return { success: false, message: 'An unexpected error occurred.' }
   }
 }
 
 /**
- * Get detailed Stripe account information and verification status
+ * Get detailed Stripe account information and verification status for the current washer
  */
-export async function getStripeAccountStatus(): Promise<PayoutActionResult> {
+export async function getWasherStripeAccountStatus(): Promise<ActionResult> {
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -132,10 +150,12 @@ export async function getStripeAccountStatus(): Promise<PayoutActionResult> {
     if (!profile.stripe_account_id) {
       return {
         success: true,
+        message: 'No Stripe account connected',
         data: {
           connected: false,
           account_status: 'not_connected',
-          message: 'No Stripe account connected',
+          can_receive_payouts: false,
+          requirements_message: 'Account not connected',
         },
       }
     }
@@ -184,6 +204,7 @@ export async function getStripeAccountStatus(): Promise<PayoutActionResult> {
 
     return {
       success: true,
+      message: 'Successfully retrieved account status.',
       data: {
         connected: true,
         account_status: status,
@@ -202,12 +223,72 @@ export async function getStripeAccountStatus(): Promise<PayoutActionResult> {
 }
 
 /**
+ * Get current user's washer balance and earnings summary
+ */
+export async function getWasherBalance(): Promise<ActionResult> {
+  try {
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'Authentication required. Please log in again.',
+      }
+    }
+
+    // Verify user is a washer
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile || profile.role !== 'washer') {
+      return {
+        success: false,
+        message: 'Only washers can access balance information.',
+      }
+    }
+
+    // Get balance from view
+    const { data: balance, error: balanceError } = await supabase
+      .from('washer_balances')
+      .select('*')
+      .eq('washer_id', user.id)
+      .single()
+
+    if (balanceError) {
+      return {
+        success: false,
+        message: 'Unable to fetch balance information.',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Successfully fetched washer balance.',
+      data: balance,
+    }
+  } catch (error) {
+    console.error('Error getting washer balance:', error)
+    return {
+      success: false,
+      message: 'An unexpected error occurred.',
+    }
+  }
+}
+
+/**
  * Create a new payout request
  */
 export async function createPayoutRequest(
   amount: number,
   notes?: string
-): Promise<PayoutActionResult> {
+): Promise<ActionResult> {
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -223,9 +304,11 @@ export async function createPayoutRequest(
     }
 
     // Verify user is a washer with verified Stripe account
-    const stripeStatus = await getStripeAccountStatus()
-    const stripeData = stripeStatus.data as { can_receive_payouts?: boolean }
-    if (!stripeStatus.success || !stripeData?.can_receive_payouts) {
+    const stripeStatusResult = await getWasherStripeAccountStatus()
+    const stripeData = stripeStatusResult.data as {
+      can_receive_payouts?: boolean
+    }
+    if (!stripeStatusResult.success || !stripeData?.can_receive_payouts) {
       return {
         success: false,
         message:
@@ -242,7 +325,7 @@ export async function createPayoutRequest(
       }
     }
 
-    const balance = balanceResult.data as WasherBalance
+    const balance = balanceResult.data as { available_balance: number }
     const minimumPayout = 10.0 // £10 minimum
     const withdrawalFee = 2.5 // £2.50 fee
 
@@ -257,7 +340,9 @@ export async function createPayoutRequest(
     if (amount > balance.available_balance) {
       return {
         success: false,
-        message: `Insufficient balance. Available: £${balance.available_balance.toFixed(2)}`,
+        message: `Insufficient balance. Available: £${balance.available_balance.toFixed(
+          2
+        )}`,
       }
     }
 
@@ -294,11 +379,13 @@ export async function createPayoutRequest(
     // Update earnings status to 'processing' for the requested amount
     await updateEarningsStatusForPayout(user.id, amount)
 
-    revalidatePath('/dashboard/user-payouts')
-
     return {
       success: true,
-      message: `Payout request for £${amount.toFixed(2)} created successfully. You'll receive £${netAmount.toFixed(2)} after the £${withdrawalFee} withdrawal fee.`,
+      message: `Payout request for £${amount.toFixed(
+        2
+      )} created successfully. You'll receive £${netAmount.toFixed(
+        2
+      )} after the £${withdrawalFee} withdrawal fee.`,
       data: payoutRequest,
     }
   } catch (error) {
@@ -313,7 +400,7 @@ export async function createPayoutRequest(
 /**
  * Get user's payout request history
  */
-export async function getPayoutRequests(): Promise<PayoutActionResult> {
+export async function getPayoutRequests(): Promise<ActionResult> {
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -344,6 +431,7 @@ export async function getPayoutRequests(): Promise<PayoutActionResult> {
 
     return {
       success: true,
+      message: 'Successfully fetched payout history.',
       data: requests,
     }
   } catch (error) {
@@ -351,81 +439,6 @@ export async function getPayoutRequests(): Promise<PayoutActionResult> {
     return {
       success: false,
       message: 'An unexpected error occurred.',
-    }
-  }
-}
-
-/**
- * Create or get Stripe Connect account for payout setup
- */
-export async function setupStripeAccount(): Promise<PayoutActionResult> {
-  try {
-    const supabase = createSupabaseServerClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return {
-        success: false,
-        message: 'Authentication required.',
-      }
-    }
-
-    // Get current profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('stripe_account_id, email, role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile || profile.role !== 'washer') {
-      return {
-        success: false,
-        message: 'Only washers can set up payment accounts.',
-      }
-    }
-
-    let accountId = profile.stripe_account_id
-
-    // Create account if doesn't exist
-    if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: 'express',
-        email: user.email || profile.email,
-        business_type: 'individual',
-        country: 'GB',
-      })
-
-      accountId = account.id
-
-      // Save account ID
-      await supabase
-        .from('profiles')
-        .update({ stripe_account_id: accountId })
-        .eq('id', user.id)
-    }
-
-    // Create account link for onboarding
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/user-payouts?setup_success=true`,
-      type: 'account_onboarding',
-    })
-
-    return {
-      success: true,
-      data: {
-        onboarding_url: accountLink.url,
-      },
-    }
-  } catch (error) {
-    console.error('Error setting up Stripe account:', error)
-    return {
-      success: false,
-      message: 'Failed to set up payment account.',
     }
   }
 }
@@ -485,7 +498,7 @@ function getRequirementsMessage(account: StripeAccountDetails): string {
   }
 
   if (requirements.pending_verification.length > 0) {
-    return 'Your account information is being verified. This usually takes 1-2 business days.'
+    return 'Your information is being verified by Stripe. This can take a few minutes to a couple of business days.'
   }
 
   if (requirements.eventually_due.length > 0) {

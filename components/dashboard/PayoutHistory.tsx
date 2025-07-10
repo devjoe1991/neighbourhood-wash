@@ -23,7 +23,7 @@ import {
   Calendar,
   PoundSterling,
 } from 'lucide-react'
-import { getPayoutRequests } from '@/app/dashboard/user-payouts/actions'
+import { getPayoutRequests } from '@/app/washer/dashboard/payouts/actions'
 import { format } from 'date-fns'
 
 interface PayoutRequest {

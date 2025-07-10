@@ -50,7 +50,7 @@ export default function Header({ user }: HeaderProps) {
               {user ? (
                 <>
                   <Button variant='outline' size='sm' asChild>
-                    <Link href='/dashboard'>Dashboard</Link>
+                    <Link href='/user/dashboard'>Dashboard</Link>
                   </Button>
                   <form action={signOut as (formData: FormData) => void}>
                     <Button
@@ -112,7 +112,7 @@ export default function Header({ user }: HeaderProps) {
             {user ? (
               <>
                 <Link
-                  href='/dashboard'
+                  href='/user/dashboard'
                   className='block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

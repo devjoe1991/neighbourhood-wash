@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "stripe": "https://esm.sh/stripe@11.16.0?target=deno",
+    "http/server": "https://deno.land/std@0.177.0/http/server.ts"
+  }
+}

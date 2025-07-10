@@ -1,7 +1,7 @@
-import { loadStripe } from '@stripe/stripe-js'
+import Stripe from 'stripe'
 
-// Make sure to call loadStripe outside of a component's render to avoid
-// recreating the Stripe object on every render.
-export const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-)
+// Centralized Stripe instance
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-06-30.basil',
+  typescript: true,
+})

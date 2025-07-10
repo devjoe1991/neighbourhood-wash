@@ -23,21 +23,21 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react'
-import { createPayoutRequest } from '@/app/dashboard/user-payouts/actions'
+import { createPayoutRequest } from '@/app/washer/dashboard/payouts/actions'
 import { toast } from 'sonner'
 
 interface PayoutRequestFormProps {
   availableBalance: number
   minimumPayout: number
   withdrawalFee: number
-  onSuccess: () => void
+  onPayoutSuccess: () => void
 }
 
 export default function PayoutRequestForm({
   availableBalance,
   minimumPayout = 10,
   withdrawalFee = 2.5,
-  onSuccess,
+  onPayoutSuccess,
 }: PayoutRequestFormProps) {
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
@@ -61,7 +61,7 @@ export default function PayoutRequestForm({
         setAmount('')
         setNotes('')
         setShowConfirmation(false)
-        onSuccess()
+        onPayoutSuccess()
       } else {
         toast.error(result.message || 'Failed to create payout request')
       }

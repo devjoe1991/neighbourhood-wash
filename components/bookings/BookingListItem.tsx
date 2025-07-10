@@ -11,7 +11,7 @@ import {
   PoundSterling,
   ArrowRight,
 } from 'lucide-react'
-import { BookingRecord } from '@/app/dashboard/my-bookings/actions'
+import { BookingRecord } from '@/app/user/dashboard/my-bookings/actions'
 
 interface BookingListItemProps {
   booking: BookingRecord
@@ -140,7 +140,7 @@ export default function BookingListItem({ booking }: BookingListItemProps) {
               </span>
             </div>
 
-            <Link href={`/dashboard/my-bookings/${booking.id}`}>
+            <Link href={`/user/dashboard/my-bookings/${booking.id}`}>
               <Button variant='outline' size='sm' className='gap-2'>
                 View Details
                 <ArrowRight className='h-3 w-3' />
