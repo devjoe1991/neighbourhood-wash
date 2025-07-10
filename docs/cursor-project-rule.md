@@ -160,3 +160,50 @@ When a task is completed:
 - Booking calendar with availability checking
 - PIN verification security workflow
 - Referral tracking and reward system
+
+---
+
+## Agent Operational Protocol
+
+To ensure strict adherence to project rules, especially the **server-first architecture**, the following protocol will be followed for every task.
+
+### 1. Re-Read and Confirm Before Starting
+
+Before any code is written for a new feature, bugfix, or refactor, the `Next.js Server-Side Architecture, Security & Clean Build Rule` will be reviewed to refresh and align with core principles.
+
+### 2. Plan and Declare Data Fetching Strategy
+
+For any task involving data, the plan will be explicitly stated before implementation. This plan will **always** default to using **async Server Components** and `createSupabaseServerClient()` for initial data loads. Client Components will only be proposed for user-triggered dynamic actions (e.g., live search).
+
+### 3. Enforce Strict Component Separation
+
+- **`page.tsx` / `layout.tsx`**: Treated as Server Components by default, responsible for all initial data fetching, authentication, and redirects.
+- **`[ComponentName]Client.tsx`**: All interactivity (state, event handlers, browser APIs) will be extracted into clearly named Client Components. No sensitive data will be passed as props to these components.
+
+### 4. Perform a Mandatory Self-Audit Before Finishing
+
+Before any task is considered complete, the following self-audit will be performed:
+
+- **Run `pnpm build`**: A full production build will be executed to ensure zero errors or new warnings.
+- **Grep for Anti-Patterns**: The codebase will be searched for common client-side data fetching anti-patterns (e.g., `useEffect(async () => ...)`).
+- **Review Against Rules**: The code changes will be manually compared against the server-first architecture rules to guarantee compliance.
+
+### Workflow Diagram
+
+```mermaid
+graph TD
+    A[Task Received] --> B{Step 1: Review Project Rules};
+    B --> C{Does it involve data?};
+    C -- Yes --> D[Step 2: Plan Server-First Fetching Strategy];
+    C -- No --> E[Step 3: Implement Feature / Fix];
+    D --> E;
+    E --> F[Step 4: Self-Audit];
+    subgraph F [Self-Audit]
+        F1[Run 'pnpm build']
+        F2[Grep for client-side anti-patterns]
+        F3[Check changes against rules]
+    end
+    F --> G{Audit Passed?};
+    G -- Yes --> H[Task Complete: Inform User];
+    G -- No --> E;
+```
