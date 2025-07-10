@@ -27,17 +27,20 @@ export default function BookingDetailClient({
   booking,
 }: BookingDetailClientProps) {
   const [isCancelling, setIsCancelling] = useState(false)
+  const [showNoRefundDialog, setShowNoRefundDialog] = useState(false)
   const router = useRouter()
 
-  const handleCancelBooking = async () => {
+  const handleCancel = async () => {
     setIsCancelling(true)
     try {
       const result = await cancelBooking(booking.id.toString())
 
       if (result.success) {
         toast.success(result.message)
-        // Refresh the page to show updated status
         router.refresh()
+      } else if (result.code === 'CONFIRM_NO_REFUND') {
+        // First dialog closes, second one opens
+        setShowNoRefundDialog(true)
       } else {
         toast.error(result.message)
       }
@@ -45,11 +48,35 @@ export default function BookingDetailClient({
       console.error('Error cancelling booking:', err)
       toast.error('Failed to cancel booking. Please try again.')
     } finally {
+      // Don't set isCancelling to false if we're showing the next dialog
+      if (!showNoRefundDialog) {
+        setIsCancelling(false)
+      }
+    }
+  }
+
+  const handleForceCancel = async () => {
+    // isCancelling should already be true
+    try {
+      const result = await cancelBooking(booking.id.toString(), {
+        confirmNoRefund: true,
+      })
+
+      if (result.success) {
+        toast.success(result.message)
+        router.refresh()
+      } else {
+        toast.error(result.message)
+      }
+    } catch (err) {
+      console.error('Error force cancelling booking:', err)
+      toast.error('Failed to cancel booking. Please try again.')
+    } finally {
+      setShowNoRefundDialog(false)
       setIsCancelling(false)
     }
   }
 
-  // Only show cancel button if booking is not already cancelled or completed
   if (booking.status === 'cancelled' || booking.status === 'completed') {
     return null
   }
@@ -63,6 +90,7 @@ export default function BookingDetailClient({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Initial Cancellation Dialog */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -75,23 +103,56 @@ export default function BookingDetailClient({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to cancel this booking?
-                <br />
-                <br />
-                <strong>Cancellation Policy:</strong> Cancellations made less
-                than 12 hours before the collection time are non-refundable.
+                This action cannot be undone. Please review the cancellation
+                policy.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Keep Booking</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleCancelBooking}
+                onClick={handleCancel}
+                disabled={isCancelling}
+                className='bg-red-600 hover:bg-red-700'
+              >
+                Proceed
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialog for non-refundable cancellation */}
+        <AlertDialog
+          open={showNoRefundDialog}
+          onOpenChange={setShowNoRefundDialog}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Confirm Non-Refundable Cancellation
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This booking is within 12 hours of the scheduled collection time
+                and is non-refundable.
+                <br />
+                <br />
+                Are you sure you want to cancel this booking without a refund?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => setIsCancelling(false)}
+                disabled={isCancelling}
+              >
+                Keep Booking
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleForceCancel}
                 className='bg-red-600 hover:bg-red-700'
                 disabled={isCancelling}
               >
-                {isCancelling ? 'Cancelling...' : 'Yes, Cancel Booking'}
+                {isCancelling ? 'Cancelling...' : 'Yes, Cancel Anyway'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -167,9 +167,13 @@ export async function getBookingById(bookingId: string): Promise<{
   }
 }
 
-export async function cancelBooking(bookingId: string): Promise<{
+export async function cancelBooking(
+  bookingId: string,
+  options?: { confirmNoRefund?: boolean }
+): Promise<{
   success: boolean
   message: string
+  code?: 'CONFIRM_NO_REFUND'
 }> {
   try {
     const supabase = createSupabaseServerClient()
@@ -232,11 +236,12 @@ export async function cancelBooking(bookingId: string): Promise<{
     const timeDifferenceInHours =
       (collectionDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
 
-    if (timeDifferenceInHours < 12) {
+    if (timeDifferenceInHours < 12 && !options?.confirmNoRefund) {
       return {
         success: false,
+        code: 'CONFIRM_NO_REFUND',
         message:
-          'Cancellation failed. Bookings cannot be cancelled less than 12 hours before collection.',
+          'This booking is within 12 hours of collection and is non-refundable.',
       }
     }
 
@@ -248,22 +253,27 @@ export async function cancelBooking(bookingId: string): Promise<{
       .eq('user_id', user.id) // Double security check
 
     if (updateError) {
-      console.error('Database update error:', updateError)
+      console.error('Database error:', updateError)
       return {
         success: false,
-        message: 'Failed to cancel booking. Please try again.',
+        message: 'Failed to update booking status.',
       }
     }
 
+    // TODO: Handle refund logic here if applicable
+    // For now, we assume Stripe handles refunds or they are done manually.
+    // If timeDifferenceInHours >= 12, a refund would be processed.
+    // If timeDifferenceInHours < 12, no refund is issued.
+
     return {
       success: true,
-      message: 'Your booking has been successfully cancelled.',
+      message: 'Booking has been successfully cancelled.',
     }
   } catch (error) {
     console.error('Error cancelling booking:', error)
     return {
       success: false,
-      message: 'An unexpected error occurred. Please try again.',
+      message: 'An unexpected error occurred while cancelling the booking.',
     }
   }
 }
