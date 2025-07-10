@@ -37,6 +37,7 @@ export default async function RootLayout({
     <html lang='en'>
       <body
         className={`${inter.variable} flex min-h-screen flex-col bg-white font-sans text-gray-900`}
+        suppressHydrationWarning={true}
       >
         <Header user={user} />
         <main className='flex-grow'>{children}</main>
