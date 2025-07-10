@@ -258,7 +258,11 @@ export async function getAvailableBookings(): Promise<{
         services_config,
         special_instructions,
         created_at,
-        user_profile:profiles!inner(*)
+        user_profile:profiles!fk_bookings_user_id(
+          first_name,
+          last_name,
+          postcode
+        )
       `
       )
       .eq('status', 'awaiting_assignment')

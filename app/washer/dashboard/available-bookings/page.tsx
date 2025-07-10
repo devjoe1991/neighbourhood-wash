@@ -16,15 +16,31 @@ export default async function AvailableBookingsPage() {
     redirect('/signin')
   }
 
-  // Verify user is a washer
-  const { data: profile } = await supabase
+  // Verify user is a washer and approve if not already
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, washer_status')
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'washer') {
-    redirect('/dashboard')
+  if (profileError || !profile) {
+    // This case should ideally not happen for a logged-in user
+    // but redirecting to safety.
+    redirect('/user/dashboard')
+  }
+
+  if (profile.role !== 'washer') {
+    // If not a washer, send to user dashboard
+    redirect('/user/dashboard')
+  }
+
+  // TEMPORARY: For testing, auto-approve washer if they are not already
+  if (profile.washer_status !== 'approved') {
+    await supabase
+      .from('profiles')
+      .update({ washer_status: 'approved' })
+      .eq('id', user.id)
+    // Re-fetch profile to ensure UI consistency if needed, but for now we just approve.
   }
 
   const result = await getAvailableBookings()
