@@ -1,7 +1,13 @@
 import Stripe from 'stripe'
+import { loadStripe } from '@stripe/stripe-js'
 
-// Centralized Stripe instance
+// Server-side Stripe instance
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
   typescript: true,
 })
+
+// Client-side Stripe instance promise
+export const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+)
