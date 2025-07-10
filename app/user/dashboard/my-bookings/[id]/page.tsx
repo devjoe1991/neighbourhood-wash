@@ -171,7 +171,7 @@ export default async function BookingDetailPage({
         {/* Header */}
         <div className='mb-8'>
           <Link
-            href='/dashboard/my-bookings'
+            href='/user/dashboard/my-bookings'
             className='inline-flex items-center gap-2 text-blue-600 hover:text-blue-800'
           >
             <ArrowLeft className='h-4 w-4' />
