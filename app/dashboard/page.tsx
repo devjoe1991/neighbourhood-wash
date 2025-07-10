@@ -192,7 +192,7 @@ export default async function DashboardPage() {
             </CardContent>
             <div className='p-6 pt-0'>
               <Button asChild className='w-full' variant='default'>
-                <Link href='/dashboard/washer-hub'>Go to Hub</Link>
+                <Link href='/washer/dashboard'>Go to Hub</Link>
               </Button>
             </div>
           </Card>
