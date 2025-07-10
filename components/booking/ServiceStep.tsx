@@ -1,249 +1,248 @@
 'use client'
 
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { HelpCircle, Scale, Shirt, Sparkles, Zap } from 'lucide-react'
-import { WeightTier, SpecialItem, AddOn, serviceConfig } from '@/lib/pricing'
+  BookingSelection,
+  itemCategories,
+  ItemKey,
+  AddOn,
+  serviceConfig,
+  weightTiers,
+  WeightTier,
+} from '@/lib/pricing'
+import { Button } from '@/components/ui/button'
+import { Minus, Plus, Scale, List, Check } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+
+const addOnColors: Record<
+  AddOn,
+  { bg: string; border: string; text: string; button: string }
+> = {
+  stain_removal: {
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    text: 'text-rose-900',
+    button: 'hover:bg-rose-100',
+  },
+  ironing: {
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-200',
+    text: 'text-indigo-900',
+    button: 'hover:bg-indigo-100',
+  },
+  own_products: {
+    bg: 'bg-green-50',
+    border: 'border-green-200',
+    text: 'text-green-900',
+    button: 'hover:bg-green-100',
+  },
+}
 
 interface ServiceStepProps {
-  weightTier: WeightTier | null
-  selectedItems: SpecialItem[]
-  selectedAddOns: AddOn[]
-  onWeightTierChange: (tier: WeightTier) => void
-  onItemsChange: (items: SpecialItem[]) => void
-  onAddOnsChange: (addOns: AddOn[]) => void
+  selection: BookingSelection
+  onSelectionChange: (updates: Partial<BookingSelection>) => void
+  estimatedWeight: number
+}
+
+function QuantitySelector({
+  quantity,
+  onDecrease,
+  onIncrease,
+}: {
+  quantity: number
+  onDecrease: () => void
+  onIncrease: () => void
+}) {
+  return (
+    <div className='flex items-center gap-1'>
+      <Button
+        type='button'
+        variant='outline'
+        size='icon'
+        className='h-8 w-8 rounded-full'
+        onClick={onDecrease}
+        disabled={quantity === 0}
+      >
+        <Minus className='h-4 w-4' />
+      </Button>
+      <span className='w-8 text-center font-bold'>{quantity}</span>
+      <Button
+        type='button'
+        variant='outline'
+        size='icon'
+        className='h-8 w-8 rounded-full'
+        onClick={onIncrease}
+      >
+        <Plus className='h-4 w-4' />
+      </Button>
+    </div>
+  )
 }
 
 export default function ServiceStep({
-  weightTier,
-  selectedItems,
-  selectedAddOns,
-  onWeightTierChange,
-  onItemsChange,
-  onAddOnsChange,
+  selection,
+  onSelectionChange,
+  estimatedWeight,
 }: ServiceStepProps) {
-  const handleItemToggle = (item: SpecialItem, checked: boolean) => {
-    if (checked) {
-      onItemsChange([...selectedItems, item])
+  const [activeTab, setActiveTab] = useState('items')
+
+  const handleItemQuantityChange = (itemKey: ItemKey, newQuantity: number) => {
+    const updatedItems = { ...selection.selectedItems }
+    if (newQuantity > 0) {
+      updatedItems[itemKey] = newQuantity
     } else {
-      onItemsChange(selectedItems.filter((i) => i !== item))
+      delete updatedItems[itemKey]
     }
+    onSelectionChange({ selectedItems: updatedItems })
   }
 
-  const handleAddOnToggle = (addOn: AddOn, checked: boolean) => {
-    if (checked) {
-      onAddOnsChange([...selectedAddOns, addOn])
-    } else {
-      onAddOnsChange(selectedAddOns.filter((a) => a !== addOn))
-    }
+  const handleWeightTierSelect = (tier: WeightTier) => {
+    onSelectionChange({ weightTier: tier, selectedItems: {} })
   }
 
-  // Filter out own_products from add-ons to display separately
-  const regularAddOns = Object.entries(serviceConfig.addOns).filter(
-    ([key]) => key !== 'own_products'
-  )
+  const handleAddOnToggle = (addOn: AddOn) => {
+    const newAddOns = selection.selectedAddOns.includes(addOn)
+      ? selection.selectedAddOns.filter((a) => a !== addOn)
+      : [...selection.selectedAddOns, addOn]
+    onSelectionChange({ selectedAddOns: newAddOns })
+  }
 
   return (
     <div className='space-y-6'>
-      <div>
-        <h3 className='mb-2 text-lg font-semibold'>Choose Your Services</h3>
-        <p className='mb-4 text-gray-600'>
-          Select the services you need and see the price update in real-time.
-        </p>
+      <div className='flex items-end justify-between'>
+        <div>
+          <h2 className='text-2xl font-bold text-gray-800'>Choose Services</h2>
+          <p className='mt-1 text-gray-600'>
+            Select items individually or choose a weight tier directly.
+          </p>
+        </div>
+        <div className='rounded-xl bg-blue-50 p-3 text-center'>
+          <p className='text-sm font-semibold text-blue-700'>
+            Estimated Weight
+          </p>
+          <p className='text-xl font-bold text-blue-900'>
+            {estimatedWeight.toFixed(2)} kg
+          </p>
+        </div>
       </div>
 
-      {/* Washing Products */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Zap className='h-5 w-5' />
-            Washing Products
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='flex items-center space-x-2'>
-            <Checkbox
-              id='own_products'
-              checked={selectedAddOns.includes('own_products')}
-              onCheckedChange={(checked) =>
-                handleAddOnToggle('own_products', checked as boolean)
-              }
-            />
-            <Label htmlFor='own_products' className='flex-1 cursor-pointer'>
-              <div className='flex items-center justify-between'>
-                <span>I will supply my own products</span>
-                <span className='font-medium text-green-600'>
-                  -£
-                  {Math.abs(serviceConfig.addOns.own_products.price).toFixed(2)}
-                </span>
-              </div>
-            </Label>
-          </div>
-          <p className='mt-2 text-sm text-gray-600'>
-            Save money by providing your own detergent and fabric softener
-          </p>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className='grid w-full grid-cols-2'>
+          <TabsTrigger value='items'>
+            <List className='mr-2 h-4 w-4' /> By Item
+          </TabsTrigger>
+          <TabsTrigger value='weight'>
+            <Scale className='mr-2 h-4 w-4' /> By Weight
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Weight Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Scale className='h-5 w-5' />
-            Wash & Dry (by Weight)
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant='ghost' size='sm' className='ml-2'>
-                  <HelpCircle className='h-4 w-4' />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className='sm:max-w-md'>
-                <DialogHeader>
-                  <DialogTitle>How much does my laundry weigh?</DialogTitle>
-                </DialogHeader>
-                <div className='space-y-4'>
-                  <div className='space-y-2'>
-                    <h4 className='font-medium'>6kg Load Examples:</h4>
-                    <ul className='space-y-1 text-sm text-gray-600'>
-                      <li>
-                        • 5 complete outfits (shirt, trousers, underwear, socks)
-                      </li>
-                      <li>• 1 full set of double bedding</li>
-                      <li>
-                        • 2 pairs of jeans, 5 t-shirts, underwear for a week, 2
-                        towels
-                      </li>
-                      <li>
-                        • 1 hoodie, 3 shirts, 2 pairs of trousers, 7 pairs of
-                        socks
-                      </li>
-                    </ul>
-                  </div>
-                  <div className='space-y-2'>
-                    <h4 className='font-medium'>10kg Load Examples:</h4>
-                    <ul className='space-y-1 text-sm text-gray-600'>
-                      <li>• 8-10 complete outfits</li>
-                      <li>• 2 full sets of bedding</li>
-                      <li>• 1 week's worth of clothes for 2 people</li>
-                      <li>
-                        • 3-4 towels, 5 shirts, 3 pairs of jeans, underwear
-                      </li>
-                    </ul>
-                  </div>
-                  <div className='rounded-md bg-blue-50 p-3'>
-                    <p className='text-sm text-blue-700'>
-                      <strong>Tip:</strong> If you're unsure, it's better to
-                      select the higher weight option. Our Washers can handle
-                      mixed loads efficiently.
-                    </p>
-                  </div>
+        <TabsContent value='items' className='mt-4'>
+          <div className='space-y-4'>
+            {Object.entries(itemCategories).map(([catKey, category]) => (
+              <div key={catKey}>
+                <h3 className='mb-2 text-lg font-semibold'>{category.name}</h3>
+                <div className='space-y-2 rounded-md border p-3'>
+                  {Object.entries(category.items).map(([itemKey, item]) => (
+                    <div
+                      key={itemKey}
+                      className='flex items-center justify-between'
+                    >
+                      <div>
+                        <p className='font-medium'>{item.name}</p>
+                        <p className='text-xs text-gray-500'>
+                          Approx. {item.weight} kg
+                        </p>
+                      </div>
+                      <QuantitySelector
+                        quantity={selection.selectedItems[itemKey as ItemKey] || 0}
+                        onDecrease={() =>
+                          handleItemQuantityChange(
+                            itemKey as ItemKey,
+                            (selection.selectedItems[itemKey as ItemKey] || 1) - 1
+                          )
+                        }
+                        onIncrease={() =>
+                          handleItemQuantityChange(
+                            itemKey as ItemKey,
+                            (selection.selectedItems[itemKey as ItemKey] || 0) + 1
+                          )
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
-              </DialogContent>
-            </Dialog>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup
-            value={weightTier || ''}
-            onValueChange={onWeightTierChange}
-          >
-            {Object.entries(serviceConfig.baseWashDry).map(([key, config]) => (
-              <div key={key} className='flex items-center space-x-2'>
-                <RadioGroupItem value={key} id={key} />
-                <Label htmlFor={key} className='flex-1 cursor-pointer'>
-                  <div className='flex items-center justify-between'>
-                    <span>{config.label}</span>
-                    <span className='font-medium text-blue-600'>
-                      £{config.price.toFixed(2)}
-                    </span>
-                  </div>
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </CardContent>
-      </Card>
-
-      {/* Special Items */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <Shirt className='h-5 w-5' />
-            Bulky Items
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className='mb-4 text-sm text-gray-600'>
-            Add individual items that need special handling
-          </p>
-          <div className='space-y-3'>
-            {Object.entries(serviceConfig.specialItems).map(([key, config]) => (
-              <div key={key} className='flex items-center space-x-2'>
-                <Checkbox
-                  id={key}
-                  checked={selectedItems.includes(key as SpecialItem)}
-                  onCheckedChange={(checked) =>
-                    handleItemToggle(key as SpecialItem, checked as boolean)
-                  }
-                />
-                <Label htmlFor={key} className='flex-1 cursor-pointer'>
-                  <div className='flex items-center justify-between'>
-                    <span>{config.label}</span>
-                    <span className='font-medium text-blue-600'>
-                      £{config.price.toFixed(2)}
-                    </span>
-                  </div>
-                </Label>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value='weight' className='mt-4'>
+          <div className='space-y-3'>
+            {Object.entries(weightTiers).map(([key, tier]) => (
+              <div
+                key={key}
+                onClick={() => handleWeightTierSelect(key as WeightTier)}
+                className={cn(
+                  'flex cursor-pointer items-center justify-between rounded-lg border-2 p-4 transition-all',
+                  selection.weightTier === key
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200'
+                )}
+              >
+                <div>
+                  <h4 className='font-semibold'>{tier.label}</h4>
+                  <p className='text-sm text-gray-500'>
+                    Up to {tier.maxWeight}kg of laundry
+                  </p>
+                </div>
+                <p className='text-lg font-bold'>£{tier.price.toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Add-on Services */}
-      {regularAddOns.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Sparkles className='h-5 w-5' />
-              Add-on Services
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='space-y-3'>
-              {regularAddOns.map(([key, config]) => (
-                <div key={key} className='flex items-center space-x-2'>
-                  <Checkbox
-                    id={key}
-                    checked={selectedAddOns.includes(key as AddOn)}
-                    onCheckedChange={(checked) =>
-                      handleAddOnToggle(key as AddOn, checked as boolean)
-                    }
-                  />
-                  <Label htmlFor={key} className='flex-1 cursor-pointer'>
-                    <div className='flex items-center justify-between'>
-                      <span>{config.label}</span>
-                      <span className='font-medium text-blue-600'>
-                        £{config.price.toFixed(2)}
-                      </span>
-                    </div>
-                  </Label>
+      <div className='space-y-3'>
+        <h3 className='text-lg font-semibold'>Optional Add-ons</h3>
+        <div className='space-y-2 rounded-lg border bg-gray-50/50 p-3'>
+          {Object.entries(serviceConfig.addOns).map(([key, config]) => {
+            const isSelected = selection.selectedAddOns.includes(key as AddOn)
+            const colors = addOnColors[key as AddOn]
+            return (
+              <div
+                key={key}
+                className={cn(
+                  'flex items-center justify-between rounded-md border p-3 transition-all',
+                  colors.bg,
+                  isSelected ? 'ring-2 ring-blue-500' : colors.border
+                )}
+              >
+                <div>
+                  <p className={cn('font-medium', colors.text)}>{config.label}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <Button
+                  size='icon'
+                  variant={isSelected ? 'default' : 'outline'}
+                  onClick={() => handleAddOnToggle(key as AddOn)}
+                  className={cn(
+                    'h-8 w-8 flex-shrink-0 rounded-full',
+                    !isSelected && colors.bg,
+                    !isSelected && colors.button
+                  )}
+                >
+                  {isSelected ? (
+                    <Check className='h-4 w-4' />
+                  ) : (
+                    <Plus className='h-4 w-4' />
+                  )}
+                </Button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
