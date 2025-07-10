@@ -67,6 +67,19 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(path)
   )
 
+  // New Rule: If user is logged in and accessing their own dashboard area, allow them.
+  if (validSession) {
+    if (pathname.startsWith('/admin') && userRole === 'admin') {
+      return response // Allow admin in admin area
+    }
+    if (pathname.startsWith('/washer') && userRole === 'washer') {
+      return response // Allow washer in washer area
+    }
+    if (pathname.startsWith('/user') && (userRole === 'user' || !userRole)) {
+      return response // Allow user in user area
+    }
+  }
+
   console.log(
     `[Middleware] isProtectedRoute: ${isProtectedRoute}, isAdminPath: ${isAdminPath}, isPublicAuthPath: ${isPublicAuthPath}`
   )

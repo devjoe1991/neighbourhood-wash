@@ -41,21 +41,16 @@ const navLinks = [
     requiresRole: 'user',
   },
   {
-    href: '/user/dashboard/my-bookings',
+    userPath: '/user/dashboard/my-bookings',
+    washerPath: '/washer/dashboard/bookings',
     label: 'My Bookings',
     icon: Package,
-    requiresRole: 'user',
   },
   {
-    href: '/washer/dashboard/available-bookings',
+    washerPath: '/washer/dashboard/available-bookings',
+    userPath: '#', // Dummy path, will be hidden for non-washers
     label: 'Available Bookings',
     icon: Plus,
-    requiresRole: 'washer',
-  },
-  {
-    href: '/washer/dashboard/bookings',
-    label: 'My Bookings',
-    icon: Package,
     requiresRole: 'washer',
   },
   {
