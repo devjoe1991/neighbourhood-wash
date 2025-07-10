@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Define protected and public paths
-  const protectedPaths = ['/dashboard', '/washer']
+  const protectedPaths = ['/user/dashboard', '/washer/dashboard']
   const adminPaths = ['/admin']
   const publicAuthPaths = [
     '/signin',
@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
       if (userRole === 'washer') {
         url.pathname = '/washer/dashboard'
       } else {
-        url.pathname = '/dashboard'
+        url.pathname = '/user/dashboard'
       }
       return NextResponse.redirect(url)
     }
@@ -125,7 +125,7 @@ export async function middleware(request: NextRequest) {
     } else if (userRole === 'washer') {
       url.pathname = '/washer/dashboard'
     } else {
-      url.pathname = '/dashboard'
+      url.pathname = '/user/dashboard'
     }
     return NextResponse.redirect(url)
   }

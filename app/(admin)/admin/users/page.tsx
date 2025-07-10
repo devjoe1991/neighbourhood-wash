@@ -120,7 +120,7 @@ export default async function AdminUsersPage() {
   }
 
   if (error === 'Admin access required') {
-    redirect('/dashboard')
+    redirect('/user/dashboard')
   }
 
   if (error) {

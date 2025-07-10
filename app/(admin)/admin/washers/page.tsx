@@ -128,7 +128,7 @@ export default async function AdminWashersPage() {
   }
 
   if (error === 'Admin access required') {
-    redirect('/dashboard')
+    redirect('/user/dashboard')
   }
 
   if (error) {

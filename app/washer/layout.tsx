@@ -23,22 +23,27 @@ export default async function WasherLayout({
   }
 
   // Check if user has washer role
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, washer_status')
+    .select('role, is_approved')
     .eq('id', user.id)
-    .maybeSingle()
+    .single()
 
-  const userRole = profile?.role || user.user_metadata?.selected_role
-
-  if (userRole !== 'washer') {
-    return redirect('/dashboard?message=Access denied. Washer role required.')
+  if (profileError || !profile) {
+    // This case might happen if the profile doesn't exist for some reason
+    return redirect('/user/dashboard?message=Profile not found.')
   }
 
-  // Check if washer is approved
-  if (profile?.washer_status !== 'approved') {
+  if (profile.role !== 'washer') {
     return redirect(
-      '/dashboard/become-washer?message=Your washer application is not yet approved.'
+      '/user/dashboard?message=Access denied. Washer role required.'
+    )
+  }
+
+  // Check if washer application is approved
+  if (!profile.is_approved) {
+    return redirect(
+      '/user/dashboard/become-washer?message=Your washer application is not yet approved.'
     )
   }
 
@@ -46,7 +51,7 @@ export default async function WasherLayout({
     <div className='min-h-screen bg-gray-100'>
       {/* Desktop Sidebar - hidden on mobile */}
       <div className='hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col'>
-        <Sidebar userRole={userRole} />
+        <Sidebar userRole={profile.role} />
       </div>
 
       {/* Mobile Header & Main Content */}
@@ -66,7 +71,7 @@ export default async function WasherLayout({
               </button>
             </SheetTrigger>
             <SheetContent side='left' className='w-64 p-0'>
-              <Sidebar userRole={userRole} isMobile />
+              <Sidebar userRole={profile.role} isMobile />
             </SheetContent>
           </Sheet>
         </header>

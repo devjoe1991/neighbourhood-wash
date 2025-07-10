@@ -52,6 +52,6 @@ export async function registerWasherInterest(
     }
   }
 
-  revalidatePath('/dashboard/become-washer')
+  revalidatePath('/user/dashboard/become-washer')
   return { success: true }
 }

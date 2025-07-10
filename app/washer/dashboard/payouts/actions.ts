@@ -1,7 +1,7 @@
 'use server'
 
-import { stripe } from '@/lib/stripe/config'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { stripe } from '@/lib/stripe/server'
 
 interface ActionResult {
   success: boolean

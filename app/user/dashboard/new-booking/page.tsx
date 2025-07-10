@@ -26,7 +26,7 @@ import DetailsStep from '@/components/booking/DetailsStep'
 import PaymentStep from '@/components/booking/PaymentStep'
 import { createBooking, type BookingData } from './actions'
 import { Elements } from '@stripe/react-stripe-js'
-import { stripePromise } from '@/lib/stripe/config'
+import { stripePromise } from '@/lib/stripe/client'
 import { createPaymentIntent } from '@/lib/stripe/actions'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
@@ -210,12 +210,13 @@ export default function NewBookingPage() {
       // Call the server action
       const result = await createBooking(bookingData)
 
-      if (result.success && result.bookingId) {
-        // Success! Redirect to confirmation page
-        window.location.href = `/dashboard/booking-confirmation/${result.bookingId}`
+      // Handle successful booking creation
+      console.log('Booking successful, redirecting...', result.bookingId)
+      if (result.bookingId) {
+        window.location.href = `/user/dashboard/booking-confirmation/${result.bookingId}`
       } else {
-        // Handle error from server action
-        console.error('Booking creation failed:', result.message)
+        // Handle case where bookingId is not returned
+        console.error('Booking ID not found in response.')
         toast.error(
           result.message || 'Failed to create booking. Please try again.'
         )
