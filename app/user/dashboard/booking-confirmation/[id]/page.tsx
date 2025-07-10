@@ -13,7 +13,7 @@ import {
   Search,
   ArrowRight,
 } from 'lucide-react'
-import { getBookingById } from '@/app/dashboard/my-bookings/actions'
+import { getBookingById } from '@/app/user/dashboard/my-bookings/actions'
 
 interface BookingConfirmationPageProps {
   params: Promise<{ id: string }>
