@@ -9,10 +9,6 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 
-interface StatusTrackerProps {
-  currentStatus: string
-}
-
 interface StatusStep {
   key: string
   label: string
@@ -20,13 +16,17 @@ interface StatusStep {
   description: string
 }
 
+interface StatusTrackerProps {
+  currentStatus: string
+}
+
 export default function StatusTracker({ currentStatus }: StatusTrackerProps) {
-  const steps: StatusStep[] = [
+  const STEPS: StatusStep[] = [
     {
-      key: 'awaiting_assignment',
-      label: 'Booking Confirmed',
-      icon: <CheckCircle className='h-5 w-5' />,
-      description: 'Your booking has been confirmed and payment processed',
+      key: 'pending_washer_assignment',
+      label: 'Awaiting Washer',
+      icon: <Package className='h-5 w-5' />,
+      description: 'Looking for a washer to accept your booking.',
     },
     {
       key: 'washer_assigned',
@@ -49,7 +49,7 @@ export default function StatusTracker({ currentStatus }: StatusTrackerProps) {
   ]
 
   const getCurrentStepIndex = () => {
-    return steps.findIndex((step) => step.key === currentStatus.toLowerCase())
+    return STEPS.findIndex((step) => step.key === currentStatus.toLowerCase())
   }
 
   const currentStepIndex = getCurrentStepIndex()
@@ -94,10 +94,10 @@ export default function StatusTracker({ currentStatus }: StatusTrackerProps) {
 
         {/* Steps */}
         <div className='space-y-8'>
-          {steps.map((step, index) => {
+          {STEPS.map((step, index) => {
             const stepStatus = getStepStatus(index)
             const styles = getStepStyles(stepStatus)
-            const isLast = index === steps.length - 1
+            const isLast = index === STEPS.length - 1
 
             return (
               <div key={step.key} className='relative flex items-start'>

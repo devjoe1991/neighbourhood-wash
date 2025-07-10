@@ -324,7 +324,7 @@ export async function acceptBooking(bookingId: number): Promise<{
         status: 'washer_assigned',
       })
       .eq('id', bookingId)
-      .eq('status', 'awaiting_assignment') // Prevents race conditions
+      .eq('status', 'pending_washer_assignment') // Prevents race conditions
       .select()
       .single()
 
