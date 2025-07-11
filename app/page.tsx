@@ -21,31 +21,37 @@ import {
   Wind,
 } from 'lucide-react'
 import { LocationLinks } from '@/components/ui/search-cards'
-import { CategoryLinkCard, ActionCard } from '@/components/ui/promo-cards'
+import { PromoCarousel } from '@/components/landing/PromoCarousel'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from '@/components/ui/carousel'
 
 const testimonials = [
   {
     review:
-      "I really didn't know where to turn a few days ago but now I'm so hopeful. Found a local washer in minutes!",
-    author: 'Cat, Islington',
-    rating: 5,
+      'Tried this once and now my neighbours keep asking who my “laundry plug” is. Stay out of my business, Linda.',
+    author: 'Anonymous, London',
+    rating: 1,
   },
   {
     review:
-      'A fantastic service which I would highly recommend. My clothes came back perfect.',
-    author: 'Nikki, Hackney',
-    rating: 5,
+      'Told my parents I finally used the washing machine. Truth is, I used Neighbourhood Wash. Now they’ve invited me over to do their laundry. I’ve never even touched a detergent bottle.',
+    author: 'Sam, Hackney',
+    rating: 1,
   },
   {
     review:
-      'Honestly, this service is a godsend! So convenient and affordable.',
+      'Folded. Pressed. Organised by colour. Now I have to do the same to my life. Unbelievable.',
     author: 'Martin, Camden',
-    rating: 5,
+    rating: 1,
   },
   {
-    review:
-      'As a washer, this has been a great way to earn extra income. The app is so easy to use.',
-    author: 'Sarah B (Washer)',
+    review: 'All jokes aside, a top-notch service',
+    author: 'Chloe, Islington',
     rating: 5,
   },
 ]
@@ -68,14 +74,15 @@ export default function HomePage() {
       <ModernHero
         title={
           <>
-            Find trusted laundry help in your{' '}
+            Join the{' '}
             <span className='bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'>
-              neighbourhood
-            </span>
+              Neighbourhood
+            </span>{' '}
+            Laundry Revolution
           </>
         }
         subtitle='Connect with verified local Washers for convenient, affordable laundry services. Or become a Washer and earn extra income from your laundry facilities.'
-        showSearch={true}
+        showSearch={false}
         ctaButtons={
           <>
             <Button
@@ -106,7 +113,7 @@ export default function HomePage() {
       {/* Key Benefits Bar */}
       <ModernSection
         background='light-blue'
-        padding='sm'
+        padding='xs'
         className='border-y border-gray-200/75'
       >
         <div className='grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3'>
@@ -181,58 +188,32 @@ export default function HomePage() {
         </div>
       </ModernSection>
 
-      {/* New Promo Section */}
-      <ModernSection
-        background='white'
-        padding='md'
-        className='border-b border-gray-100'
-      >
-        <div className='mb-8 grid gap-4 sm:mb-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3'>
-          <CategoryLinkCard title='Find a Washer' href='/user/dashboard' />
-          <CategoryLinkCard title='Our Services' href='/how-it-works' />
-          <CategoryLinkCard
-            title='Become a Washer'
-            href='/user/dashboard/become-washer'
-            className='sm:col-span-2 lg:col-span-1'
-          />
-        </div>
-
-        <div className='grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2'>
-          <div className='flex flex-col gap-6 sm:gap-8'>
-            <ActionCard
-              title='Book a Wash Instantly'
-              description='Need laundry done today? Find Washers with immediate availability and book in minutes.'
-              ctaText='Arrange a Wash'
-              ctaLink='/user/dashboard'
-              bgColor='bg-yellow-100'
-            />
-            <ActionCard
-              title='Natural & Hypoallergenic'
-              description='Many of our Washers offer services using natural, eco-friendly, and hypoallergenic products. Find the perfect match for your needs.'
-              ctaText='Find Specialist Washers'
-              ctaLink='/user/dashboard'
-              bgColor='bg-blue-100'
-            />
-          </div>
-          <ActionCard
-            title='Discover the Neighbourhood Difference'
-            description='Get your laundry search off to a great start by seeing how our seamless, app-based experience works.'
-            ctaText='See How It Works'
-            ctaLink='/how-it-works'
-            bgColor='bg-green-100'
-            className='min-h-[350px] sm:min-h-[400px]'
-          >
-            <div className='relative mb-6 h-48 w-full overflow-hidden rounded-2xl sm:mb-8 sm:h-64'>
-              <Image
-                src='/images/colourful-pegs.jpg'
-                alt='Colourful pegs with a heart-shaped one'
-                layout='fill'
-                objectFit='cover'
-                className='transition-transform duration-300 group-hover:scale-105'
-              />
-            </div>
-          </ActionCard>
-        </div>
+      {/* Testimonials Section */}
+      <ModernSection background='primary-deep-blue' padding='lg'>
+        <Carousel
+          opts={{
+            align: 'start',
+            loop: true,
+          }}
+          className='w-full'
+        >
+          <CarouselContent>
+            {testimonials.map((testimonial, index) => (
+              <CarouselItem
+                key={index}
+                className='md:basis-1/2 lg:basis-1/3 xl:basis-1/4'
+              >
+                <TestimonialCard
+                  review={testimonial.review}
+                  author={testimonial.author}
+                  rating={testimonial.rating}
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className='ml-12' />
+          <CarouselNext className='mr-12' />
+        </Carousel>
       </ModernSection>
 
       {/* Community Staple Section */}
@@ -255,10 +236,19 @@ export default function HomePage() {
               size='lg'
               className='rounded-xl bg-gray-900 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:bg-gray-800 hover:shadow-xl'
             >
-              <Link href='/user/dashboard'>Start your search</Link>
+              <Link href='/user/dashboard/new-booking'>Book Now</Link>
             </Button>
           </div>
         </div>
+      </ModernSection>
+
+      {/* Carousel Promo Section */}
+      <ModernSection
+        background='white'
+        padding='md'
+        className='border-b border-gray-100'
+      >
+        <PromoCarousel />
       </ModernSection>
 
       {/* Benefits Section */}
@@ -302,25 +292,6 @@ export default function HomePage() {
         </div>
       </ModernSection>
 
-      {/* Testimonials Section */}
-      <ModernSection background='light-blue' padding='lg'>
-        <SectionHeader
-          title='Loved by our community'
-          subtitle='We’re proud to have created a service that makes a real difference in people’s lives. Here’s what they have to say.'
-        />
-
-        <div className='mx-auto mt-12 grid max-w-lg gap-8 lg:max-w-none lg:grid-cols-2 xl:grid-cols-4'>
-          {testimonials.map((testimonial, index) => (
-            <TestimonialCard
-              key={index}
-              review={testimonial.review}
-              author={testimonial.author}
-              rating={testimonial.rating}
-            />
-          ))}
-        </div>
-      </ModernSection>
-
       {/* Locations Section */}
       <ModernSection padding='lg'>
         <SectionHeader
@@ -361,8 +332,7 @@ export default function HomePage() {
             <Button
               asChild
               size='lg'
-              variant='outline'
-              className='rounded-md border-white px-6 py-3 text-base font-semibold text-white hover:bg-white/10'
+              className='rounded-md border-2 border-white bg-transparent px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-white hover:text-gray-900'
             >
               <Link href='/signup?role=washer'>Become a Washer</Link>
             </Button>

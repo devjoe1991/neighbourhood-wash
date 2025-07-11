@@ -10,7 +10,6 @@ import {
   Package,
   PoundSterling,
   ArrowRight,
-  UserCheck,
 } from 'lucide-react'
 import { BookingRecord } from '@/app/user/dashboard/my-bookings/actions'
 
