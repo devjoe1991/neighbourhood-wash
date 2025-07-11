@@ -274,9 +274,9 @@ export default function NewBookingPage() {
             onTimeSlotChange={(timeSlot: string) =>
               updateSelection({ timeSlot })
             }
-            onDeliveryMethodChange={(deliveryMethod: 'collection' | 'drop-off') =>
-              updateSelection({ deliveryMethod, timeSlot: null })
-            }
+            onDeliveryMethodChange={(
+              deliveryMethod: 'collection' | 'drop-off'
+            ) => updateSelection({ deliveryMethod, timeSlot: null })}
           />
         )
       case 2:
@@ -307,7 +307,9 @@ export default function NewBookingPage() {
           return (
             <div className='flex flex-col items-center justify-center p-8 text-center'>
               <div className='loader mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent'></div>
-              <p className='text-lg font-semibold'>Initializing Secure Payment</p>
+              <p className='text-lg font-semibold'>
+                Initializing Secure Payment
+              </p>
               <p className='text-sm text-gray-600'>
                 Please wait while we set up your transaction...
               </p>
@@ -322,31 +324,31 @@ export default function NewBookingPage() {
                 Payment Error
               </p>
               <p className='mb-4 text-sm text-red-600'>{paymentError}</p>
-              <Button onClick={retryPaymentInitialization}>
-                Try Again
-              </Button>
+              <Button onClick={retryPaymentInitialization}>Try Again</Button>
             </div>
           )
         }
 
         // Only render PaymentStep when we have clientSecret
         return (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <PaymentStep
-              totalPrice={totalPrice}
-              itemizedBreakdown={itemizedBreakdown}
-              selection={selection}
-              specialInstructions={specialInstructions}
-              termsAccepted={termsAccepted}
-              userAgreementAccepted={userAgreementAccepted}
-              cancellationPolicyAccepted={cancellationPolicyAccepted}
-              onTermsChange={setTermsAccepted}
-              onUserAgreementChange={setUserAgreementAccepted}
-              onCancellationPolicyChange={setCancellationPolicyAccepted}
-              onPaymentSubmit={handlePaymentSubmit}
-              isSubmitting={isSubmitting}
-            />
-          </Elements>
+          clientSecret && (
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <PaymentStep
+                totalPrice={totalPrice}
+                itemizedBreakdown={itemizedBreakdown}
+                selection={selection}
+                specialInstructions={specialInstructions}
+                termsAccepted={termsAccepted}
+                userAgreementAccepted={userAgreementAccepted}
+                cancellationPolicyAccepted={cancellationPolicyAccepted}
+                onTermsChange={setTermsAccepted}
+                onUserAgreementChange={setUserAgreementAccepted}
+                onCancellationPolicyChange={setCancellationPolicyAccepted}
+                onPaymentSubmit={handlePaymentSubmit}
+                isSubmitting={isSubmitting}
+              />
+            </Elements>
+          )
         )
       default:
         return <div>Step not implemented yet</div>
@@ -483,7 +485,9 @@ export default function NewBookingPage() {
                           <span
                             className={cn(
                               'text-sm font-medium',
-                              item.price < 0 ? 'text-green-600' : 'text-gray-900'
+                              item.price < 0
+                                ? 'text-green-600'
+                                : 'text-gray-900'
                             )}
                           >
                             {item.price < 0 ? '-' : ''}£

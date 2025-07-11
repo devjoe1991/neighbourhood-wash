@@ -12,7 +12,9 @@ module.exports = {
         primary: '#3498db',
         'primary-light': '#85c1e9',
         'primary-dark': '#2980b9',
+        'primary-deep-blue': '#145cfa',
         success: '#2ecc71',
+        'success-light': '#e5f8ed',
         warning: '#e67e22',
         error: '#e74c3c',
         background: '#ffffff', // Added from your description
