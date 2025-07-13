@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import LegalProvider from '@/components/providers/LegalProvider'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { Toaster } from 'sonner'
 
@@ -39,10 +40,12 @@ export default async function RootLayout({
         className={`${inter.variable} flex min-h-screen flex-col bg-white font-sans text-gray-900`}
         suppressHydrationWarning={true}
       >
-        <Header user={user} />
-        <main className='flex-grow'>{children}</main>
-        <Footer />
-        <Toaster position='top-right' />
+        <LegalProvider>
+          <Header user={user} />
+          <main className='flex-grow'>{children}</main>
+          <Footer />
+          <Toaster position='top-right' />
+        </LegalProvider>
       </body>
     </html>
   )

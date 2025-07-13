@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Checkbox } from '@/components/ui/checkbox'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { signup } from './actions'
 
@@ -88,6 +89,132 @@ export default async function SignupPage({
                   required
                   placeholder='••••••••'
                 />
+              </div>
+            </div>
+
+            {/* Legal Consent Section */}
+            <div className='border-t border-gray-200 pt-6'>
+              <h3 className='mb-4 text-sm font-semibold text-gray-900'>
+                Legal Agreement & Consent
+              </h3>
+
+              <div className='space-y-4'>
+                <div className='flex items-start space-x-3'>
+                  <Checkbox
+                    id='terms_consent'
+                    name='terms_consent'
+                    required
+                    className='mt-0.5'
+                  />
+                  <Label htmlFor='terms_consent' className='text-sm leading-5'>
+                    I agree to the{' '}
+                    <Link
+                      href='/terms-of-service'
+                      target='_blank'
+                      className='text-blue-600 underline hover:text-blue-800'
+                    >
+                      Terms of Service
+                    </Link>{' '}
+                    and understand that Neighbourhood Wash is a facilitating
+                    platform and that Washers are independent contractors.
+                  </Label>
+                </div>
+
+                <div className='flex items-start space-x-3'>
+                  <Checkbox
+                    id='privacy_consent'
+                    name='privacy_consent'
+                    required
+                    className='mt-0.5'
+                  />
+                  <Label
+                    htmlFor='privacy_consent'
+                    className='text-sm leading-5'
+                  >
+                    I agree to the{' '}
+                    <Link
+                      href='/privacy-policy'
+                      target='_blank'
+                      className='text-blue-600 underline hover:text-blue-800'
+                    >
+                      Privacy Policy
+                    </Link>{' '}
+                    and consent to the processing of my personal data as
+                    described.
+                  </Label>
+                </div>
+
+                <div className='flex items-start space-x-3'>
+                  <Checkbox
+                    id='community_guidelines_consent'
+                    name='community_guidelines_consent'
+                    required
+                    className='mt-0.5'
+                  />
+                  <Label
+                    htmlFor='community_guidelines_consent'
+                    className='text-sm leading-5'
+                  >
+                    I agree to follow the{' '}
+                    <Link
+                      href='/community-guidelines'
+                      target='_blank'
+                      className='text-blue-600 underline hover:text-blue-800'
+                    >
+                      Community Guidelines & Acceptable Use Policy
+                    </Link>{' '}
+                    and maintain respectful conduct on the platform.
+                  </Label>
+                </div>
+
+                <div className='flex items-start space-x-3'>
+                  <Checkbox
+                    id='cancellation_policy_consent'
+                    name='cancellation_policy_consent'
+                    required
+                    className='mt-0.5'
+                  />
+                  <Label
+                    htmlFor='cancellation_policy_consent'
+                    className='text-sm leading-5'
+                  >
+                    I understand and accept the{' '}
+                    <Link
+                      href='/cancellation-refund-policy'
+                      target='_blank'
+                      className='text-blue-600 underline hover:text-blue-800'
+                    >
+                      Cancellation & Refund Policy
+                    </Link>{' '}
+                    including the 12-hour cancellation window.
+                  </Label>
+                </div>
+
+                {/* Marketing consent - Optional */}
+                <div className='flex items-start space-x-3 border-t border-gray-100 pt-2'>
+                  <Checkbox
+                    id='marketing_consent'
+                    name='marketing_consent'
+                    className='mt-0.5'
+                  />
+                  <Label
+                    htmlFor='marketing_consent'
+                    className='text-sm leading-5 text-gray-600'
+                  >
+                    <strong>Optional:</strong> I consent to receiving marketing
+                    communications and promotional offers from Neighbourhood
+                    Wash. You can unsubscribe at any time.
+                  </Label>
+                </div>
+              </div>
+
+              <div className='mt-4 rounded-lg bg-blue-50 p-3'>
+                <p className='text-xs text-blue-900'>
+                  <strong>Note:</strong> By creating an account, you confirm
+                  that you are at least 18 years old and have the legal capacity
+                  to enter into this agreement. All legal documents will open in
+                  a new tab for your review.
+                </p>
               </div>
             </div>
 
