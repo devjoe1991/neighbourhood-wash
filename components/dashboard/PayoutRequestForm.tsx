@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
@@ -16,13 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import {
-  PoundSterling,
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Loader2,
-} from 'lucide-react'
+import { PoundSterling, Info, CheckCircle, Loader2 } from 'lucide-react'
 import { createPayoutRequest } from '@/app/washer/dashboard/payouts/actions'
 import { toast } from 'sonner'
 
@@ -31,6 +24,7 @@ interface PayoutRequestFormProps {
   minimumPayout: number
   withdrawalFee: number
   onPayoutSuccess: () => void
+  isFirstPayout?: boolean
 }
 
 export default function PayoutRequestForm({
@@ -38,9 +32,9 @@ export default function PayoutRequestForm({
   minimumPayout = 10,
   withdrawalFee = 2.5,
   onPayoutSuccess,
+  isFirstPayout = false,
 }: PayoutRequestFormProps) {
   const [amount, setAmount] = useState('')
-  const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
@@ -54,12 +48,12 @@ export default function PayoutRequestForm({
 
     setIsSubmitting(true)
     try {
-      const result = await createPayoutRequest(requestedAmount, notes.trim())
+      // Notes are now handled on the backend, so we only pass the amount
+      const result = await createPayoutRequest(requestedAmount)
 
       if (result.success) {
         toast.success(result.message)
         setAmount('')
-        setNotes('')
         setShowConfirmation(false)
         onPayoutSuccess()
       } else {
@@ -142,7 +136,14 @@ export default function PayoutRequestForm({
                     <span>{formatCurrency(requestedAmount)}</span>
                   </div>
                   <div className='flex justify-between text-orange-600'>
-                    <span>Withdrawal fee:</span>
+                    <span>
+                      Withdrawal fee:
+                      {isFirstPayout && (
+                        <span className='ml-2 text-xs font-semibold text-green-600'>
+                          (Waived!)
+                        </span>
+                      )}
+                    </span>
                     <span>-{formatCurrency(withdrawalFee)}</span>
                   </div>
                   <Separator />
@@ -162,34 +163,6 @@ export default function PayoutRequestForm({
                   </span>
                 </div>
               </div>
-            )}
-
-            {/* Optional Notes */}
-            <div className='space-y-2'>
-              <Label htmlFor='notes'>Additional Notes (Optional)</Label>
-              <Textarea
-                id='notes'
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder='Any additional information about this payout request...'
-                rows={3}
-                maxLength={500}
-              />
-              <div className='text-right text-xs text-gray-500'>
-                {notes.length}/500
-              </div>
-            </div>
-
-            {/* Validation Messages */}
-            {amount && !isValidAmount && (
-              <Alert variant='destructive'>
-                <AlertTriangle className='h-4 w-4' />
-                <AlertDescription>
-                  {requestedAmount < minimumPayout
-                    ? `Amount must be at least ${formatCurrency(minimumPayout)}`
-                    : `Amount cannot exceed your available balance of ${formatCurrency(availableBalance)}`}
-                </AlertDescription>
-              </Alert>
             )}
 
             {/* Submit Button */}
@@ -230,7 +203,14 @@ export default function PayoutRequestForm({
                         </span>
                       </div>
                       <div className='flex justify-between text-orange-600'>
-                        <span>Withdrawal fee:</span>
+                        <span>
+                          Withdrawal fee:
+                          {isFirstPayout && (
+                            <span className='ml-2 text-xs font-semibold text-green-600'>
+                              (Waived!)
+                            </span>
+                          )}
+                        </span>
                         <span>-{formatCurrency(withdrawalFee)}</span>
                       </div>
                       <Separator />
@@ -242,13 +222,6 @@ export default function PayoutRequestForm({
                       </div>
                     </div>
                   </div>
-
-                  {notes && (
-                    <div>
-                      <Label>Notes:</Label>
-                      <p className='mt-1 text-sm text-gray-600'>{notes}</p>
-                    </div>
-                  )}
 
                   <Alert>
                     <CheckCircle className='h-4 w-4' />
