@@ -18,16 +18,6 @@ export default function Footer() {
             </p>
             <div className='text-sm text-gray-500'>
               <p>Neighbourhood Wash Technologies Ltd</p>
-              <p>115 Hampstead Road, London, NW1 3EE</p>
-              <p className='mt-2'>
-                Email:{' '}
-                <a
-                  href='mailto:team@neighbourhoodwash.com'
-                  className='text-blue-600 hover:text-blue-800'
-                >
-                  team@neighbourhoodwash.com
-                </a>
-              </p>
             </div>
           </div>
 
