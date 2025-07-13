@@ -248,7 +248,18 @@ export default function OurWashersPage() {
               </h3>
               <p className='text-sm text-gray-600'>
                 Help out your neighbours and build connections within your local
-                area. Be a valued part of the community fabric.
+                area while providing a valuable service.
+              </p>
+            </div>
+            {/* New Benefit for Waived Fee */}
+            <div className='flex flex-col items-center rounded-lg bg-white p-6 text-center shadow-lg'>
+              <CheckBadgeIcon className='mb-3 h-12 w-12 text-blue-500' />
+              <h3 className='mb-2 text-xl font-semibold text-gray-800'>
+                Get Started for Free
+              </h3>
+              <p className='text-sm text-gray-600'>
+                As a special welcome, we'll waive the processing fee on your
+                first payout. It's our way of saying thanks for joining!
               </p>
             </div>
             <div className='flex flex-col items-center rounded-lg bg-white p-6 text-center shadow-lg'>

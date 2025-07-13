@@ -286,9 +286,11 @@ export async function getWasherBalance(): Promise<ActionResult> {
  * Create a new payout request
  */
 export async function createPayoutRequest(
-  amount: number,
-  notes?: string
+  amount: number
 ): Promise<ActionResult> {
+  const WITHDRAWAL_FEE = 2.5
+  const MINIMUM_PAYOUT = 10.0
+
   try {
     const supabase = createSupabaseServerClient()
     const {
@@ -297,102 +299,104 @@ export async function createPayoutRequest(
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      return { success: false, message: 'Authentication failed.' }
+    }
+
+    // Check if it's the user's first completed payout
+    const { count: completedPayoutsCount, error: countError } = await supabase
+      .from('payout_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('washer_id', user.id)
+      .eq('status', 'completed')
+
+    if (countError) {
+      console.error('Error checking for previous payouts:', countError)
       return {
         success: false,
-        message: 'Authentication required.',
+        message: 'Could not verify payout history. Please try again.',
       }
     }
 
-    // Verify user is a washer with verified Stripe account
-    const stripeStatusResult = await getWasherStripeAccountStatus()
-    const stripeData = stripeStatusResult.data as {
-      can_receive_payouts?: boolean
+    const isFirstPayout = completedPayoutsCount === 0
+    const actualWithdrawalFee = isFirstPayout ? 0 : WITHDRAWAL_FEE
+
+    const { data: balanceData, error: balanceError } = await supabase.rpc(
+      'get_washer_balance_details',
+      { p_user_id: user.id }
+    )
+
+    if (balanceError || !balanceData) {
+      return {
+        success: false,
+        message: 'Could not retrieve your current balance.',
+      }
     }
-    if (!stripeStatusResult.success || !stripeData?.can_receive_payouts) {
+
+    const availableBalance = balanceData.available_balance
+
+    if (amount < MINIMUM_PAYOUT) {
+      return {
+        success: false,
+        message: `Minimum payout amount is £${MINIMUM_PAYOUT.toFixed(2)}.`,
+      }
+    }
+
+    if (amount > availableBalance) {
+      return {
+        success: false,
+        message: 'Requested amount exceeds your available balance.',
+      }
+    }
+
+    const payoutAmount = amount - actualWithdrawalFee
+
+    if (payoutAmount <= 0) {
       return {
         success: false,
         message:
-          'Your Stripe account must be fully verified before requesting payouts.',
+          'Payout amount after fees is not positive. Please request a higher amount.',
       }
     }
 
-    // Get current balance
-    const balanceResult = await getWasherBalance()
-    if (!balanceResult.success) {
-      return {
-        success: false,
-        message: 'Unable to verify account balance.',
-      }
-    }
-
-    const balance = balanceResult.data as { available_balance: number }
-    const minimumPayout = 10.0 // £10 minimum
-    const withdrawalFee = 2.5 // £2.50 fee
-
-    // Validate payout amount
-    if (amount < minimumPayout) {
-      return {
-        success: false,
-        message: `Minimum payout amount is £${minimumPayout}.`,
-      }
-    }
-
-    if (amount > balance.available_balance) {
-      return {
-        success: false,
-        message: `Insufficient balance. Available: £${balance.available_balance.toFixed(
-          2
-        )}`,
-      }
-    }
-
-    const netAmount = amount - withdrawalFee
-
-    if (netAmount <= 0) {
-      return {
-        success: false,
-        message: `Payout amount must be greater than withdrawal fee of £${withdrawalFee}.`,
-      }
-    }
-
-    // Create payout request
-    const { data: payoutRequest, error: requestError } = await supabase
+    // Insert into payout_requests table
+    const { data: request, error: requestError } = await supabase
       .from('payout_requests')
       .insert({
         washer_id: user.id,
-        requested_amount: amount,
-        withdrawal_fee: withdrawalFee,
-        net_amount: netAmount,
-        request_notes: notes || null,
+        amount_requested: amount,
+        withdrawal_fee: actualWithdrawalFee,
+        amount_to_payout: payoutAmount,
+        status: 'pending',
+        notes: isFirstPayout ? 'First payout: Fee waived.' : null,
       })
-      .select()
+      .select('id')
       .single()
 
     if (requestError) {
-      console.error('Error creating payout request:', requestError)
       return {
         success: false,
-        message: 'Failed to create payout request.',
+        message: `Failed to create payout request: ${requestError.message}`,
       }
     }
 
-    // Update earnings status to 'processing' for the requested amount
+    // Update the status of the related earnings records
     await updateEarningsStatusForPayout(user.id, amount)
 
     return {
       success: true,
       message: `Payout request for £${amount.toFixed(
         2
-      )} created successfully. You'll receive £${netAmount.toFixed(
-        2
-      )} after the £${withdrawalFee} withdrawal fee.`,
-      data: payoutRequest,
+      )} submitted successfully.`,
+      data: {
+        requestId: request.id,
+        feeWaived: isFirstPayout,
+      },
     }
   } catch (error) {
     console.error('Error creating payout request:', error)
     return {
       success: false,
-      message: 'An unexpected error occurred.',
+      message: 'An unexpected error occurred while creating your request.',
     }
   }
 }
@@ -438,6 +442,54 @@ export async function getPayoutRequests(): Promise<ActionResult> {
     console.error('Error getting payout requests:', error)
     return {
       success: false,
+      message: 'An unexpected error occurred.',
+    }
+  }
+}
+
+/**
+ * Checks if the current washer is eligible for the "first payout fee waived" offer.
+ */
+export async function isEligibleForFreePayout(): Promise<{
+  eligible: boolean
+  message: string
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return { eligible: false, message: 'Authentication failed.' }
+    }
+
+    const { count, error } = await supabase
+      .from('payout_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('washer_id', user.id)
+      .eq('status', 'completed')
+
+    if (error) {
+      console.error('Error checking payout eligibility:', error)
+      return {
+        eligible: false,
+        message: 'Could not verify payout history.',
+      }
+    }
+
+    return {
+      eligible: count === 0,
+      message:
+        count === 0
+          ? 'User is eligible for first free payout.'
+          : 'User has previous completed payouts.',
+    }
+  } catch (error) {
+    console.error('Error in isEligibleForFreePayout:', error)
+    return {
+      eligible: false,
       message: 'An unexpected error occurred.',
     }
   }

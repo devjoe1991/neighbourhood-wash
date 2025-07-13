@@ -11,8 +11,13 @@ import {
   Clock,
   TrendingUp,
   Wallet,
+  Gift,
 } from 'lucide-react'
-import { getWasherBalance, getWasherStripeAccountStatus } from './actions'
+import {
+  getWasherBalance,
+  getWasherStripeAccountStatus,
+  isEligibleForFreePayout,
+} from './actions'
 import PayoutRequestForm from '@/components/dashboard/PayoutRequestForm'
 import PayoutHistory from '@/components/dashboard/PayoutHistory'
 import { toast } from 'sonner'
@@ -38,6 +43,7 @@ export default function PayoutsPage() {
   const [stripeAccount, setStripeAccount] = useState<StripeAccountData | null>(
     null
   )
+  const [isEligible, setIsEligible] = useState(false)
   const [loading, setLoading] = useState(true)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
@@ -56,10 +62,12 @@ export default function PayoutsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [balanceResult, stripeResult] = await Promise.all([
-        getWasherBalance(),
-        getWasherStripeAccountStatus(),
-      ])
+      const [balanceResult, stripeResult, eligibilityResult] =
+        await Promise.all([
+          getWasherBalance(),
+          getWasherStripeAccountStatus(),
+          isEligibleForFreePayout(),
+        ])
 
       if (balanceResult.success) {
         setBalance(balanceResult.data as WasherBalance)
@@ -71,6 +79,10 @@ export default function PayoutsPage() {
         setStripeAccount(stripeResult.data as StripeAccountData)
       } else {
         toast.error(stripeResult.message || 'Failed to load Stripe status')
+      }
+
+      if (eligibilityResult.eligible) {
+        setIsEligible(true)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -115,6 +127,17 @@ export default function PayoutsPage() {
           Manage your earnings and request payouts securely through our platform
         </p>
       </div>
+
+      {/* Promotional Alert */}
+      {isEligible && (
+        <Alert className='border-green-500 bg-green-50 text-green-900'>
+          <Gift className='h-5 w-5' />
+          <AlertDescription className='font-semibold'>
+            Welcome aboard! As a new washer, the £2.50 fee on your first payout
+            is completely waived.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Balance Overview Cards */}
       {balance && (
@@ -186,8 +209,9 @@ export default function PayoutsPage() {
             <PayoutRequestForm
               availableBalance={balance?.available_balance || 0}
               minimumPayout={10.0}
-              withdrawalFee={2.5}
+              withdrawalFee={isEligible ? 0 : 2.5}
               onPayoutSuccess={handlePayoutSuccess}
+              isFirstPayout={isEligible}
             />
           ) : (
             <Card>
