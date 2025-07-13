@@ -67,7 +67,6 @@ export function TrustBadge() {
       </div>
       <div className='text-sm'>
         <span className='font-semibold text-gray-900'>Excellent</span>
-        <span className='ml-1 text-gray-600'>• Trusted by 1000+ users</span>
       </div>
     </div>
   )

@@ -195,8 +195,8 @@ export default function HomePage() {
             Neighbourhood Watch
           </h2>
           <p className='mt-4 text-lg text-gray-600 md:text-xl dark:text-gray-400'>
-            Not all our neighbours did laundry. Didn’t stop them leaving a
-            review.
+            Some of our favourite reviews. And yes, we're fully aware of what a
+            1-star rating means.
           </p>
         </div>
         <Carousel
