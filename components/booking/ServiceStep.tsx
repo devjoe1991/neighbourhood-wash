@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   BookingSelection,
   itemCategories,
@@ -41,7 +41,7 @@ const addOnColors: Record<
 
 interface ServiceStepProps {
   selection: BookingSelection
-  onSelectionChange: (updates: Partial<BookingSelection>) => void
+  onSelectionChange: (selection: BookingSelection) => void
   estimatedWeight: number
 }
 
@@ -85,27 +85,39 @@ export default function ServiceStep({
   onSelectionChange,
   estimatedWeight,
 }: ServiceStepProps) {
-  const [activeTab, setActiveTab] = useState('items')
+  const [currentSelection, setCurrentSelection] = useState(selection)
+
+  useEffect(() => {
+    onSelectionChange(currentSelection)
+  }, [currentSelection, onSelectionChange])
 
   const handleItemQuantityChange = (itemKey: ItemKey, newQuantity: number) => {
-    const updatedItems = { ...selection.selectedItems }
+    const updatedItems = { ...currentSelection.selectedItems }
     if (newQuantity > 0) {
       updatedItems[itemKey] = newQuantity
     } else {
       delete updatedItems[itemKey]
     }
-    onSelectionChange({ selectedItems: updatedItems })
+    setCurrentSelection({
+      ...currentSelection,
+      selectedItems: updatedItems,
+      weightTier: null,
+    })
   }
 
   const handleWeightTierSelect = (tier: WeightTier) => {
-    onSelectionChange({ weightTier: tier, selectedItems: {} })
+    setCurrentSelection({
+      ...currentSelection,
+      weightTier: tier,
+      selectedItems: {},
+    })
   }
 
   const handleAddOnToggle = (addOn: AddOn) => {
-    const newAddOns = selection.selectedAddOns.includes(addOn)
-      ? selection.selectedAddOns.filter((a) => a !== addOn)
-      : [...selection.selectedAddOns, addOn]
-    onSelectionChange({ selectedAddOns: newAddOns })
+    const newAddOns = currentSelection.selectedAddOns.includes(addOn)
+      ? currentSelection.selectedAddOns.filter((a) => a !== addOn)
+      : [...currentSelection.selectedAddOns, addOn]
+    setCurrentSelection({ ...currentSelection, selectedAddOns: newAddOns })
   }
 
   return (
@@ -127,13 +139,13 @@ export default function ServiceStep({
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue='weight'>
         <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='items'>
-            <List className='mr-2 h-4 w-4' /> By Item
-          </TabsTrigger>
           <TabsTrigger value='weight'>
             <Scale className='mr-2 h-4 w-4' /> By Weight
+          </TabsTrigger>
+          <TabsTrigger value='items'>
+            <List className='mr-2 h-4 w-4' /> By Item
           </TabsTrigger>
         </TabsList>
 
@@ -155,17 +167,24 @@ export default function ServiceStep({
                         </p>
                       </div>
                       <QuantitySelector
-                        quantity={selection.selectedItems[itemKey as ItemKey] || 0}
+                        quantity={
+                          currentSelection.selectedItems[itemKey as ItemKey] ||
+                          0
+                        }
                         onDecrease={() =>
                           handleItemQuantityChange(
                             itemKey as ItemKey,
-                            (selection.selectedItems[itemKey as ItemKey] || 1) - 1
+                            (currentSelection.selectedItems[
+                              itemKey as ItemKey
+                            ] || 1) - 1
                           )
                         }
                         onIncrease={() =>
                           handleItemQuantityChange(
                             itemKey as ItemKey,
-                            (selection.selectedItems[itemKey as ItemKey] || 0) + 1
+                            (currentSelection.selectedItems[
+                              itemKey as ItemKey
+                            ] || 0) + 1
                           )
                         }
                       />
@@ -185,7 +204,7 @@ export default function ServiceStep({
                 onClick={() => handleWeightTierSelect(key as WeightTier)}
                 className={cn(
                   'flex cursor-pointer items-center justify-between rounded-lg border-2 p-4 transition-all',
-                  selection.weightTier === key
+                  currentSelection.weightTier === key
                     ? 'border-blue-600 bg-blue-50'
                     : 'border-gray-200'
                 )}
@@ -208,24 +227,32 @@ export default function ServiceStep({
         <h3 className='text-lg font-semibold'>Optional Add-ons</h3>
         <div className='space-y-2 rounded-lg border bg-gray-50/50 p-3'>
           {Object.entries(serviceConfig.addOns).map(([key, config]) => {
-            const isSelected = selection.selectedAddOns.includes(key as AddOn)
+            const isSelected = currentSelection.selectedAddOns.includes(
+              key as AddOn
+            )
             const colors = addOnColors[key as AddOn]
             return (
               <div
                 key={key}
+                onClick={() => handleAddOnToggle(key as AddOn)}
                 className={cn(
-                  'flex items-center justify-between rounded-md border p-3 transition-all',
+                  'flex cursor-pointer items-center justify-between rounded-md border p-3 transition-all',
                   colors.bg,
                   isSelected ? 'ring-2 ring-blue-500' : colors.border
                 )}
               >
                 <div>
-                  <p className={cn('font-medium', colors.text)}>{config.label}</p>
+                  <p className={cn('font-medium', colors.text)}>
+                    {config.label}
+                  </p>
                 </div>
                 <Button
                   size='icon'
                   variant={isSelected ? 'default' : 'outline'}
-                  onClick={() => handleAddOnToggle(key as AddOn)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddOnToggle(key as AddOn)
+                  }}
                   className={cn(
                     'h-8 w-8 flex-shrink-0 rounded-full',
                     !isSelected && colors.bg,
