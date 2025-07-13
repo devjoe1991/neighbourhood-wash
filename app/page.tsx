@@ -235,8 +235,9 @@ export default function HomePage() {
             A new<span className='text-blue-600'> community staple</span>
           </h2>
           <p className='mx-auto mt-5 max-w-2xl text-lg text-gray-600 sm:mt-6'>
-            The laundry revolution has come to your doorstep. Why not get your
-            search off to a great start?
+            Tired of faceless laundromats and corporate apps that couldn't find
+            your neighbourhood on a map? It's time to do laundry the local way.
+            Get started and have a real neighbour sort you out.
           </p>
           <div className='mt-8 flex justify-center gap-4'>
             <Button
