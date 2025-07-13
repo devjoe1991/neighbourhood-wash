@@ -49,8 +49,9 @@ export default function SignupForm({
           name='role'
           className='space-y-3'
         >
-          <div
-            className={`relative rounded-lg border-2 p-4 transition-all ${
+          <Label
+            htmlFor='role-user'
+            className={`relative block cursor-pointer rounded-lg border-2 p-4 transition-all ${
               role === 'user'
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300'
@@ -61,22 +62,18 @@ export default function SignupForm({
               <div className='flex flex-1 items-center space-x-3'>
                 <User className='h-5 w-5 text-blue-600' />
                 <div>
-                  <Label
-                    htmlFor='role-user'
-                    className='cursor-pointer font-medium text-gray-900'
-                  >
-                    User
-                  </Label>
+                  <p className='font-medium text-gray-900'>User</p>
                   <p className='text-sm text-gray-600'>
                     Looking for laundry service
                   </p>
                 </div>
               </div>
             </div>
-          </div>
+          </Label>
 
-          <div
-            className={`relative rounded-lg border-2 p-4 transition-all ${
+          <Label
+            htmlFor='role-washer'
+            className={`relative block cursor-pointer rounded-lg border-2 p-4 transition-all ${
               role === 'washer'
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300'
@@ -91,19 +88,14 @@ export default function SignupForm({
               <div className='flex flex-1 items-center space-x-3'>
                 <Briefcase className='h-5 w-5 text-blue-600' />
                 <div>
-                  <Label
-                    htmlFor='role-washer'
-                    className='cursor-pointer font-medium text-gray-900'
-                  >
-                    Washer
-                  </Label>
+                  <p className='font-medium text-gray-900'>Washer</p>
                   <p className='text-sm text-gray-600'>
                     Offering laundry service
                   </p>
                 </div>
               </div>
             </div>
-          </div>
+          </Label>
         </RadioGroup>
       </div>
 
