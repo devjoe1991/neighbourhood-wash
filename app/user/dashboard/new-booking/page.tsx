@@ -24,12 +24,9 @@ import ServiceStep from '@/components/booking/ServiceStep'
 import DetailsStep from '@/components/booking/DetailsStep'
 import PaymentStep from '@/components/booking/PaymentStep'
 import { createBooking, type BookingData } from './actions'
-import { Elements } from '@stripe/react-stripe-js'
-import { stripePromise } from '@/lib/stripe/client'
-import { createPaymentIntent } from '@/lib/stripe/actions'
-import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/utils/supabase/client'
 
 const STEPS = [
   { id: 1, name: 'Schedule', icon: Calendar },
@@ -70,15 +67,8 @@ export default function NewBookingPage() {
   const [accessNotes, setAccessNotes] = useState('')
   const [laundryPreferences, setLaundryPreferences] = useState<string>('')
 
-  // Step 4: Payment state
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [userAgreementAccepted, setUserAgreementAccepted] = useState(false)
-  const [cancellationPolicyAccepted, setCancellationPolicyAccepted] =
-    useState(false)
+  // Step 4: State is simplified
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [paymentInitializing, setPaymentInitializing] = useState(false)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   // Calculate total price whenever selection changes
   useEffect(() => {
@@ -88,55 +78,7 @@ export default function NewBookingPage() {
     setItemizedBreakdown(breakdown)
   }, [selection])
 
-  // Reset payment state when moving away from payment step
-  useEffect(() => {
-    if (currentStep !== 4) {
-      setClientSecret(null)
-      setPaymentInitializing(false)
-      setPaymentError(null)
-    }
-  }, [currentStep])
-
-  // Create payment intent when reaching payment step
-  useEffect(() => {
-    if (
-      currentStep === 4 &&
-      totalPrice > 0 &&
-      !clientSecret &&
-      !paymentInitializing &&
-      !paymentError
-    ) {
-      console.log('🔄 Initiating payment intent creation for step 4')
-      setPaymentInitializing(true)
-      setPaymentError(null)
-
-      createPaymentIntent(Math.round(totalPrice * 100))
-        .then((result) => {
-          if (result.success && result.clientSecret) {
-            console.log('✅ Payment intent created successfully')
-            setClientSecret(result.clientSecret)
-            setPaymentError(null)
-          } else {
-            console.error('❌ Failed to create payment intent:', result.error)
-            const errorMessage = result.error || 'Payment initialization failed'
-            setPaymentError(errorMessage)
-            toast.error(
-              'Could not initialize payment. Please check your Stripe configuration.'
-            )
-          }
-        })
-        .catch((error) => {
-          console.error('❌ Error creating payment intent:', error)
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error occurred'
-          setPaymentError(errorMessage)
-          toast.error('Could not initialize payment. Please try again.')
-        })
-        .finally(() => {
-          setPaymentInitializing(false)
-        })
-    }
-  }, [currentStep, totalPrice, clientSecret, paymentInitializing, paymentError])
+  // All client-side payment intent logic is removed.
 
   // Fetch user profile for laundry preferences
   useEffect(() => {
@@ -180,12 +122,13 @@ export default function NewBookingPage() {
       // Details step - no required fields, special instructions are optional
       return true
     }
-    if (currentStep === 4) {
-      // Payment step - all agreements must be accepted
-      return (
-        termsAccepted && userAgreementAccepted && cancellationPolicyAccepted
-      )
-    }
+    // This check is no longer needed as consents are handled implicitly
+    // if (currentStep === 4) {
+    //   // Payment step - all agreements must be accepted
+    //   return (
+    //     termsAccepted && userAgreementAccepted && cancellationPolicyAccepted
+    //   )
+    // }
     return true
   }
 
@@ -201,17 +144,31 @@ export default function NewBookingPage() {
     }
   }
 
-  const handlePaymentSubmit = async (paymentIntentId: string) => {
+  // New function to be passed to PaymentStep
+  const handleFinalizeBooking = async (): Promise<{
+    success: boolean
+    bookingId?: number
+    washerId?: string
+  }> => {
     if (!selection.date || !selection.weightTier) {
-      return
+      toast.error('Missing booking details.')
+      return { success: false }
     }
     if (selection.deliveryMethod === 'collection' && !selection.timeSlot) {
-      return
+      toast.error('Missing booking details.')
+      return { success: false }
     }
 
     setIsSubmitting(true)
 
     try {
+      // --- TEMPORARY WASHER ASSIGNMENT ---
+      // This logic will be replaced by the real washer assignment system.
+      // For now, we'll assign a placeholder washer.
+      // IMPORTANT: THIS IS A HARDCODED PLACEHOLDER FOR DEVELOPMENT.
+      const placeholderWasherId = 'd7e366e5-e490-466d-944e-a8a5f6a9b0c1' // Replace with a real washer UUID from your DB
+      // --- END TEMPORARY ---
+
       const bookingData: BookingData = {
         date: selection.date,
         timeSlot: selection.timeSlot,
@@ -223,41 +180,35 @@ export default function NewBookingPage() {
         stainImageUrls: uploadedImageUrls,
         accessNotes,
         totalPrice,
-        paymentIntentId, // Add the payment intent ID
+        // We no longer pass a payment intent ID from the client
       }
 
-      // Call the server action
-      const result = await createBooking(bookingData)
+      // We need to add the washer_id to the booking record
+      const result = await createBooking({
+        ...bookingData,
+        washer_id: placeholderWasherId,
+      })
 
-      // Handle successful booking creation
-      console.log('Booking successful, redirecting...', result.bookingId)
-      if (result.bookingId) {
-        window.location.href = `/user/dashboard/booking-confirmation/${result.bookingId}`
+      if (result.success && result.bookingId) {
+        toast.success('Booking record created. Proceeding to payment.')
+        return {
+          success: true,
+          bookingId: result.bookingId,
+          washerId: placeholderWasherId, // Pass the assigned washer's ID back
+        }
       } else {
-        // Handle case where bookingId is not returned
-        console.error('Booking ID not found in response.')
         toast.error(
           result.message || 'Failed to create booking. Please try again.'
         )
+        return { success: false }
       }
     } catch (error) {
-      console.error('Payment submission error:', error)
-
-      // Handle unexpected errors
-      if (error && typeof error === 'object' && 'message' in error) {
-        toast.error(`Error: ${error.message}`)
-      } else {
-        toast.error('An unexpected error occurred. Please try again.')
-      }
+      console.error('Finalize booking error:', error)
+      toast.error('An unexpected error occurred. Please try again.')
+      return { success: false }
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const retryPaymentInitialization = () => {
-    setPaymentError(null)
-    setClientSecret(null)
-    setPaymentInitializing(false)
   }
 
   const renderStep = () => {
@@ -303,55 +254,18 @@ export default function NewBookingPage() {
           />
         )
       case 4:
-        if (paymentInitializing) {
-          return (
-            <div className='flex flex-col items-center justify-center p-8 text-center'>
-              <div className='loader mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent'></div>
-              <p className='text-lg font-semibold'>
-                Initializing Secure Payment
-              </p>
-              <p className='text-sm text-gray-600'>
-                Please wait while we set up your transaction...
-              </p>
-            </div>
-          )
-        }
-
-        if (paymentError) {
-          return (
-            <div className='flex flex-col items-center justify-center rounded-lg bg-red-50 p-8 text-center'>
-              <p className='mb-4 text-lg font-semibold text-red-700'>
-                Payment Error
-              </p>
-              <p className='mb-4 text-sm text-red-600'>{paymentError}</p>
-              <Button onClick={retryPaymentInitialization}>Try Again</Button>
-            </div>
-          )
-        }
-
-        // Only render PaymentStep when we have clientSecret
         return (
-          clientSecret && (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentStep
-                totalPrice={totalPrice}
-                itemizedBreakdown={itemizedBreakdown}
-                selection={selection}
-                specialInstructions={specialInstructions}
-                termsAccepted={termsAccepted}
-                userAgreementAccepted={userAgreementAccepted}
-                cancellationPolicyAccepted={cancellationPolicyAccepted}
-                onTermsChange={setTermsAccepted}
-                onUserAgreementChange={setUserAgreementAccepted}
-                onCancellationPolicyChange={setCancellationPolicyAccepted}
-                onPaymentSubmit={handlePaymentSubmit}
-                isSubmitting={isSubmitting}
-              />
-            </Elements>
-          )
+          <PaymentStep
+            totalPrice={totalPrice}
+            itemizedBreakdown={itemizedBreakdown}
+            selection={selection}
+            specialInstructions={specialInstructions}
+            onFinalizeBooking={handleFinalizeBooking}
+            isSubmitting={isSubmitting}
+          />
         )
       default:
-        return <div>Step not implemented yet</div>
+        return <div>Invalid Step</div>
     }
   }
 

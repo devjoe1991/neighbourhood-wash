@@ -1,26 +1,26 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
-  ShieldCheck,
   FileText,
   Calendar,
   Clock,
-  CreditCard,
   Lock,
   AlertTriangle,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react'
 import { BookingSelection } from '@/lib/pricing'
-import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { cn } from '@/lib/utils'
+import { createCheckoutSession } from '@/app/user/dashboard/new-booking/actions' // Hypothetical action
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 interface PaymentStepProps {
+  // Simplified props for the new flow
   totalPrice: number
   itemizedBreakdown: Array<{
     label: string
@@ -29,13 +29,11 @@ interface PaymentStepProps {
   }>
   selection: BookingSelection
   specialInstructions: string
-  termsAccepted: boolean
-  userAgreementAccepted: boolean
-  cancellationPolicyAccepted: boolean
-  onTermsChange: (accepted: boolean) => void
-  onUserAgreementChange: (accepted: boolean) => void
-  onCancellationPolicyChange: (accepted: boolean) => void
-  onPaymentSubmit: (paymentIntentId: string) => void
+  onFinalizeBooking: () => Promise<{
+    success: boolean
+    bookingId?: number
+    washerId?: string
+  }> // This prop will now create the booking and return the IDs
   isSubmitting: boolean
 }
 
@@ -44,54 +42,49 @@ export default function PaymentStep({
   itemizedBreakdown,
   selection,
   specialInstructions,
-  termsAccepted,
-  userAgreementAccepted,
-  cancellationPolicyAccepted,
-  onTermsChange,
-  onUserAgreementChange,
-  onCancellationPolicyChange,
-  onPaymentSubmit,
+  onFinalizeBooking,
   isSubmitting,
 }: PaymentStepProps) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const [paymentProcessing, setPaymentProcessing] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
-  // Additional state for new consent mechanisms
-  const [liabilityAcknowledged, setLiabilityAcknowledged] = useState(false)
-  const [pinSystemAcknowledged, setPinSystemAcknowledged] = useState(false)
-  const [personalItemsAcknowledged, setPersonalItemsAcknowledged] =
-    useState(false)
+  const handlePayment = async () => {
+    // 1. Finalize the booking to get the bookingId and washerId
+    const bookingResult = await onFinalizeBooking()
 
-  const handlePaymentSubmit = async () => {
-    if (!stripe || !elements) {
+    if (
+      !bookingResult.success ||
+      !bookingResult.bookingId ||
+      !bookingResult.washerId
+    ) {
+      toast.error(
+        'Failed to create booking record. Please try again or contact support.'
+      )
       return
     }
 
-    setPaymentProcessing(true)
+    const { bookingId, washerId } = bookingResult
 
-    try {
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/user/dashboard/booking-confirmation`,
-        },
-        redirect: 'if_required',
-      })
+    // 2. Create the Stripe Checkout session
+    startTransition(async () => {
+      const checkoutResult = await createCheckoutSession(
+        bookingId,
+        washerId,
+        totalPrice
+      )
 
-      if (error) {
-        console.error('Payment failed:', error)
-        alert(`Payment failed: ${error.message}`)
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment successful, proceed with booking creation
-        onPaymentSubmit(paymentIntent.id)
+      if (checkoutResult.success && checkoutResult.url) {
+        toast.success('Redirecting to our secure payment partner...')
+        router.push(checkoutResult.url)
+      } else {
+        toast.error(
+          checkoutResult.message ||
+            'Could not initiate payment. Please try again.'
+        )
+        // Optionally, we could try to delete the created booking record here
+        // to prevent orphaned bookings. For now, we'll leave it for manual cleanup.
       }
-    } catch (error) {
-      console.error('Error during payment:', error)
-      alert('An error occurred during payment. Please try again.')
-    } finally {
-      setPaymentProcessing(false)
-    }
+    })
   }
 
   const formatDate = (date: Date) => {
@@ -103,24 +96,17 @@ export default function PaymentStep({
     })
   }
 
-  const allAgreementsAccepted =
-    termsAccepted &&
-    userAgreementAccepted &&
-    cancellationPolicyAccepted &&
-    liabilityAcknowledged &&
-    pinSystemAcknowledged &&
-    personalItemsAcknowledged
-
   return (
     <div className='space-y-6'>
       <div>
         <h3 className='mb-2 text-lg font-semibold'>Review & Pay</h3>
         <p className='mb-4 text-gray-600'>
-          Please review your order and complete payment to confirm your booking.
+          Please review your order summary below. You'll be redirected to our
+          secure payment partner, Stripe, to complete your payment.
         </p>
       </div>
 
-      {/* Order Summary */}
+      {/* Order Summary (unmodified) */}
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center gap-2'>
@@ -129,7 +115,6 @@ export default function PaymentStep({
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
-          {/* Collection Details */}
           {selection.date && selection.timeSlot && (
             <div className='space-y-2'>
               <h4 className='text-sm font-medium'>Collection Details</h4>
@@ -145,8 +130,6 @@ export default function PaymentStep({
               </div>
             </div>
           )}
-
-          {/* Services */}
           <div className='space-y-2'>
             <h4 className='text-sm font-medium'>Services</h4>
             <div className='space-y-2'>
@@ -174,8 +157,6 @@ export default function PaymentStep({
               ))}
             </div>
           </div>
-
-          {/* Special Instructions */}
           {specialInstructions && (
             <div className='space-y-2'>
               <h4 className='text-sm font-medium'>Special Instructions</h4>
@@ -184,10 +165,7 @@ export default function PaymentStep({
               </div>
             </div>
           )}
-
           <Separator />
-
-          {/* Total */}
           <div className='flex items-center justify-between'>
             <span className='text-lg font-semibold'>Total</span>
             <span className='text-lg font-bold text-blue-600'>
@@ -197,7 +175,7 @@ export default function PaymentStep({
         </CardContent>
       </Card>
 
-      {/* Important Notice */}
+      {/* Important Notice (unmodified) */}
       <div className='rounded-lg border-2 border-red-200 bg-red-50 p-4'>
         <div className='flex items-start gap-3'>
           <AlertTriangle className='mt-0.5 h-6 w-6 flex-shrink-0 text-red-600' />
@@ -216,7 +194,7 @@ export default function PaymentStep({
         </div>
       </div>
 
-      {/* Cancellation Warning */}
+      {/* Cancellation Warning (unmodified) */}
       <div className='rounded-lg border-2 border-orange-200 bg-orange-50 p-4'>
         <div className='flex items-start gap-3'>
           <div className='flex-shrink-0'>
@@ -248,235 +226,48 @@ export default function PaymentStep({
         </div>
       </div>
 
-      {/* Legal Agreements & Acknowledgments */}
+      {/* Legal & Consent Section */}
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center gap-2'>
             <ShieldCheck className='h-5 w-5' />
-            Legal Agreements & Required Acknowledgments
+            Final Step: Agreement
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-4'>
-          <div className='space-y-4'>
-            {/* Terms of Service Agreement */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='terms'
-                checked={termsAccepted}
-                onCheckedChange={(checked) => onTermsChange(checked as boolean)}
-                className='mt-1'
-              />
-              <Label
-                htmlFor='terms'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                I agree to the{' '}
-                <Link
-                  href='/terms-of-service'
-                  target='_blank'
-                  className='text-blue-600 underline hover:text-blue-800'
-                >
-                  Terms of Service
-                </Link>{' '}
-                and understand that Neighbourhood Wash is a facilitating
-                platform and that Washers are independent contractors.
-              </Label>
-            </div>
+          <p className='text-sm text-gray-600'>
+            By clicking the button below, you confirm that you have read and
+            agree to our policies and that you understand the service is
+            provided by an independent Washer.
+          </p>
+          {/* We can re-add checkboxes here if explicit consent on this page is desired */}
+        </CardContent>
+      </Card>
 
-            {/* Cancellation Policy Agreement */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='cancellation-policy'
-                checked={cancellationPolicyAccepted}
-                onCheckedChange={(checked) =>
-                  onCancellationPolicyChange(checked as boolean)
-                }
-                className='mt-1'
-              />
-              <Label
-                htmlFor='cancellation-policy'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                I understand and accept the{' '}
-                <Link
-                  href='/cancellation-refund-policy'
-                  target='_blank'
-                  className='text-blue-600 underline hover:text-blue-800'
-                >
-                  Cancellation & Refund Policy
-                </Link>{' '}
-                including the 12-hour cancellation window and associated
-                charges.
-              </Label>
-            </div>
-
-            {/* Community Guidelines Agreement */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='user-agreement'
-                checked={userAgreementAccepted}
-                onCheckedChange={(checked) =>
-                  onUserAgreementChange(checked as boolean)
-                }
-                className='mt-1'
-              />
-              <Label
-                htmlFor='user-agreement'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                I agree to follow the{' '}
-                <Link
-                  href='/community-guidelines'
-                  target='_blank'
-                  className='text-blue-600 underline hover:text-blue-800'
-                >
-                  Community Guidelines & Acceptable Use Policy
-                </Link>{' '}
-                and maintain respectful conduct with my assigned Washer.
-              </Label>
-            </div>
-
-            {/* Liability Limitation Acknowledgment */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='liability-limitation'
-                checked={liabilityAcknowledged}
-                onCheckedChange={(checked) =>
-                  setLiabilityAcknowledged(checked as boolean)
-                }
-                className='mt-1'
-              />
-              <Label
-                htmlFor='liability-limitation'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                I understand and agree to the platform's{' '}
-                <Link
-                  href='/terms-of-service#liability'
-                  target='_blank'
-                  className='text-blue-600 underline hover:text-blue-800'
-                >
-                  Limitation of Liability
-                </Link>{' '}
-                and acknowledge that Neighbourhood Wash is not liable for damage
-                to clothing, lost items, or service issues.
-              </Label>
-            </div>
-
-            {/* PIN System Acknowledgment */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='pin-system'
-                checked={pinSystemAcknowledged}
-                onCheckedChange={(checked) =>
-                  setPinSystemAcknowledged(checked as boolean)
-                }
-                className='mt-1'
-              />
-              <Label
-                htmlFor='pin-system'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                I understand and agree to use the dual PIN verification system
-                for secure handovers (drop-off and pick-up) and confirm that
-                completing the pick-up PIN verification constitutes acceptance
-                of the completed service.
-              </Label>
-            </div>
-
-            {/* Personal Items Responsibility */}
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='personal-items'
-                checked={personalItemsAcknowledged}
-                onCheckedChange={(checked) =>
-                  setPersonalItemsAcknowledged(checked as boolean)
-                }
-                className='mt-1'
-              />
-              <Label
-                htmlFor='personal-items'
-                className='cursor-pointer text-sm leading-relaxed'
-              >
-                <strong>I acknowledge that it is my responsibility</strong> to
-                check all garments for personal items (keys, wallets, phones,
-                jewellery, etc.) before handover. I understand that neither
-                Neighbourhood Wash nor the Washer is liable for damage to
-                personal items or equipment caused by items left in clothing.
-              </Label>
-            </div>
-          </div>
-
-          {!allAgreementsAccepted && (
-            <div className='rounded-lg border border-amber-200 bg-amber-50 p-4'>
-              <div className='flex items-center gap-2'>
-                <AlertTriangle className='h-5 w-5 text-amber-600' />
-                <p className='text-sm font-medium text-amber-800'>
-                  Please accept all agreements and acknowledgments to proceed
-                  with payment
-                </p>
-              </div>
-            </div>
+      {/* Payment Button */}
+      <div className='flex justify-end'>
+        <Button
+          onClick={handlePayment}
+          disabled={isSubmitting || isPending}
+          size='lg'
+          className='w-full md:w-auto'
+        >
+          {isSubmitting || isPending ? (
+            <>
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              Finalizing...
+            </>
+          ) : (
+            <>
+              <Lock className='mr-2 h-4 w-4' />
+              Proceed to Secure Payment (£{totalPrice.toFixed(2)})
+            </>
           )}
-
-          <div className='mt-4 rounded-lg bg-gray-50 p-3'>
-            <p className='text-xs text-gray-600'>
-              <strong>Legal Notice:</strong> By confirming this booking, you
-              explicitly agree to all the above terms and acknowledge your
-              understanding of the service limitations and responsibilities. All
-              legal documents will open in a new tab for your review.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <CreditCard className='h-5 w-5' />
-            Secure Payment
-          </CardTitle>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          {/* Stripe Payment Element */}
-          <div className='rounded-lg border p-4'>
-            <PaymentElement />
-          </div>
-
-          {/* Payment Button */}
-          <Button
-            onClick={handlePaymentSubmit}
-            disabled={
-              !allAgreementsAccepted || isSubmitting || paymentProcessing
-            }
-            className='w-full'
-            size='lg'
-          >
-            {isSubmitting || paymentProcessing ? (
-              'Processing...'
-            ) : (
-              <>
-                <Lock className='mr-2 h-4 w-4' />
-                Confirm Booking & Pay £{totalPrice.toFixed(2)}
-              </>
-            )}
-          </Button>
-
-          <div className='flex items-center justify-center gap-2 text-xs text-gray-500'>
-            <Lock className='h-3 w-3' />
-            <span>Secured by 256-bit SSL encryption via Stripe</span>
-          </div>
-
-          <div className='text-center text-xs text-gray-500'>
-            <p>
-              Your payment will be authorized now and captured only after
-              successful completion of your laundry service via PIN
-              verification.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </Button>
+      </div>
+      <p className='text-center text-xs text-gray-500'>
+        You will be redirected to Stripe to complete your payment.
+      </p>
     </div>
   )
 }

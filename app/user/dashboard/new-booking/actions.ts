@@ -23,6 +23,7 @@ export interface BookingData {
   // Step 4: Payment
   totalPrice: number
   paymentIntentId?: string
+  washer_id?: string // Add washer_id as an optional field
 }
 
 export interface BookingResult {
@@ -158,6 +159,116 @@ export async function createBooking(
     return {
       success: false,
       message: 'An unexpected error occurred. Please try again.',
+    }
+  }
+}
+
+export async function createCheckoutSession(
+  bookingId: number,
+  washerId: string, // The assigned washer's user ID
+  totalPrice: number
+): Promise<{ success: boolean; message: string; url?: string }> {
+  try {
+    const supabase = createSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return { success: false, message: 'Authentication failed.' }
+    }
+
+    // 1. Get the washer's Stripe Connect account ID from their profile
+    const { data: washerProfile, error: washerProfileError } = await supabase
+      .from('profiles')
+      .select('stripe_account_id, email')
+      .eq('id', washerId)
+      .single()
+
+    if (washerProfileError || !washerProfile) {
+      return { success: false, message: 'Washer profile not found.' }
+    }
+
+    if (!washerProfile.stripe_account_id) {
+      // This is a critical issue. The assigned washer must have a connected Stripe account.
+      // In a real scenario, the washer assignment logic should prevent this.
+      console.error(
+        `Critical: Washer ${washerId} does not have a Stripe account connected.`
+      )
+      return {
+        success: false,
+        message:
+          'The assigned washer is not set up to receive payments. Please contact support.',
+      }
+    }
+
+    const stripe = (await import('@/lib/stripe/server')).stripe
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!
+
+    // 2. Calculate commission (e.g., 15%)
+    // Stripe expects amounts in the smallest currency unit (e.g., pence for GBP)
+    const priceInPence = Math.round(totalPrice * 100)
+    const commissionInPence = Math.round(priceInPence * 0.15) // 15% platform fee
+
+    // 3. Create a Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: `Neighbourhood Wash Service (Booking #${bookingId})`,
+              description:
+                'Complete laundry service including wash, dry, and fold.',
+            },
+            unit_amount: priceInPence,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${siteUrl}/user/dashboard/my-bookings/${bookingId}?payment_success=true`,
+      cancel_url: `${siteUrl}/user/dashboard/my-bookings/${bookingId}?payment_cancelled=true`,
+      customer_email: user.email,
+      metadata: {
+        bookingId: bookingId,
+        userId: user.id,
+        washerId: washerId,
+      },
+      // This is the core of the Connect integration for payments
+      payment_intent_data: {
+        application_fee_amount: commissionInPence,
+        transfer_data: {
+          destination: washerProfile.stripe_account_id,
+        },
+      },
+    })
+
+    if (!session.url) {
+      return {
+        success: false,
+        message: 'Could not create Stripe checkout session.',
+      }
+    }
+
+    // 4. Optionally, store the checkout session ID on the booking for reference
+    await supabase
+      .from('bookings')
+      .update({ payment_intent_id: session.id }) // Using payment_intent_id to store session id
+      .eq('id', bookingId)
+
+    return {
+      success: true,
+      message: 'Checkout session created.',
+      url: session.url,
+    }
+  } catch (error) {
+    console.error('Error creating checkout session:', error)
+    return {
+      success: false,
+      message: 'An unexpected error occurred while setting up payment.',
     }
   }
 }
