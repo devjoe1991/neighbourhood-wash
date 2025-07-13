@@ -190,6 +190,14 @@ export default function HomePage() {
 
       {/* Testimonials Section */}
       <ModernSection background='primary-deep-blue' padding='lg'>
+        <div className='mb-12 text-center'>
+          <h2 className='text-3xl font-bold tracking-tighter text-gray-900 sm:text-4xl md:text-5xl dark:text-gray-50'>
+            Neighbourhood Chatter
+          </h2>
+          <p className='mt-4 text-lg text-gray-600 md:text-xl dark:text-gray-400'>
+            Some reviews are taking the mick — some actually used the service.
+          </p>
+        </div>
         <Carousel
           opts={{
             align: 'start',
