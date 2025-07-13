@@ -41,6 +41,10 @@ const userFaqs = [
     q: 'How do you take my money?',
     a: 'Securely and digitally. You pay via the platform when you book. We hold it safely and only release it to the Washer after the service is completed successfully. No dodgy cash exchanges here.',
   },
+  {
+    q: 'What about... awkward laundry?',
+    a: "We get it. Underwear is weird. That's why we have a strict hygiene policy for everyone. Plus, once you accept a job, you can use our live chat to break the ice and confirm any special instructions directly with the user. No surprises.",
+  },
 ]
 
 const washerFaqs = [
