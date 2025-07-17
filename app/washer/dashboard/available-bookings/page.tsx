@@ -1,6 +1,5 @@
 import { AlertCircle, Search } from 'lucide-react'
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { requireWasherVerification } from '@/lib/middleware/washer-verification'
 import { getAvailableBookings } from '../actions'
 import AvailableBookingsClient from './AvailableBookingsClient'
 import {
@@ -14,35 +13,8 @@ import {
 export const dynamic = 'force-dynamic'
 
 export default async function AvailableBookingsPage() {
-  // Authentication and authorization checks
-  const supabase = createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return redirect('/signin')
-  }
-
-  // Verify user is a washer and approved
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role, washer_status')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile) {
-    // This case should ideally not happen for a logged-in user
-    // but redirecting to safety.
-    console.error('Profile fetch error:', profileError)
-    return redirect('/user/dashboard')
-  }
-
-  if (profile.role !== 'washer' || profile.washer_status !== 'approved') {
-    // If not an approved washer, redirect them away.
-    // They can apply from their dashboard.
-    return redirect('/user/dashboard/become-washer?reason=not_approved')
-  }
+  // Check authentication, washer status, and verification
+  await requireWasherVerification()
 
   const result = await getAvailableBookings()
 

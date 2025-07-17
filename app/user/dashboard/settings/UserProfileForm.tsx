@@ -22,6 +22,7 @@ import { UserCircleIcon, MailIcon, Loader2Icon } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { VerificationStatusCard } from '@/components/washer/VerificationStatusCard'
 
 interface ProfileData {
   id: string
@@ -30,6 +31,7 @@ interface ProfileData {
   phone_number?: string | null
   postcode?: string | null
   borough?: string | null
+  role?: string | null
 }
 
 interface UserProfileFormProps {
@@ -87,6 +89,8 @@ export default function UserProfileForm({
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+
+
 
   useEffect(() => {
     if (initialProfile) {
@@ -225,6 +229,13 @@ export default function UserProfileForm({
             {saving ? 'Saving...' : 'Save Profile'}
           </Button>
         </form>
+
+        {/* Verification Status Display for Washers */}
+        {initialProfile?.role === 'washer' && (
+          <div className='mt-6 pt-6 border-t border-gray-200'>
+            <VerificationStatusCard userId={userId} showTitle={true} />
+          </div>
+        )}
       </CardContent>
     </Card>
   )

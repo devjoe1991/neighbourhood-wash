@@ -1,9 +1,12 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
 export async function signup(formData: FormData) {
+  const h = await headers()
+  const origin = h.get('origin')
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const referralCode = formData.get('referral_code') as string
@@ -23,14 +26,12 @@ export async function signup(formData: FormData) {
   }
 
   // Sign up the user
-  const {
-    data: { user },
-    error: signUpError,
-  } = await supabase.auth.signUp({
+  const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: metadata,
+      emailRedirectTo: `${origin}/auth/callback`,
     },
   })
 
@@ -39,22 +40,11 @@ export async function signup(formData: FormData) {
     return redirect('/signup?message=Could not authenticate user')
   }
 
-  if (!user) {
+  if (!data.user) {
     return redirect('/signup?message=Could not authenticate user')
   }
 
-  // Create a profile for the new user
-  const { error: profileError } = await supabase.from('profiles').insert({
-    id: user.id,
-    email: user.email,
-    full_name: user.user_metadata?.full_name || user.email,
-    role: metadata.selected_role,
-  })
-
-  if (profileError) {
-    console.error('Error creating profile:', profileError)
-    return redirect('/signup?message=Could not create user profile.')
-  }
+  const user = data.user
 
   // Process referral code if provided
   if (metadata.submitted_referral_code) {
@@ -88,10 +78,6 @@ export async function signup(formData: FormData) {
     }
   }
 
-  // Success! Redirect based on user role
-  if (metadata.selected_role === 'washer') {
-    return redirect('/washer/dashboard')
-  } else {
-    return redirect('/user/dashboard')
-  }
+  // Success! Redirect to the confirmation page.
+  return redirect('/auth/confirm-email')
 }

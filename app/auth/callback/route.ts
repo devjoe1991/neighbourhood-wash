@@ -24,14 +24,40 @@ export async function GET(request: NextRequest) {
         } = await supabase.auth.getUser()
 
         if (user) {
-          // Check user profile for role
-          const { data: profile } = await supabase
+          // Check if profile exists, create if it doesn't
+          const { data: existingProfile, error: profileCheckError } = await supabase
             .from('profiles')
-            .select('role')
+            .select('id, role')
             .eq('id', user.id)
             .maybeSingle()
 
-          const userRole = profile?.role || user.user_metadata?.selected_role
+          let userRole = existingProfile?.role
+
+          // If no profile exists, create one using user metadata
+          if (!existingProfile && !profileCheckError) {
+            const selectedRole = user.user_metadata?.selected_role || 'user'
+            
+            const { error: profileCreationError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || user.email,
+                role: selectedRole,
+              })
+
+            if (profileCreationError) {
+              console.error('Error creating profile in callback:', profileCreationError)
+              // Continue anyway, using metadata role for redirect
+            }
+            
+            userRole = selectedRole
+          }
+
+          // Fallback to metadata if profile role is not available
+          if (!userRole) {
+            userRole = user.user_metadata?.selected_role || 'user'
+          }
 
           // Redirect based on role
           switch (userRole) {

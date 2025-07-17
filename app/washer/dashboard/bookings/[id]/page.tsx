@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,66 +12,25 @@ import {
   Package,
   AlertCircle,
 } from 'lucide-react'
+import { requireWasherVerification } from '@/lib/middleware/washer-verification'
 import { getBookingDetails, WasherBooking } from '../../actions'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
 import WasherBookingClient from './WasherBookingClient'
 
 interface WasherBookingDetailPageProps {
   params: Promise<{ id: string }>
 }
 
-async function fetchBookingAndUser(bookingId: number): Promise<{
+async function fetchBooking(bookingId: number, _userId: string): Promise<{
   booking: WasherBooking | null
-  currentUserId: string | null
   error: string | null
 }> {
   try {
-    const supabase = createSupabaseServerClient()
-
-    // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return {
-        booking: null,
-        currentUserId: null,
-        error: 'Authentication required',
-      }
-    }
-
-    // Verify user is a washer
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return {
-        booking: null,
-        currentUserId: null,
-        error: 'Failed to verify user permissions',
-      }
-    }
-
-    if (profile.role !== 'washer') {
-      return {
-        booking: null,
-        currentUserId: null,
-        error: 'Washer access required',
-      }
-    }
-
     // Get booking details
     const result = await getBookingDetails(bookingId)
 
     if (!result.success || !result.data) {
       return {
         booking: null,
-        currentUserId: user.id,
         error: result.message || 'Failed to fetch booking details',
       }
     }
@@ -79,14 +38,12 @@ async function fetchBookingAndUser(bookingId: number): Promise<{
     // Note: Authorization already handled by getBookingDetails which filters by washer_id
     return {
       booking: result.data,
-      currentUserId: user.id,
       error: null,
     }
   } catch (error) {
     console.error('Error fetching booking:', error)
     return {
       booking: null,
-      currentUserId: null,
       error: 'An unexpected error occurred',
     }
   }
@@ -155,15 +112,10 @@ export default async function WasherBookingDetailPage({
     notFound()
   }
 
-  const { booking, currentUserId, error } = await fetchBookingAndUser(bookingId)
+  // Check authentication, washer status, and verification
+  const { user } = await requireWasherVerification()
 
-  if (error === 'Authentication required') {
-    redirect('/signin')
-  }
-
-  if (error === 'Washer access required') {
-    redirect('/user/dashboard')
-  }
+  const { booking, error } = await fetchBooking(bookingId, user.id)
 
   if (error || !booking) {
     return (
@@ -376,7 +328,7 @@ export default async function WasherBookingDetailPage({
           {/* Right Column - Interactive Components */}
           <WasherBookingClient
             booking={booking}
-            currentUserId={currentUserId}
+            currentUserId={user.id}
           />
         </div>
       </div>

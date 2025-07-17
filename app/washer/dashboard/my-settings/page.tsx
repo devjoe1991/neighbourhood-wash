@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import ServiceSettings from '@/components/washer/ServiceSettings'
 import AvailabilitySettings from '@/components/washer/AvailabilitySettings'
 import AreaSettings from '@/components/washer/AreaSettings'
+import { VerificationStatusCard } from '@/components/washer/VerificationStatusCard'
 
 interface WasherProfile {
   id: string
@@ -22,6 +23,7 @@ export default function WasherSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   // Form state
   const [serviceOfferings, setServiceOfferings] = useState<string[]>([])
@@ -31,6 +33,8 @@ export default function WasherSettingsPage() {
   const [serviceAreaRadius, setServiceAreaRadius] = useState<number>(5)
 
   const supabase = createClient()
+
+
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -44,6 +48,9 @@ export default function WasherSettingsPage() {
         setError('Authentication error. Please log in again.')
         return
       }
+
+      // Set userId for verification status hook
+      setUserId(user.id)
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -155,6 +162,9 @@ export default function WasherSettingsPage() {
         </div>
 
         <div className='space-y-8'>
+          {/* Verification Status Display */}
+          <VerificationStatusCard userId={userId} showTitle={true} />
+
           {/* Service Offerings */}
           <ServiceSettings
             value={serviceOfferings}
