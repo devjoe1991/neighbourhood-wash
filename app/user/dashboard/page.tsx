@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { getCompletedBookingsNeedingReview } from './actions'
 import PostBookingPrompt from '@/components/dashboard/PostBookingPrompt'
-import WasherActivation from '@/components/dashboard/WasherActivation'
 import LaundryPreferencesCard from '@/components/dashboard/LaundryPreferencesCard'
 
 export const dynamic = 'force-dynamic'
@@ -68,8 +67,21 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Conditionally render the activation component for washers */}
-      {isWasher && <WasherActivation />}
+      {/* Redirect washers to their dedicated dashboard */}
+      {isWasher && washerStatus === 'approved' && (
+        <div className='rounded-lg border-2 border-dashed border-green-300 bg-green-50 p-6 text-center shadow-sm'>
+          <h2 className='text-2xl font-bold text-green-800'>
+            Welcome, Washer!
+          </h2>
+          <p className='text-muted-foreground mt-2 mb-4'>
+            You have access to the washer dashboard. Click below to manage your
+            services and bookings.
+          </p>
+          <Button asChild>
+            <Link href='/washer/dashboard'>Go to Washer Dashboard</Link>
+          </Button>
+        </div>
+      )}
 
       {userRole && (
         <div className='rounded-md border border-blue-200 bg-blue-50 p-4'>
