@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { 
-  verificationAnalytics,
-  type VerificationEvent,
-  type VerificationEventType,
-  type VerificationMetrics,
-  type UserJourney
-} from '../verification-analytics'
+import { verificationAnalytics } from '../verification-analytics'
 
 // Mock the Supabase client import
 vi.mock('@/utils/supabase/server', () => {
@@ -29,7 +23,7 @@ vi.mock('@/utils/supabase/server', () => {
 })
 
 describe('VerificationAnalytics', () => {
-  let mockSupabase: any
+  let mockSupabase: ReturnType<typeof vi.mocked>
   const mockUserId = 'user_123'
   const mockAccountId = 'acct_123'
   const mockSessionId = 'session_123'
