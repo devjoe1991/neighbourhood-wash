@@ -1,6 +1,9 @@
 'use server'
 
-import { hasCompletedOnboarding, type OnboardingStatus } from '@/lib/stripe/actions'
+import {
+  hasCompletedOnboarding,
+  type OnboardingStatus,
+} from '@/lib/stripe/actions'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 /**
@@ -35,22 +38,27 @@ export async function checkWasherFeatureAccess(
   const {
     requireCompleteOnboarding = true,
     allowedSteps = [],
-    fallbackPath = '/washer/dashboard'
+    fallbackPath = '/washer/dashboard',
   } = config
 
   try {
-    console.log(`[ACCESS_CONTROL] Checking ${featureName} access for user: ${userId}`)
+    console.log(
+      `[ACCESS_CONTROL] Checking ${featureName} access for user: ${userId}`
+    )
 
     // Get user authentication and role
     const supabase = createSupabaseServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
     if (authError || !user || user.id !== userId) {
       return {
         canAccess: false,
         reason: 'authentication_required',
         redirectPath: '/signin',
-        message: 'Please sign in to access this feature'
+        message: 'Please sign in to access this feature',
       }
     }
 
@@ -66,7 +74,7 @@ export async function checkWasherFeatureAccess(
         canAccess: false,
         reason: 'profile_not_found',
         redirectPath: '/user/dashboard',
-        message: 'User profile not found'
+        message: 'User profile not found',
       }
     }
 
@@ -75,7 +83,7 @@ export async function checkWasherFeatureAccess(
         canAccess: false,
         reason: 'not_washer',
         redirectPath: '/user/dashboard',
-        message: 'This feature is only available to washers'
+        message: 'This feature is only available to washers',
       }
     }
 
@@ -84,19 +92,22 @@ export async function checkWasherFeatureAccess(
         canAccess: false,
         reason: 'washer_not_approved',
         redirectPath: '/user/dashboard/become-washer',
-        message: 'Your washer application is not yet approved'
+        message: 'Your washer application is not yet approved',
       }
     }
 
     // Check onboarding completion status
     const onboardingResult = await hasCompletedOnboarding(userId)
     if (!onboardingResult.success) {
-      console.error(`[ACCESS_CONTROL] Error checking onboarding for ${featureName}:`, onboardingResult.error)
+      console.error(
+        `[ACCESS_CONTROL] Error checking onboarding for ${featureName}:`,
+        onboardingResult.error
+      )
       return {
         canAccess: false,
         reason: 'onboarding_check_failed',
         redirectPath: fallbackPath,
-        message: 'Unable to verify onboarding status'
+        message: 'Unable to verify onboarding status',
       }
     }
 
@@ -112,19 +123,21 @@ export async function checkWasherFeatureAccess(
           onboardingStatus: onboardingStatus as OnboardingStatus,
           missingSteps: onboardingStatus.missingSteps,
           currentStep: onboardingStatus.currentStep,
-          message: `Complete all 4 onboarding steps to access ${featureName}`
+          message: `Complete all 4 onboarding steps to access ${featureName}`,
         }
       }
     }
 
     // If feature allows access at specific onboarding steps
     if (allowedSteps.length > 0) {
-      const hasRequiredStep = allowedSteps.some(step => 
+      const hasRequiredStep = allowedSteps.some((step) =>
         onboardingStatus.completedSteps.includes(step)
       )
-      
+
       if (!hasRequiredStep) {
-        const requiredStepNames = allowedSteps.map(step => getStepName(step)).join(', ')
+        const requiredStepNames = allowedSteps
+          .map((step) => getStepName(step))
+          .join(', ')
         return {
           canAccess: false,
           reason: 'required_steps_incomplete',
@@ -132,25 +145,29 @@ export async function checkWasherFeatureAccess(
           onboardingStatus: onboardingStatus as OnboardingStatus,
           missingSteps: onboardingStatus.missingSteps,
           currentStep: onboardingStatus.currentStep,
-          message: `Complete the following steps to access ${featureName}: ${requiredStepNames}`
+          message: `Complete the following steps to access ${featureName}: ${requiredStepNames}`,
         }
       }
     }
 
     // Access granted
-    console.log(`[ACCESS_CONTROL] Access granted to ${featureName} for user: ${userId}`)
+    console.log(
+      `[ACCESS_CONTROL] Access granted to ${featureName} for user: ${userId}`
+    )
     return {
       canAccess: true,
-      onboardingStatus: onboardingStatus as OnboardingStatus
+      onboardingStatus: onboardingStatus as OnboardingStatus,
     }
-
   } catch (error) {
-    console.error(`[ACCESS_CONTROL] Unexpected error checking ${featureName} access:`, error)
+    console.error(
+      `[ACCESS_CONTROL] Unexpected error checking ${featureName} access:`,
+      error
+    )
     return {
       canAccess: false,
       reason: 'unexpected_error',
       redirectPath: fallbackPath,
-      message: 'An unexpected error occurred while checking access'
+      message: 'An unexpected error occurred while checking access',
     }
   }
 }
@@ -163,7 +180,7 @@ function getStepName(stepNumber: number): string {
     1: 'Profile & Service Setup',
     2: 'Stripe Connect KYC Verification',
     3: 'Bank Account Connection',
-    4: 'Onboarding Fee Payment'
+    4: 'Onboarding Fee Payment',
   }
   return stepNames[stepNumber as keyof typeof stepNames] || `Step ${stepNumber}`
 }
@@ -176,9 +193,11 @@ function getStepName(stepNumber: number): string {
  * Check access to available bookings
  * Requirements: 7.1 - Prevent access to available bookings for incomplete washers
  */
-export async function checkAvailableBookingsAccess(userId: string): Promise<AccessControlResult> {
+export async function checkAvailableBookingsAccess(
+  userId: string
+): Promise<AccessControlResult> {
   return checkWasherFeatureAccess(userId, 'Available Bookings', {
-    requireCompleteOnboarding: true
+    requireCompleteOnboarding: true,
   })
 }
 
@@ -186,9 +205,11 @@ export async function checkAvailableBookingsAccess(userId: string): Promise<Acce
  * Check access to current bookings
  * Requirements: 7.2 - Prevent access to current bookings for incomplete washers
  */
-export async function checkCurrentBookingsAccess(userId: string): Promise<AccessControlResult> {
+export async function checkCurrentBookingsAccess(
+  userId: string
+): Promise<AccessControlResult> {
   return checkWasherFeatureAccess(userId, 'Current Bookings', {
-    requireCompleteOnboarding: true
+    requireCompleteOnboarding: true,
   })
 }
 
@@ -196,9 +217,11 @@ export async function checkCurrentBookingsAccess(userId: string): Promise<Access
  * Check access to payouts
  * Requirements: 7.3 - Prevent access to payouts for incomplete washers
  */
-export async function checkPayoutsAccess(userId: string): Promise<AccessControlResult> {
+export async function checkPayoutsAccess(
+  userId: string
+): Promise<AccessControlResult> {
   return checkWasherFeatureAccess(userId, 'Payouts & Earnings', {
-    requireCompleteOnboarding: true
+    requireCompleteOnboarding: true,
   })
 }
 
@@ -206,10 +229,12 @@ export async function checkPayoutsAccess(userId: string): Promise<AccessControlR
  * Check access to washer settings (available during onboarding)
  * Requirements: 6.4 - Allow settings access during onboarding
  */
-export async function checkWasherSettingsAccess(userId: string): Promise<AccessControlResult> {
+export async function checkWasherSettingsAccess(
+  userId: string
+): Promise<AccessControlResult> {
   return checkWasherFeatureAccess(userId, 'Washer Settings', {
     requireCompleteOnboarding: false,
-    allowedSteps: [1, 2, 3, 4] // Available at any step
+    allowedSteps: [1, 2, 3, 4], // Available at any step
   })
 }
 
@@ -231,7 +256,7 @@ export async function getProgressiveFeatureAccess(userId: string): Promise<{
         availableBookings: false,
         currentBookings: false,
         payouts: false,
-        settings: false
+        settings: false,
       }
     }
 
@@ -240,78 +265,23 @@ export async function getProgressiveFeatureAccess(userId: string): Promise<{
 
     return {
       availableBookings: isComplete, // Requires all 4 steps
-      currentBookings: isComplete,   // Requires all 4 steps
-      payouts: isComplete,           // Requires all 4 steps
-      settings: true,                // Always available to washers
-      onboardingStatus: status as OnboardingStatus
+      currentBookings: isComplete, // Requires all 4 steps
+      payouts: isComplete, // Requires all 4 steps
+      settings: true, // Always available to washers
+      onboardingStatus: status as OnboardingStatus,
     }
   } catch (error) {
-    console.error('[ACCESS_CONTROL] Error getting progressive feature access:', error)
+    console.error(
+      '[ACCESS_CONTROL] Error getting progressive feature access:',
+      error
+    )
     return {
       availableBookings: false,
       currentBookings: false,
       payouts: false,
-      settings: false
+      settings: false,
     }
   }
 }
 
-/**
- * Generate user-friendly access denied messages
- */
-export function generateAccessDeniedMessage(result: AccessControlResult): {
-  title: string
-  description: string
-  actionText: string
-  actionPath: string
-} {
-  switch (result.reason) {
-    case 'onboarding_incomplete':
-      return {
-        title: 'Setup Required',
-        description: result.message || 'Complete your 4-step setup to unlock this feature',
-        actionText: 'Complete Setup',
-        actionPath: result.redirectPath || '/washer/dashboard'
-      }
-    
-    case 'required_steps_incomplete':
-      return {
-        title: 'Additional Steps Required',
-        description: result.message || 'Complete additional onboarding steps to access this feature',
-        actionText: 'Continue Setup',
-        actionPath: result.redirectPath || '/washer/dashboard'
-      }
-    
-    case 'authentication_required':
-      return {
-        title: 'Sign In Required',
-        description: 'Please sign in to access this feature',
-        actionText: 'Sign In',
-        actionPath: '/signin'
-      }
-    
-    case 'not_washer':
-      return {
-        title: 'Washer Access Only',
-        description: 'This feature is only available to registered washers',
-        actionText: 'Become a Washer',
-        actionPath: '/user/dashboard/become-washer'
-      }
-    
-    case 'washer_not_approved':
-      return {
-        title: 'Application Pending',
-        description: 'Your washer application is being reviewed',
-        actionText: 'Check Status',
-        actionPath: '/user/dashboard/become-washer'
-      }
-    
-    default:
-      return {
-        title: 'Access Denied',
-        description: result.message || 'You do not have access to this feature',
-        actionText: 'Go to Dashboard',
-        actionPath: result.redirectPath || '/washer/dashboard'
-      }
-  }
-}
+// Utility functions are now in lib/access-control-utils.ts to avoid Server Actions constraints
