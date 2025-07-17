@@ -190,17 +190,19 @@ export default function Sidebar({ userRole, isMobile = false }: SidebarProps) {
     if (userRole !== 'washer') return false
     if (!link.requiresRole || link.requiresRole !== 'washer') return false
     
-    // Disable washer-specific features if not verified
+    // Disable washer-specific features if onboarding not complete
     const washerFeatureLinks = [
       '/washer/dashboard/available-bookings',
-      '/washer/dashboard/bookings',
-      '/washer/dashboard/payouts'
+      '/washer/dashboard/bookings'
+      // Note: Payouts is not disabled as they can set it up anytime
     ]
     
     const href = link.userPath && link.washerPath
       ? getUserSpecificRoute(userRole, link.userPath, link.washerPath)
       : link.href!
 
+    // For now, we'll check if they have completed onboarding
+    // This should be updated to check actual onboarding completion status
     return washerFeatureLinks.includes(href) && !verificationStatus.canAccess
   }
 

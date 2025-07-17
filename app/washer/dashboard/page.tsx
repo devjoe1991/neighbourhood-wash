@@ -19,10 +19,12 @@ import {
   HelpCircle,
   Clock,
   AlertCircle,
+  CheckCircle,
 } from 'lucide-react'
 import { VerificationCallbackHandler } from '@/components/washer/VerificationCallbackHandler'
-import { WasherVerificationContainer } from '@/components/washer/WasherVerificationContainer'
+// import { WasherVerificationContainer } from '@/components/washer/WasherVerificationContainer'
 import { VerificationStatusBanner } from '@/components/washer/VerificationStatusBanner'
+import { WasherOnboardingContainer } from '@/components/washer/WasherOnboardingContainer'
 import { canAccessWasherFeatures, type StripeAccountStatus } from '@/lib/stripe/actions'
 import { Suspense } from 'react'
 
@@ -61,9 +63,353 @@ function VerificationErrorState({ error, onRetry }: { error: string; onRetry?: (
   )
 }
 
-// Component for unverified washers showing verification container
-function UnverifiedWasherView() {
-  return <WasherVerificationContainer />
+// Component for unverified washers showing dashboard with integrated onboarding experience
+function UnverifiedWasherView({ user }: { user: { email?: string; id?: string } }) {
+
+  return (
+    <div className='space-y-8'>
+      <div className='flex items-center justify-between space-y-2'>
+        <div>
+          <h1 className='text-3xl font-bold tracking-tight'>
+            Welcome to Your Washer Dashboard
+          </h1>
+          <p className='text-muted-foreground'>
+            Complete your 4-step setup to unlock all features and start earning.
+          </p>
+        </div>
+      </div>
+
+      {/* Prominent Complete Your Setup Section */}
+      <div className='bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6'>
+        <div className='flex items-center space-x-4 mb-4'>
+          <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center'>
+            <Settings className='w-6 h-6 text-blue-600' />
+          </div>
+          <div>
+            <h2 className='text-xl font-semibold text-gray-900'>Complete Your Setup</h2>
+            <p className='text-sm text-gray-600'>
+              Follow these 4 steps to unlock your full washer dashboard
+            </p>
+          </div>
+        </div>
+
+        {/* Integrated Onboarding Flow */}
+        <WasherOnboardingContainer user={user} />
+      </div>
+
+      {/* Dashboard Preview - All Features Locked/Disabled */}
+      <div className='space-y-6'>
+        <div className='flex items-center justify-between'>
+          <h2 className='text-xl font-semibold'>Your Dashboard Features</h2>
+          <div className='flex items-center space-x-2'>
+            <AlertCircle className='w-4 h-4 text-orange-500' />
+            <p className='text-sm text-orange-600 font-medium'>Locked until setup complete</p>
+          </div>
+        </div>
+        
+        <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+          {/* Available Bookings Card - Locked */}
+          <Card className='relative flex flex-col border-2 border-dashed border-gray-300 bg-gray-50/50'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Locked
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-gray-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Plus className='text-gray-400 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-gray-500'>Available Bookings</CardTitle>
+                  <CardDescription className='text-gray-400'>
+                    Browse and accept new bookings
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-gray-400 text-sm'>
+                View and accept bookings from customers in your area. Start earning immediately after setup!
+              </p>
+              <div className='mt-3 space-y-1'>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Real-time booking notifications
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Flexible acceptance options
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Competitive pricing
+                </div>
+              </div>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button disabled className='w-full bg-gray-200 text-gray-400 cursor-not-allowed'>
+                <Clock className='w-4 h-4 mr-2' />
+                Complete Setup to Unlock
+              </Button>
+            </div>
+          </Card>
+
+          {/* My Bookings Card - Locked */}
+          <Card className='relative flex flex-col border-2 border-dashed border-gray-300 bg-gray-50/50'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Locked
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-gray-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Package className='text-gray-400 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-gray-500'>My Bookings</CardTitle>
+                  <CardDescription className='text-gray-400'>Manage your assigned bookings</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-gray-400 text-sm'>
+                Track and manage your accepted bookings from pickup to delivery.
+              </p>
+              <div className='mt-3 space-y-1'>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Status tracking system
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Customer communication
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Delivery management
+                </div>
+              </div>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button disabled className='w-full bg-gray-200 text-gray-400 cursor-not-allowed'>
+                <Clock className='w-4 h-4 mr-2' />
+                Complete Setup to Unlock
+              </Button>
+            </div>
+          </Card>
+
+          {/* Payouts Card - Locked */}
+          <Card className='relative flex flex-col border-2 border-dashed border-gray-300 bg-gray-50/50'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Locked
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-gray-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <CreditCard className='text-gray-400 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-gray-500'>Payouts & Earnings</CardTitle>
+                  <CardDescription className='text-gray-400'>
+                    Manage your earnings and payouts
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-gray-400 text-sm'>
+                View earnings history, request payouts, and manage payment methods.
+              </p>
+              <div className='mt-3 space-y-1'>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Instant payout requests
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Earnings analytics
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Tax documentation
+                </div>
+              </div>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button disabled className='w-full bg-gray-200 text-gray-400 cursor-not-allowed'>
+                <Clock className='w-4 h-4 mr-2' />
+                Complete Setup to Unlock
+              </Button>
+            </div>
+          </Card>
+
+          {/* Referrals Card - Locked */}
+          <Card className='relative flex flex-col border-2 border-dashed border-gray-300 bg-gray-50/50'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Locked
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-gray-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Handshake className='text-gray-400 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-gray-500'>Referrals</CardTitle>
+                  <CardDescription className='text-gray-400'>Earn more by referring others</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-gray-400 text-sm'>
+                Refer new washers and customers to earn bonus rewards.
+              </p>
+              <div className='mt-3 space-y-1'>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Referral tracking
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Bonus rewards
+                </div>
+                <div className='flex items-center text-xs text-gray-400'>
+                  <CheckCircle className='w-3 h-3 mr-2' />
+                  Network growth
+                </div>
+              </div>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button disabled className='w-full bg-gray-200 text-gray-400 cursor-not-allowed'>
+                <Clock className='w-4 h-4 mr-2' />
+                Complete Setup to Unlock
+              </Button>
+            </div>
+          </Card>
+
+          {/* Settings Card - Available during onboarding */}
+          <Card className='relative flex flex-col border-2 border-green-200 bg-green-50/30'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Available
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-green-100 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <Settings className='text-green-600 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-green-800'>Washer Settings</CardTitle>
+                  <CardDescription className='text-green-700'>
+                    Configure your services and availability
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-green-700 text-sm'>
+                Set your service areas, availability, and preferences while completing setup.
+              </p>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button asChild className='w-full bg-green-600 hover:bg-green-700'>
+                <Link href='/washer/dashboard/my-settings'>
+                  <Settings className='w-4 h-4 mr-2' />
+                  Configure Settings
+                </Link>
+              </Button>
+            </div>
+          </Card>
+
+          {/* How It Works Card - Available */}
+          <Card className='relative flex flex-col border-2 border-blue-200 bg-blue-50/30'>
+            <div className='absolute top-3 right-3'>
+              <div className='bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full'>
+                Available
+              </div>
+            </div>
+            <CardHeader>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-blue-100 flex h-10 w-10 items-center justify-center rounded-lg'>
+                  <HelpCircle className='text-blue-600 h-6 w-6' />
+                </div>
+                <div>
+                  <CardTitle className='text-blue-800'>Washer Guide</CardTitle>
+                  <CardDescription className='text-blue-700'>
+                    Learn how to excel as a washer
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='flex-grow'>
+              <p className='text-blue-700 text-sm'>
+                Get tips on providing excellent service, managing bookings, and maximizing earnings.
+              </p>
+            </CardContent>
+            <div className='p-6 pt-0'>
+              <Button asChild className='w-full bg-blue-600 hover:bg-blue-700'>
+                <Link href='/how-it-works'>
+                  <HelpCircle className='w-4 h-4 mr-2' />
+                  View Guide
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* What You'll Unlock Section */}
+      <div className='bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6'>
+        <h3 className='text-lg font-semibold text-green-900 mb-3'>
+          What you'll unlock after completing setup:
+        </h3>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <div className='flex items-start space-x-3'>
+            <CheckCircle className='w-5 h-5 text-green-600 mt-0.5' />
+            <div>
+              <p className='font-medium text-green-800'>Accept Bookings</p>
+              <p className='text-sm text-green-700'>Start earning from day one with immediate booking access</p>
+            </div>
+          </div>
+          <div className='flex items-start space-x-3'>
+            <CheckCircle className='w-5 h-5 text-green-600 mt-0.5' />
+            <div>
+              <p className='font-medium text-green-800'>Instant Payouts</p>
+              <p className='text-sm text-green-700'>Request payouts anytime with fast processing</p>
+            </div>
+          </div>
+          <div className='flex items-start space-x-3'>
+            <CheckCircle className='w-5 h-5 text-green-600 mt-0.5' />
+            <div>
+              <p className='font-medium text-green-800'>Full Dashboard Access</p>
+              <p className='text-sm text-green-700'>Access all features including analytics and reporting</p>
+            </div>
+          </div>
+          <div className='flex items-start space-x-3'>
+            <CheckCircle className='w-5 h-5 text-green-600 mt-0.5' />
+            <div>
+              <p className='font-medium text-green-800'>Referral Rewards</p>
+              <p className='text-sm text-green-700'>Earn bonus income by referring other washers</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className='text-muted-foreground text-center text-sm'>
+        <p>
+          Signed in as {user.email}.
+          <br />
+          Complete your 4-step setup above to unlock all washer features and start earning.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 // Component for washers with verification in progress
@@ -179,64 +525,185 @@ function VerificationInProgressView({
         </CardContent>
       </Card>
 
-      {/* Limited functionality cards for non-rejected statuses */}
+      {/* Dashboard Features - Locked during verification */}
       {status !== 'rejected' && (
-        <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-          {/* Settings Card - Available during verification */}
-          <Card className='flex flex-col opacity-100'>
-            <CardHeader>
-              <div className='flex items-center space-x-3'>
-                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
-                  <Settings className='text-primary h-6 w-6' />
-                </div>
-                <div>
-                  <CardTitle>Washer Settings</CardTitle>
-                  <CardDescription>
-                    Configure your services and availability
-                  </CardDescription>
+        <div className='space-y-6'>
+          <div className='flex items-center justify-between'>
+            <h2 className='text-xl font-semibold'>Your Dashboard Features</h2>
+            <div className='flex items-center space-x-2'>
+              <Clock className='w-4 h-4 text-blue-500' />
+              <p className='text-sm text-blue-600 font-medium'>Pending verification completion</p>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+            {/* Available Bookings Card - Locked */}
+            <Card className='relative flex flex-col border-2 border-dashed border-blue-300 bg-blue-50/30'>
+              <div className='absolute top-3 right-3'>
+                <div className='bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full'>
+                  Pending
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className='flex-grow'>
-              <p>
-                Set your service areas, availability, and other preferences while 
-                your verification is being processed.
-              </p>
-            </CardContent>
-            <div className='p-6 pt-0'>
-              <Button asChild className='w-full' variant='secondary'>
-                <Link href='/user/dashboard/settings'>Go to Settings</Link>
-              </Button>
-            </div>
-          </Card>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='bg-blue-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                    <Plus className='text-blue-500 h-6 w-6' />
+                  </div>
+                  <div>
+                    <CardTitle className='text-blue-700'>Available Bookings</CardTitle>
+                    <CardDescription className='text-blue-600'>
+                      Browse and accept new bookings
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-blue-600 text-sm'>
+                  Available once verification is complete. Start earning immediately!
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button disabled className='w-full bg-blue-200 text-blue-500 cursor-not-allowed'>
+                  <Clock className='w-4 h-4 mr-2' />
+                  Awaiting Verification
+                </Button>
+              </div>
+            </Card>
 
-          {/* How It Works Card - Available during verification */}
-          <Card className='flex flex-col opacity-100'>
-            <CardHeader>
-              <div className='flex items-center space-x-3'>
-                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
-                  <HelpCircle className='text-primary h-6 w-6' />
-                </div>
-                <div>
-                  <CardTitle>Washer Guide</CardTitle>
-                  <CardDescription>
-                    Learn how to excel as a washer
-                  </CardDescription>
+            {/* My Bookings Card - Locked */}
+            <Card className='relative flex flex-col border-2 border-dashed border-blue-300 bg-blue-50/30'>
+              <div className='absolute top-3 right-3'>
+                <div className='bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full'>
+                  Pending
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className='flex-grow'>
-              <p>
-                Get tips on providing excellent service, managing bookings, and
-                maximizing your earnings.
-              </p>
-            </CardContent>
-            <div className='p-6 pt-0'>
-              <Button asChild className='w-full' variant='secondary'>
-                <Link href='/how-it-works'>View Guide</Link>
-              </Button>
-            </div>
-          </Card>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='bg-blue-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                    <Package className='text-blue-500 h-6 w-6' />
+                  </div>
+                  <div>
+                    <CardTitle className='text-blue-700'>My Bookings</CardTitle>
+                    <CardDescription className='text-blue-600'>Manage your assigned bookings</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-blue-600 text-sm'>
+                  Track and manage bookings once verification is complete.
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button disabled className='w-full bg-blue-200 text-blue-500 cursor-not-allowed'>
+                  <Clock className='w-4 h-4 mr-2' />
+                  Awaiting Verification
+                </Button>
+              </div>
+            </Card>
+
+            {/* Payouts Card - Locked */}
+            <Card className='relative flex flex-col border-2 border-dashed border-blue-300 bg-blue-50/30'>
+              <div className='absolute top-3 right-3'>
+                <div className='bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full'>
+                  Pending
+                </div>
+              </div>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='bg-blue-200 flex h-10 w-10 items-center justify-center rounded-lg'>
+                    <CreditCard className='text-blue-500 h-6 w-6' />
+                  </div>
+                  <div>
+                    <CardTitle className='text-blue-700'>Payouts & Earnings</CardTitle>
+                    <CardDescription className='text-blue-600'>
+                      Manage your earnings and payouts
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-blue-600 text-sm'>
+                  Access earnings and payout features once verified.
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button disabled className='w-full bg-blue-200 text-blue-500 cursor-not-allowed'>
+                  <Clock className='w-4 h-4 mr-2' />
+                  Awaiting Verification
+                </Button>
+              </div>
+            </Card>
+
+            {/* Settings Card - Available during verification */}
+            <Card className='relative flex flex-col border-2 border-green-200 bg-green-50/30'>
+              <div className='absolute top-3 right-3'>
+                <div className='bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full'>
+                  Available
+                </div>
+              </div>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='bg-green-100 flex h-10 w-10 items-center justify-center rounded-lg'>
+                    <Settings className='text-green-600 h-6 w-6' />
+                  </div>
+                  <div>
+                    <CardTitle className='text-green-800'>Washer Settings</CardTitle>
+                    <CardDescription className='text-green-700'>
+                      Configure your services and availability
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-green-700 text-sm'>
+                  Set your service areas and preferences while verification is processed.
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button asChild className='w-full bg-green-600 hover:bg-green-700'>
+                  <Link href='/washer/dashboard/my-settings'>
+                    <Settings className='w-4 h-4 mr-2' />
+                    Configure Settings
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+
+            {/* How It Works Card - Available during verification */}
+            <Card className='relative flex flex-col border-2 border-blue-200 bg-blue-50/30'>
+              <div className='absolute top-3 right-3'>
+                <div className='bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full'>
+                  Available
+                </div>
+              </div>
+              <CardHeader>
+                <div className='flex items-center space-x-3'>
+                  <div className='bg-blue-100 flex h-10 w-10 items-center justify-center rounded-lg'>
+                    <HelpCircle className='text-blue-600 h-6 w-6' />
+                  </div>
+                  <div>
+                    <CardTitle className='text-blue-800'>Washer Guide</CardTitle>
+                    <CardDescription className='text-blue-700'>
+                      Learn how to excel as a washer
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-blue-700 text-sm'>
+                  Get tips on providing excellent service and maximizing earnings.
+                </p>
+              </CardContent>
+              <div className='p-6 pt-0'>
+                <Button asChild className='w-full bg-blue-600 hover:bg-blue-700'>
+                  <Link href='/how-it-works'>
+                    <HelpCircle className='w-4 h-4 mr-2' />
+                    View Guide
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       )}
     </div>
@@ -481,17 +948,32 @@ export default async function WasherDashboardPage() {
   const userRole = profile.role || user.user_metadata?.selected_role
   const washerStatus = profile.washer_status
 
+  // Debug logging
+  console.log('Washer Dashboard Debug:', {
+    userId: user.id,
+    userEmail: user.email,
+    profileRole: profile.role,
+    metadataRole: user.user_metadata?.selected_role,
+    finalRole: userRole,
+    washerStatus: washerStatus,
+    stripeAccountId: profile.stripe_account_id,
+    stripeAccountStatus: profile.stripe_account_status
+  })
+
   // Redirect if not a washer
   if (userRole !== 'washer') {
+    console.log(`Redirecting user ${user.id} - not a washer. Role: ${userRole}`)
     return redirect(
       '/user/dashboard?message=Access denied. Washer role required.'
     )
   }
 
-  // Check if washer is approved
-  if (washerStatus !== 'approved') {
+  // For washers who haven't been approved yet, show the KYC onboarding flow
+  // Only redirect if they're explicitly rejected
+  if (washerStatus === 'rejected') {
+    console.log(`Redirecting user ${user.id} - washer application rejected`)
     return redirect(
-      '/user/dashboard/become-washer?message=Your washer application is not yet approved.'
+      '/user/dashboard?message=Your washer application has been rejected. Please contact support.'
     )
   }
 
@@ -506,12 +988,24 @@ export default async function WasherDashboardPage() {
     verificationError = 'Failed to check verification status. Please try again.'
   }
 
-  // Handle verification check failures
-  if (verificationError || !verificationResult?.success) {
-    const errorMessage = verificationError || 
-      verificationResult?.error?.message || 
-      'Unknown error occurred while checking verification status.'
+  // Handle verification check failures - but be more graceful for common cases
+  if (verificationError) {
+    return <VerificationErrorState error={verificationError} />
+  }
+
+  // If the verification result failed but it's just because there's no Stripe account,
+  // treat this as an unverified state rather than an error
+  if (!verificationResult?.success) {
+    const error = verificationResult?.error
     
+    // If it's a validation error about no Stripe account, treat as unverified
+    if (error?.type === 'validation_error' || !profile.stripe_account_id) {
+      console.log('User has no Stripe account, showing onboarding')
+      return <UnverifiedWasherView user={user} />
+    }
+    
+    // For other errors, show the error state
+    const errorMessage = error?.message || 'Unknown error occurred while checking verification status.'
     return <VerificationErrorState error={errorMessage} />
   }
 
@@ -533,7 +1027,7 @@ export default async function WasherDashboardPage() {
       {(() => {
         // For completely unverified washers (no Stripe account), show full onboarding container
         if (!profile.stripe_account_id || status === 'incomplete') {
-          return <UnverifiedWasherView />
+          return <UnverifiedWasherView user={user} />
         }
         
         // For verified washers, show full dashboard

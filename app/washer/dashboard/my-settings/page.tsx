@@ -163,7 +163,7 @@ export default function WasherSettingsPage() {
 
         <div className='space-y-8'>
           {/* Verification Status Display */}
-          <VerificationStatusCard userId={userId} showTitle={true} />
+          <VerificationStatusCard userId={userId || undefined} showTitle={true} />
 
           {/* Service Offerings */}
           <ServiceSettings

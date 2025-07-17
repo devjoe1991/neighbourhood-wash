@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Calendar,
   Clock,
@@ -11,15 +12,82 @@ import {
   Package,
   Truck,
   AlertCircle,
+  Lock,
 } from 'lucide-react'
-import { requireWasherVerification } from '@/lib/middleware/washer-verification'
+import { requireCompleteOnboarding } from '@/lib/middleware/washer-verification'
 import { getAssignedBookings } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function WasherBookingsPage() {
-  // Check authentication, washer status, and verification
-  await requireWasherVerification()
+  // Check authentication, washer status, and 4-step onboarding completion
+  // Requirements: 7.1, 7.2 - Prevent access to current bookings for incomplete washers
+  const onboardingStatus = await requireCompleteOnboarding(false) // Don't redirect, show locked state
+  
+  // If onboarding is not complete, show locked state with clear messaging
+  if (!onboardingStatus.isComplete) {
+    return (
+      <div className='min-h-screen bg-gray-50 py-8'>
+        <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8'>
+          <div className='mb-8'>
+            <h1 className='text-3xl font-bold text-gray-900'>My Bookings</h1>
+            <p className='mt-2 text-gray-600'>
+              Complete your setup to access and manage bookings
+            </p>
+          </div>
+
+          {/* Access Denied Alert */}
+          <Alert className="mb-6 border-orange-200 bg-orange-50">
+            <Lock className="h-4 w-4 text-orange-600" />
+            <AlertTitle className="text-orange-800">Setup Required</AlertTitle>
+            <AlertDescription className="text-orange-700">
+              You need to complete all 4 onboarding steps to access your bookings.
+              {onboardingStatus.missingSteps.length > 0 && (
+                <>
+                  <br />
+                  <strong>Missing steps:</strong> {onboardingStatus.missingSteps.join(', ')}
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+
+          {/* Locked Feature Preview */}
+          <Card className='border-2 border-dashed border-gray-300 bg-gray-50/50'>
+            <CardContent className='pt-6'>
+              <div className='py-12 text-center'>
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className='h-8 w-8 text-gray-400' />
+                </div>
+                <h3 className='mb-2 text-lg font-semibold text-gray-500'>
+                  My Bookings
+                </h3>
+                <p className='text-gray-400 mb-4'>
+                  Manage your assigned laundry bookings and verify handovers
+                </p>
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center justify-center text-xs text-gray-400">
+                    <span>✓ Track booking status</span>
+                  </div>
+                  <div className="flex items-center justify-center text-xs text-gray-400">
+                    <span>✓ Customer communication</span>
+                  </div>
+                  <div className="flex items-center justify-center text-xs text-gray-400">
+                    <span>✓ Delivery management</span>
+                  </div>
+                </div>
+                <Button asChild>
+                  <Link href="/washer/dashboard">
+                    Complete Setup to Unlock
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   const result = await getAssignedBookings()
 
   if (!result.success) {

@@ -57,6 +57,8 @@ interface WasherApplication {
         first_name: string | null
         last_name: string | null
         email: string | null
+        stripe_account_id: string | null
+        stripe_account_status: string | null
       }[]
     | null
 }
@@ -113,7 +115,9 @@ export default function WasherDetailPage({
           profiles (
             first_name,
             last_name,
-            email
+            email,
+            stripe_account_id,
+            stripe_account_status
           )
         `
         )
@@ -401,7 +405,7 @@ export default function WasherDetailPage({
               </div>
               <div>
                 <label className='text-sm font-medium text-gray-700'>
-                  Current Status
+                  Application Status
                 </label>
                 <div className='mt-1'>
                   <Badge variant={getBadgeVariant(application.status)}>
@@ -409,6 +413,75 @@ export default function WasherDetailPage({
                   </Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* KYC Verification Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <CheckCircle className='h-5 w-5' />
+                KYC Verification Status
+              </CardTitle>
+              <CardDescription>
+                Stripe Connect verification for payment processing
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-4'>
+              <div>
+                <label className='text-sm font-medium text-gray-700'>
+                  Stripe Account
+                </label>
+                <p className='text-gray-900 font-mono text-sm'>
+                  {application.profiles?.[0]?.stripe_account_id || 'Not created'}
+                </p>
+              </div>
+              <div>
+                <label className='text-sm font-medium text-gray-700'>
+                  Verification Status
+                </label>
+                <div className='mt-1'>
+                  {application.profiles?.[0]?.stripe_account_id ? (
+                    <Badge 
+                      variant={
+                        application.profiles[0].stripe_account_status === 'complete' 
+                          ? 'default' 
+                          : application.profiles[0].stripe_account_status === 'pending'
+                          ? 'secondary'
+                          : application.profiles[0].stripe_account_status === 'requires_action'
+                          ? 'destructive'
+                          : 'outline'
+                      }
+                    >
+                      {application.profiles[0].stripe_account_status 
+                        ? getStatusDisplay(application.profiles[0].stripe_account_status)
+                        : 'Unknown'
+                      }
+                    </Badge>
+                  ) : (
+                    <Badge variant='outline'>Not Started</Badge>
+                  )}
+                </div>
+              </div>
+              {application.profiles?.[0]?.stripe_account_status && 
+               application.profiles[0].stripe_account_status !== 'complete' && (
+                <div className='mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200'>
+                  <p className='text-sm text-amber-800'>
+                    <strong>Note:</strong> This washer cannot receive payments until KYC verification is complete.
+                    {application.profiles[0].stripe_account_status === 'requires_action' && 
+                      ' They need to provide additional information.'}
+                    {application.profiles[0].stripe_account_status === 'pending' && 
+                      ' Their documents are being reviewed by Stripe.'}
+                  </p>
+                </div>
+              )}
+              {application.profiles?.[0]?.stripe_account_status === 'complete' && (
+                <div className='mt-4 p-3 bg-green-50 rounded-lg border border-green-200'>
+                  <p className='text-sm text-green-800'>
+                    <strong>✓ Verified:</strong> This washer can receive payments and access all platform features.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

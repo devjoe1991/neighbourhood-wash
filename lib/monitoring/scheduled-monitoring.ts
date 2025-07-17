@@ -1,5 +1,3 @@
-'use server'
-
 import { monitoringAPI } from './monitoring-api'
 import { alertingSystem } from './alerting-system'
 import { verificationAnalytics } from './verification-analytics'

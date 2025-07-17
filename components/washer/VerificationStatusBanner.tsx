@@ -23,11 +23,10 @@ import {
   getUserFriendlyErrorMessage 
 } from '@/lib/error-handling'
 import { 
-  trackOnboardingLinkGenerated,
-  trackStripeRedirect,
-  trackRetryAttempt,
-  trackVerificationFailed
-} from '@/lib/monitoring/verification-analytics'
+  trackStripeRedirectAction,
+  trackRetryAttemptAction,
+  trackVerificationFailedAction
+} from '@/lib/monitoring/verification-analytics-actions'
 import { createSessionId } from '@/lib/monitoring/performance-utils'
 
 interface VerificationStatusBannerProps {
@@ -125,13 +124,14 @@ export function VerificationStatusBanner({
         async (attempt, error) => {
           console.log(`Verification link attempt ${attempt} failed:`, error)
           loadingToast.update({
+            id: loadingToast.id,
             title: `Retrying... (${attempt}/3)`,
             description: 'Having trouble creating verification link.'
           })
           
           // Track retry attempt
           try {
-            await trackRetryAttempt('current_user', sessionId, 'continue_verification', attempt, error, {
+            await trackRetryAttemptAction('current_user', sessionId, 'continue_verification', attempt, error instanceof Error ? error : new Error(String(error)), {
               component: 'VerificationStatusBanner',
               account_id: accountId,
               current_status: status
@@ -147,7 +147,7 @@ export function VerificationStatusBanner({
 
       // Track successful redirect to Stripe
       try {
-        await trackStripeRedirect('current_user', accountId, sessionId, {
+        await trackStripeRedirectAction('current_user', accountId, sessionId, {
           component: 'VerificationStatusBanner',
           url: result,
           current_status: status,
@@ -168,7 +168,7 @@ export function VerificationStatusBanner({
 
       // Track verification failure
       try {
-        await trackVerificationFailed(
+        await trackVerificationFailedAction(
           'current_user',
           accountId,
           sessionId,

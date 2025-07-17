@@ -1,6 +1,4 @@
-'use server'
 
-import { verificationAnalytics } from './verification-analytics'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 /**
@@ -15,7 +13,7 @@ export interface Alert {
   severity: AlertSeverity
   title: string
   message: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   threshold?: number
   current_value?: number
   created_at: string
@@ -210,7 +208,7 @@ export class AlertingSystem {
       const slowCallCount = slowCalls?.length || 0
 
       if (slowCallCount > 5) { // More than 5 slow calls
-        const avgDuration = slowCalls?.reduce((sum, call) => sum + (call.duration_ms || 0), 0) / slowCallCount || 0
+        const avgDuration = (slowCalls?.reduce((sum, call) => sum + (call.duration_ms || 0), 0) || 0) / slowCallCount
 
         return {
           id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { CheckCircle, Shield, CreditCard, FileText, AlertCircle, RefreshCw, Clock } from 'lucide-react'
+import { CheckCircle, Shield, CreditCard, FileText, AlertCircle, RefreshCw, Clock, MapPin, Package, Settings, Handshake } from 'lucide-react'
 import { createStripeConnectedAccount, createStripeAccountLink } from '@/lib/stripe/actions'
 import { 
   withRetry, 
   showErrorToast, 
-  showLoadingToast, 
+ 
   VerificationRecovery,
   getUserFriendlyErrorMessage 
 } from '@/lib/error-handling'
@@ -52,7 +52,7 @@ export function WasherVerificationContainer({
 
   const [sessionId] = useState(() => createSessionId())
 
-  const { loadingState, startLoading, updateStage, stopLoading, LoadingComponent } = useVerificationLoading()
+  const { loadingState: _loadingState, startLoading, updateStage, stopLoading, LoadingComponent } = useVerificationLoading()
 
   // Check for recovery state on component mount
   useEffect(() => {
@@ -139,7 +139,7 @@ export function WasherVerificationContainer({
           
           // Track retry attempt
           try {
-            await trackRetryAttemptAction('current_user', sessionId, 'verification_start', attempt, error, {
+            await trackRetryAttemptAction('current_user', sessionId, 'verification_start', attempt, error instanceof Error ? error : new Error(String(error)), {
               component: 'WasherVerificationContainer',
               stage: 'initialization'
             })
@@ -197,7 +197,7 @@ export function WasherVerificationContainer({
           component: 'WasherVerificationContainer',
           retry_count: state.retryCount,
           can_retry: errorInfo.canRetry,
-          error_type: errorInfo.type
+          error_type: 'verification_error'
         })
       } catch (trackError) {
         console.warn('Failed to track verification failure:', trackError)
@@ -224,19 +224,34 @@ export function WasherVerificationContainer({
 
   const verificationSteps = [
     {
-      icon: Shield,
-      title: 'Identity Verification',
-      description: 'Verify your identity with a government-issued ID to ensure platform security.'
-    },
-    {
       icon: CreditCard,
-      title: 'Payment Setup',
-      description: 'Connect your bank account to receive payments for completed bookings.'
+      title: 'Small Onboarding Fee',
+      description: 'A one-time £15 fee helps us verify your identity and keep our community safe for everyone.',
+      step: 1
     },
     {
       icon: FileText,
-      title: 'Business Information',
-      description: 'Provide basic business details required for tax and compliance purposes.'
+      title: 'Washer Agreement',
+      description: 'Review and agree to our washer compliance terms and service standards.',
+      step: 2
+    },
+    {
+      icon: MapPin,
+      title: 'Service Area',
+      description: 'Set your address and define your local service area for bookings.',
+      step: 3
+    },
+    {
+      icon: Shield,
+      title: 'Identity Verification',
+      description: 'Complete secure KYC verification with our partner Stripe for payment processing.',
+      step: 4
+    },
+    {
+      icon: CheckCircle,
+      title: 'Admin Review',
+      description: 'Our team will review your application and approve your washer account.',
+      step: 5
     }
   ]
 
@@ -247,15 +262,61 @@ export function WasherVerificationContainer({
         <div className="w-full max-w-4xl mx-auto">
         <Card className="border-0 shadow-2xl">
           <CardHeader className="text-center pb-8">
-            <div className="mx-auto mb-4 w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <Shield className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white">
-              Complete Your Washer Verification
+            <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              🎉 Welcome to Your Washer Journey!
             </CardTitle>
-            <CardDescription className="text-lg text-gray-600 dark:text-gray-300 mt-2">
-              To start accepting bookings and receiving payments, you need to complete our secure verification process.
+            <CardDescription className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+              You're about to join a laundry revolution! Be part of an amazing community of independent washers who are earning great money while helping to shape the way local laundry is done with every booking.
             </CardDescription>
+            
+            {/* Benefits Section */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-center">
+                <span className="mr-2">✨</span>
+                Why Become a Washer?
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4 text-left">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Be Your Own Boss</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Set your own schedule and work when it suits you</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Flexible Earnings</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Earn competitive rates with instant payout options</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Full Dashboard Control</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Manage bookings, track earnings, and control your business</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Handshake className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Help Your Community</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Provide valuable service to busy families and professionals</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-8">
@@ -348,6 +409,87 @@ export function WasherVerificationContainer({
               })}
             </div>
 
+            {/* Onboarding Fee Explanation */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-6 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    🎉 Special Early Access Pricing - Only £15!
+                  </h4>
+                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-3 mb-3 border border-green-200 dark:border-green-700">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200 flex items-center">
+                      <span className="mr-2">🏷️</span>
+                      <span className="line-through text-gray-500 mr-2">Usually £50</span>
+                      <span className="text-green-700 dark:text-green-300 font-bold">Now just £15</span>
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                      You qualify for our exclusive early access discount as we build our washer community!
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                    This small one-time fee helps us maintain a high-quality, trusted community by covering:
+                  </p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                    <li>• Identity verification and background checks</li>
+                    <li>• Platform security and fraud prevention</li>
+                    <li>• Customer support and onboarding assistance</li>
+                    <li>• Maintaining our trusted washer network</li>
+                  </ul>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 font-medium">
+                    💡 You'll earn this back with your first booking!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* What You Get Section */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 text-center">
+                🚀 What You Get as a Verified Washer
+              </h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Instant payouts to your bank account</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Complete control over your schedule</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Professional dashboard to manage everything</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Set your own service areas</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Competitive earnings per booking</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Customer reviews and ratings system</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">24/7 support when you need it</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Referral bonuses for growing the community</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
               <div className="flex items-start space-x-3">
                 <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -386,7 +528,7 @@ export function WasherVerificationContainer({
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 The verification process typically takes 2-5 minutes to complete.
                 <br />
-                You'll be redirected to our secure verification partner.
+                You'll be redirected to our secure verification partner, Stripe.
               </p>
             </div>
 

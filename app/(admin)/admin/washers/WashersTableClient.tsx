@@ -45,6 +45,8 @@ interface Application {
         first_name: string | null
         last_name: string | null
         email: string | null
+        stripe_account_id: string | null
+        stripe_account_status: string | null
       }[]
     | null
 }
@@ -125,7 +127,8 @@ export default function WashersTableClient({
                 <TableHead>Applicant</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>App Status</TableHead>
+                <TableHead>KYC Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -148,6 +151,28 @@ export default function WashersTableClient({
                     <Badge variant={getBadgeVariant(app.status)}>
                       {getStatusDisplay(app.status)}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {app.profiles?.[0]?.stripe_account_id ? (
+                      <Badge 
+                        variant={
+                          app.profiles[0].stripe_account_status === 'complete' 
+                            ? 'default' 
+                            : app.profiles[0].stripe_account_status === 'pending'
+                            ? 'secondary'
+                            : app.profiles[0].stripe_account_status === 'requires_action'
+                            ? 'destructive'
+                            : 'outline'
+                        }
+                      >
+                        {app.profiles[0].stripe_account_status 
+                          ? getStatusDisplay(app.profiles[0].stripe_account_status)
+                          : 'Unknown'
+                        }
+                      </Badge>
+                    ) : (
+                      <Badge variant='outline'>Not Started</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className='flex items-center gap-2'>

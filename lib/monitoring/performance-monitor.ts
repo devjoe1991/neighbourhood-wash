@@ -1,5 +1,3 @@
-'use server'
-
 import { verificationAnalytics } from './verification-analytics'
 import { 
   isSlowOperation, 
@@ -19,7 +17,7 @@ export interface PerformanceMetric {
   timestamp: string
   userId?: string
   sessionId?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   error?: {
     type: string
     message: string

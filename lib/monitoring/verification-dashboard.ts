@@ -1,5 +1,3 @@
-'use server'
-
 import { verificationAnalytics, VerificationMetrics } from './verification-analytics'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 

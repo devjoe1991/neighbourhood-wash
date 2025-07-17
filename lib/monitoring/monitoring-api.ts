@@ -1,5 +1,3 @@
-'use server'
-
 import { verificationAnalytics, VerificationMetrics } from './verification-analytics'
 import { verificationDashboard, DashboardMetrics } from './verification-dashboard'
 import { alertingSystem, Alert } from './alerting-system'
@@ -37,7 +35,7 @@ export interface RecentActivity {
   type: 'verification_started' | 'verification_completed' | 'verification_failed' | 'alert_triggered' | 'performance_issue'
   user_id?: string
   message: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface PerformanceReport {
@@ -235,8 +233,8 @@ export class MonitoringAPI {
         issues
       }
 
-    } catch (error) {
-      console.error('[MONITORING_API] Error checking system health:', error)
+    } catch (_error) {
+      console.error('[MONITORING_API] Error checking system health:', _error)
       return {
         status: 'critical',
         checks,
@@ -367,7 +365,7 @@ export class MonitoringAPI {
   /**
    * Process API performance data
    */
-  private processApiPerformance(events: any[]): PerformanceReport['api_performance'] {
+  private processApiPerformance(events: unknown[]): PerformanceReport['api_performance'] {
     const operationStats = new Map<string, {
       durations: number[]
       successes: number
@@ -423,7 +421,7 @@ export class MonitoringAPI {
   /**
    * Process user journey analysis
    */
-  private processUserJourneyAnalysis(journeys: any[]): PerformanceReport['user_journey_analysis'] {
+  private processUserJourneyAnalysis(journeys: unknown[]): PerformanceReport['user_journey_analysis'] {
     const completedJourneys = journeys.filter(j => j.completion_status === 'completed')
     const avgCompletionTime = completedJourneys.length > 0
       ? completedJourneys.reduce((sum, j) => sum + (j.total_duration_ms || 0), 0) / completedJourneys.length
@@ -459,7 +457,7 @@ export class MonitoringAPI {
   /**
    * Process error analysis
    */
-  private processErrorAnalysis(errorEvents: any[]): PerformanceReport['error_analysis'] {
+  private processErrorAnalysis(errorEvents: unknown[]): PerformanceReport['error_analysis'] {
     const totalErrors = errorEvents.length
     const errorCounts = new Map<string, number>()
 

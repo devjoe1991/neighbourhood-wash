@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design implements a comprehensive washer verification system using Stripe Connect Express accounts for KYC compliance. The system creates a gated experience where new washers must complete Stripe's hosted onboarding flow before accessing core platform functionality. The design leverages existing Stripe Connect infrastructure while adding proper status tracking and UI components to guide washers through the verification process.
+This design implements a comprehensive 4-step washer onboarding system integrated directly into the dashboard overview. The system creates a gated experience where new washers see all dashboard features but in a locked/disabled state, with a prominent "Complete Your Setup" section guiding them through: (1) Profile/Service Setup, (2) Stripe Connect KYC verification, (3) Bank account connection, and (4) Onboarding fee payment. The entire process happens inline within the dashboard, ensuring washers never leave their dashboard context while completing onboarding.
 
 ## Architecture
 
@@ -14,122 +14,176 @@ sequenceDiagram
     participant D as Dashboard
     participant S as Supabase
     participant ST as Stripe
+    participant P as Payment
     
     W->>D: Access washer dashboard
-    D->>S: Check profile verification status
-    S-->>D: Return stripe_account_status
+    D->>S: Check onboarding status
+    S-->>D: Return onboarding progress
     
-    alt Not verified
-        D->>W: Show onboarding container
-        W->>D: Click "Start Verification"
+    alt Step 1: Profile Setup
+        D->>W: Show profile form inline
+        W->>D: Submit profile data
+        D->>S: Save profile data
+        S-->>D: Mark Step 1 complete
+    end
+    
+    alt Step 2: Stripe KYC
+        D->>W: Show KYC step inline
+        W->>D: Start KYC process
         D->>ST: Create/get Connect account
         ST-->>D: Return account ID
-        D->>S: Save account ID to profile
-        D->>ST: Create account link
-        ST-->>D: Return onboarding URL
-        D->>W: Redirect to Stripe onboarding
-        W->>ST: Complete KYC process
+        D->>S: Save account ID
+        D->>ST: Create KYC link
+        ST-->>D: Return KYC URL
+        D->>W: Redirect to Stripe KYC
+        W->>ST: Complete KYC (ID upload)
         ST->>W: Redirect back to dashboard
         W->>D: Return to dashboard
-        D->>ST: Check account status
+        D->>ST: Check KYC status
         ST-->>D: Return verification status
-        D->>S: Update profile status
-    else Verified
-        D->>W: Show full dashboard functionality
+        D->>S: Mark Step 2 complete
+    end
+    
+    alt Step 3: Bank Connection
+        D->>W: Show bank connection inline
+        W->>ST: Connect bank account
+        ST-->>D: Bank verified
+        D->>S: Mark Step 3 complete
+    end
+    
+    alt Step 4: Payment
+        D->>W: Show payment form inline
+        W->>P: Pay onboarding fee
+        P-->>D: Payment confirmed
+        D->>S: Mark Step 4 complete
+        D->>W: Unlock full dashboard
     end
 ```
 
-### Verification Status States
+### Onboarding Status States
 
-The system tracks washers through these verification states:
+The system tracks washers through these 4-step onboarding states:
 
-1. **Unverified** (`stripe_account_status: null` or `'incomplete'`)
-   - New washers who haven't started verification
-   - Show onboarding container with call-to-action
+1. **Step 1: Profile Setup** (`onboarding_step: 1`)
+   - Collect service area, availability, preferences
+   - Store data in backend profile
+   - Mark step complete when form submitted
 
-2. **In Progress** (`stripe_account_status: 'pending'`)
-   - Verification started but not completed
-   - Show status message with option to continue
+2. **Step 2: Stripe KYC** (`onboarding_step: 2`)
+   - Create Stripe Connect account
+   - Complete KYC verification with ID uploads
+   - Mark step complete when verification approved
 
-3. **Verified** (`stripe_account_status: 'complete'`)
-   - Full KYC verification completed
-   - Access to all washer functionality
+3. **Step 3: Bank Connection** (`onboarding_step: 3`)
+   - Connect bank account to Stripe
+   - Verify bank account details
+   - Mark step complete when bank verified
 
-4. **Requires Action** (`stripe_account_status: 'requires_action'`)
-   - Additional information needed
-   - Show message with link to continue verification
+4. **Step 4: Payment** (`onboarding_step: 4`)
+   - Pay £15 onboarding fee
+   - Process payment confirmation
+   - Mark step complete and unlock dashboard
 
-5. **Rejected** (`stripe_account_status: 'rejected'`)
-   - Verification failed
-   - Show error message and support contact
+5. **Complete** (`onboarding_complete: true`)
+   - All 4 steps finished
+   - Full dashboard access granted
+   - All washer features unlocked
 
 ## Components and Interfaces
 
-### 1. WasherVerificationContainer Component
+### 1. WasherOnboardingFlow Component
 
-**Purpose**: Main onboarding UI component displayed to unverified washers
+**Purpose**: Compact inline onboarding component integrated into dashboard overview
 
 **Props**:
 ```typescript
-interface WasherVerificationContainerProps {
+interface WasherOnboardingFlowProps {
   user: User
   profile: Profile
-  onVerificationStart: () => Promise<void>
+  onStepComplete: (step: number, data: any) => Promise<void>
+  onOnboardingComplete: () => Promise<void>
 }
 ```
 
 **Features**:
-- Prominent visual design with clear messaging
-- Step-by-step verification process explanation
-- Call-to-action button to start verification
-- Progress indicators for multi-step process
-- Error handling and retry mechanisms
+- Compact 4-step progress indicator
+- Inline form components for each step
+- Smooth transitions between steps
+- Data persistence to backend
+- Integration with Stripe Connect and payment processing
 
-### 2. VerificationStatusBanner Component
+### 2. Enhanced Washer Dashboard Page
 
-**Purpose**: Shows current verification status for washers in progress
+**Modifications to existing `app/washer/dashboard/page.tsx`**:
+- Display all operational features in locked/disabled state
+- Show prominent "Complete Your Setup" section
+- Integrate WasherOnboardingFlow component inline
+- Conditional rendering based on onboarding completion status
 
-**Props**:
+### 3. Onboarding Step Components
+
+**Step 1: ProfileSetupStep**
 ```typescript
-interface VerificationStatusBannerProps {
-  status: StripeAccountStatus
-  accountId?: string
-  onContinueVerification?: () => Promise<void>
+interface ProfileSetupStepProps {
+  onNext: (data: ProfileData) => Promise<void>
+  initialData?: ProfileData
 }
 ```
 
-**Features**:
-- Dynamic messaging based on verification status
-- Action buttons for continuing incomplete verification
-- Visual status indicators (pending, requires action, etc.)
+**Step 2: StripeKYCStep**
+```typescript
+interface StripeKYCStepProps {
+  onNext: () => Promise<void>
+  onBack: () => void
+  accountId?: string
+}
+```
 
-### 3. Enhanced Washer Layout
+**Step 3: BankConnectionStep**
+```typescript
+interface BankConnectionStepProps {
+  onNext: () => Promise<void>
+  onBack: () => void
+  accountId: string
+}
+```
 
-**Modifications to existing `app/washer/layout.tsx`**:
-- Add verification status checking logic
-- Conditionally render verification container vs. full dashboard
-- Implement access control for unverified washers
+**Step 4: PaymentStep**
+```typescript
+interface PaymentStepProps {
+  onComplete: () => Promise<void>
+  onBack: () => void
+  fee: number
+}
+```
 
-### 4. Stripe Connect Service Layer
+### 4. Enhanced Service Layer
 
 **New service functions in `lib/stripe/actions.ts`**:
 
 ```typescript
-// Get current Stripe account status
-export async function getStripeAccountStatus(accountId: string): Promise<{
-  status: string
-  requirements?: any
-  capabilities?: any
+// Check onboarding completion status
+export async function getOnboardingStatus(userId: string): Promise<{
+  currentStep: number
+  completedSteps: number[]
+  isComplete: boolean
+  profileData?: any
+  stripeAccountId?: string
+  bankConnected?: boolean
+  paymentCompleted?: boolean
 }>
 
-// Check if washer can access functionality
-export async function canAccessWasherFeatures(userId: string): Promise<boolean>
+// Save profile setup data
+export async function saveProfileSetup(userId: string, data: ProfileData): Promise<void>
 
-// Handle verification completion callback
-export async function handleVerificationCallback(
-  userId: string, 
-  accountId: string
-): Promise<void>
+// Process onboarding fee payment
+export async function processOnboardingPayment(userId: string): Promise<{
+  success: boolean
+  paymentIntentId?: string
+}>
+
+// Complete onboarding and unlock features
+export async function completeOnboarding(userId: string): Promise<void>
 ```
 
 ## Data Models

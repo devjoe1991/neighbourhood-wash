@@ -84,7 +84,7 @@ export function VerificationCallbackHandler() {
           
           // Track retry attempt
           try {
-            await trackRetryAttemptAction('current_user', sessionId, 'callback_processing', attempt, error, {
+            await trackRetryAttemptAction('current_user', sessionId, 'callback_processing', attempt, error instanceof Error ? error : new Error(String(error)), {
               component: 'VerificationCallbackHandler',
               retry_count: state.retryCount
             })
@@ -106,7 +106,7 @@ export function VerificationCallbackHandler() {
             result.data.previousStatus || 'unknown',
             result.data.status,
             result.data.statusChanged || false,
-            Date.now() - state.lastAttemptTime || 0,
+            0, // Duration placeholder
             {
               component: 'VerificationCallbackHandler',
               retry_count: state.retryCount,
@@ -197,13 +197,16 @@ export function VerificationCallbackHandler() {
       const connectSuccess = searchParams.get('connect_success')
       const refresh = searchParams.get('refresh')
       
-      // Handle callback parameters from Stripe onboarding
+      // Only process callbacks if there are actual callback parameters
+      // This prevents unnecessary API calls when users don't have Stripe accounts yet
       if (onboardingComplete === 'complete' || connectSuccess === 'true') {
+        console.log('[CALLBACK_HANDLER] Detected Stripe callback parameters, processing...')
         await processCallbackWithRetry()
       }
       
       // Handle refresh parameter (when user returns from failed onboarding)
       else if (refresh === 'true') {
+        console.log('[CALLBACK_HANDLER] Detected refresh parameter')
         updateState({
           message: {
             type: 'info',
@@ -220,6 +223,11 @@ export function VerificationCallbackHandler() {
         setTimeout(() => {
           updateState({ message: null })
         }, 4000)
+      }
+      
+      // If no callback parameters, do nothing (this is normal for unverified users)
+      else {
+        console.log('[CALLBACK_HANDLER] No callback parameters detected, skipping processing')
       }
     }
 

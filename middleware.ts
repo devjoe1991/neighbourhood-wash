@@ -31,11 +31,35 @@ export async function middleware(request: NextRequest) {
       await supabase.auth.signOut()
       validSession = false
     } else if (user) {
-      // Assuming role is stored in user_metadata or app_metadata
-      // Adjust 'user_metadata' or 'app_metadata' and the role property name if different
-      userRole = user.user_metadata?.role || user.app_metadata?.role
-      console.log(`[Middleware] User role: ${userRole}`)
-      validSession = true
+      // Fetch role from profiles table
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        
+        if (profileError) {
+          console.error('[Middleware] Error fetching profile:', profileError.message)
+          // Fallback to metadata role
+          userRole = user.user_metadata?.selected_role || user.user_metadata?.role || user.app_metadata?.role
+        } else {
+          userRole = profile?.role
+        }
+        
+        // Fallback to metadata if no profile role
+        if (!userRole) {
+          userRole = user.user_metadata?.selected_role || user.user_metadata?.role || user.app_metadata?.role
+        }
+        
+        console.log(`[Middleware] User role: ${userRole}`)
+        validSession = true
+      } catch (error) {
+        console.error('[Middleware] Exception fetching profile:', error)
+        userRole = user.user_metadata?.selected_role || user.user_metadata?.role || user.app_metadata?.role
+        console.log(`[Middleware] Fallback user role: ${userRole}`)
+        validSession = true
+      }
     } else {
       console.log('[Middleware] No user object despite session.')
       // Clear invalid session
@@ -68,6 +92,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // New Rule: If user is logged in and accessing their own dashboard area, allow them.
+  // Also redirect users to their appropriate dashboard if they're in the wrong area.
   if (validSession) {
     if (pathname.startsWith('/admin') && userRole === 'admin') {
       return response // Allow admin in admin area
@@ -77,6 +102,30 @@ export async function middleware(request: NextRequest) {
     }
     if (pathname.startsWith('/user') && (userRole === 'user' || !userRole)) {
       return response // Allow user in user area
+    }
+    
+    // Redirect users to their appropriate dashboard if they're in the wrong area
+    if (pathname.startsWith('/user') && userRole === 'washer') {
+      console.log('[Middleware] Washer accessing user area, redirecting to washer dashboard')
+      const url = request.nextUrl.clone()
+      url.pathname = '/washer/dashboard'
+      return NextResponse.redirect(url)
+    }
+    if (pathname.startsWith('/washer') && userRole === 'user') {
+      console.log('[Middleware] User accessing washer area, redirecting to user dashboard')
+      const url = request.nextUrl.clone()
+      url.pathname = '/user/dashboard'
+      return NextResponse.redirect(url)
+    }
+    if (pathname.startsWith('/admin') && userRole !== 'admin') {
+      console.log('[Middleware] Non-admin accessing admin area, redirecting to appropriate dashboard')
+      const url = request.nextUrl.clone()
+      if (userRole === 'washer') {
+        url.pathname = '/washer/dashboard'
+      } else {
+        url.pathname = '/user/dashboard'
+      }
+      return NextResponse.redirect(url)
     }
   }
 

@@ -1,10 +1,11 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { canAccessWasherFeatures } from '@/lib/stripe/actions'
+import { canAccessWasherFeatures, hasCompletedOnboarding } from '@/lib/stripe/actions'
 
 /**
  * Middleware to check washer verification status and control access to washer-specific features
- * Implements Requirements 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4
+ * Updated for 4-step onboarding system
+ * Implements Requirements 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4
  */
 export async function requireWasherVerification(
   redirectOnFailure = true,
@@ -13,8 +14,10 @@ export async function requireWasherVerification(
   canAccess: boolean
   status: string
   accountId?: string
-  requirements?: any
+  requirements?: unknown
   error?: string
+  user?: unknown
+  onboardingStatus?: unknown
 }> {
   try {
     const supabase = createSupabaseServerClient()
@@ -33,24 +36,36 @@ export async function requireWasherVerification(
       }
     }
 
-    // Check washer feature access with comprehensive error handling
+    console.log(`[WASHER_VERIFICATION] Checking access for user: ${user.id}`)
+
+    // Check washer feature access with comprehensive 4-step onboarding validation
     const accessResult = await canAccessWasherFeatures(user.id)
     
     if (!accessResult.success) {
-      console.error('Error checking washer verification status:', accessResult.error)
+      console.error('[WASHER_VERIFICATION] Error checking washer verification status:', accessResult.error)
       
-      // On error, allow access but log the issue
+      // On error, allow access but log the issue for monitoring
       return {
         canAccess: true, // Fail open for better user experience
         status: 'unknown',
-        error: accessResult.error?.message || 'Failed to check verification status'
+        error: accessResult.error?.message || 'Failed to check verification status',
+        user
       }
     }
 
-    const { canAccess, status, accountId, requirements } = accessResult.data!
+    const { canAccess, status, accountId, requirements, onboardingStatus } = accessResult.data!
+
+    console.log(`[WASHER_VERIFICATION] Access result for user ${user.id}:`, {
+      canAccess,
+      status,
+      onboardingComplete: onboardingStatus?.isComplete,
+      completedSteps: onboardingStatus?.completedSteps
+    })
 
     // If access is denied and we should redirect, redirect to main dashboard
+    // The main dashboard will show the onboarding flow for incomplete users
     if (!canAccess && redirectOnFailure) {
+      console.log(`[WASHER_VERIFICATION] Access denied for user ${user.id}, redirecting to ${fallbackPath}`)
       redirect(fallbackPath)
     }
 
@@ -59,9 +74,11 @@ export async function requireWasherVerification(
       status,
       accountId,
       requirements,
+      user,
+      onboardingStatus
     }
   } catch (error) {
-    console.error('Unexpected error in washer verification middleware:', error)
+    console.error('[WASHER_VERIFICATION] Unexpected error in washer verification middleware:', error)
     
     // On unexpected errors, fail open but log the issue
     if (redirectOnFailure) {
@@ -77,12 +94,187 @@ export async function requireWasherVerification(
 }
 
 /**
+ * Middleware specifically for checking 4-step onboarding completion
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4
+ */
+export async function requireCompleteOnboarding(
+  redirectOnFailure = true,
+  fallbackPath = '/washer/dashboard'
+): Promise<{
+  isComplete: boolean
+  completedSteps: number[]
+  currentStep: number
+  missingSteps: string[]
+  user?: unknown
+  error?: string
+}> {
+  try {
+    const supabase = createSupabaseServerClient()
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      if (redirectOnFailure) {
+        redirect('/signin')
+      }
+      return {
+        isComplete: false,
+        completedSteps: [],
+        currentStep: 1,
+        missingSteps: ['Authentication required'],
+        error: 'Authentication required'
+      }
+    }
+
+    console.log(`[ONBOARDING_VERIFICATION] Checking onboarding completion for user: ${user.id}`)
+
+    // Check if user has completed all 4 onboarding steps
+    const onboardingResult = await hasCompletedOnboarding(user.id)
+    
+    if (!onboardingResult.success) {
+      console.error('[ONBOARDING_VERIFICATION] Error checking onboarding completion:', onboardingResult.error)
+      
+      if (redirectOnFailure) {
+        redirect(fallbackPath)
+      }
+      
+      return {
+        isComplete: false,
+        completedSteps: [],
+        currentStep: 1,
+        missingSteps: ['Error checking onboarding status'],
+        error: onboardingResult.error?.message || 'Failed to check onboarding status',
+        user
+      }
+    }
+
+    const { isComplete, completedSteps, currentStep, missingSteps } = onboardingResult.data!
+
+    console.log(`[ONBOARDING_VERIFICATION] Onboarding status for user ${user.id}:`, {
+      isComplete,
+      completedSteps,
+      currentStep,
+      missingSteps
+    })
+
+    // If onboarding is not complete and we should redirect, redirect to main dashboard
+    if (!isComplete && redirectOnFailure) {
+      console.log(`[ONBOARDING_VERIFICATION] Onboarding incomplete for user ${user.id}, redirecting to ${fallbackPath}`)
+      redirect(fallbackPath)
+    }
+
+    return {
+      isComplete,
+      completedSteps,
+      currentStep,
+      missingSteps,
+      user
+    }
+  } catch (error) {
+    console.error('[ONBOARDING_VERIFICATION] Unexpected error checking onboarding completion:', error)
+    
+    if (redirectOnFailure) {
+      redirect(fallbackPath)
+    }
+    
+    return {
+      isComplete: false,
+      completedSteps: [],
+      currentStep: 1,
+      missingSteps: ['Unexpected error occurred'],
+      error: error instanceof Error ? error.message : 'Unexpected error occurred'
+    }
+  }
+}
+
+/**
+ * Middleware for feature-specific access control with proper redirects and messaging
+ * Requirements: 7.1, 7.2, 7.3, 7.4 - Add proper redirects and messaging for incomplete onboarding
+ */
+export async function requireFeatureAccess(
+  featureName: string,
+  config: {
+    requireCompleteOnboarding?: boolean
+    allowedSteps?: number[]
+    redirectOnFailure?: boolean
+    fallbackPath?: string
+  } = {}
+): Promise<{
+  canAccess: boolean
+  reason?: string
+  message?: string
+  onboardingStatus?: unknown
+  user?: unknown
+}> {
+  const {
+    requireCompleteOnboarding = true,
+    allowedSteps = [],
+    redirectOnFailure = true,
+    fallbackPath = '/washer/dashboard'
+  } = config
+
+  try {
+    const supabase = createSupabaseServerClient()
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      if (redirectOnFailure) {
+        redirect('/signin')
+      }
+      return {
+        canAccess: false,
+        reason: 'authentication_required',
+        message: 'Please sign in to access this feature'
+      }
+    }
+
+    console.log(`[FEATURE_ACCESS] Checking ${featureName} access for user: ${user.id}`)
+
+    // Use the comprehensive access control system
+    const { checkWasherFeatureAccess } = await import('@/lib/access-control')
+    const accessResult = await checkWasherFeatureAccess(user.id, featureName, {
+      requireCompleteOnboarding,
+      allowedSteps,
+      fallbackPath
+    })
+
+    if (!accessResult.canAccess && redirectOnFailure && accessResult.redirectPath) {
+      console.log(`[FEATURE_ACCESS] Access denied for ${featureName}, redirecting to ${accessResult.redirectPath}`)
+      redirect(accessResult.redirectPath)
+    }
+
+    return {
+      canAccess: accessResult.canAccess,
+      reason: accessResult.reason,
+      message: accessResult.message,
+      onboardingStatus: accessResult.onboardingStatus,
+      user
+    }
+  } catch (error) {
+    console.error(`[FEATURE_ACCESS] Unexpected error checking ${featureName} access:`, error)
+    
+    if (redirectOnFailure) {
+      redirect(fallbackPath)
+    }
+    
+    return {
+      canAccess: false,
+      reason: 'unexpected_error',
+      message: 'An unexpected error occurred while checking access'
+    }
+  }
+}
+
+/**
  * Server component wrapper that checks verification status and provides access control
  * Note: This function is not used in tests and is kept for reference
  */
-export async function withWasherVerification<T extends Record<string, any>>(
-  component: React.ComponentType<T>,
-  props: T,
+export async function withWasherVerification<T extends Record<string, unknown>>(
+  _component: React.ComponentType<T>,
+  _props: T,
   options: {
     redirectOnFailure?: boolean
     fallbackPath?: string
