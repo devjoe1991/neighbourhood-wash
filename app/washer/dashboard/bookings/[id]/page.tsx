@@ -115,6 +115,10 @@ export default async function WasherBookingDetailPage({
   // Check authentication, washer status, and verification
   const { user } = await requireWasherVerification()
 
+  if (!user) {
+    notFound()
+  }
+
   const { booking, error } = await fetchBooking(bookingId, user.id)
 
   if (error || !booking) {
