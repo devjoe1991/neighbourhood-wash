@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { toast } from '@/lib/hooks/use-toast'
+import { toast, useToast } from '@/lib/hooks/use-toast'
 import type { ToastActionElement } from '@/components/ui/toast'
 import { RefreshCw } from 'lucide-react'
 
@@ -210,12 +210,11 @@ export function showRecoveryPrompt(
  * Update an existing toast (useful for loading states)
  */
 export function updateToast(
-  toastId: string,
+  _toastId: string,
   options: Partial<ToastWithActionOptions>
 ) {
   // This would need to be implemented in the toast hook
-  // For now, we'll dismiss the old toast and show a new one
-  toast.dismiss?.(toastId)
+  // For now, we'll just show a new toast
   return showToastWithAction(options as ToastWithActionOptions)
 }
 

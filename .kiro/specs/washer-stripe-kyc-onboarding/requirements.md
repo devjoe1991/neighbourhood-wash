@@ -19,15 +19,19 @@ This feature implements a comprehensive 4-step washer onboarding system integrat
 
 ### Requirement 2
 
-**User Story:** As a new washer, I want to complete my profile and service setup as the first step of onboarding, so that the platform knows my preferences and service areas.
+**User Story:** As a new washer, I want to complete my profile and service setup as the first step of onboarding, so that the platform knows my service area and availability for analytics and filtering.
 
 #### Acceptance Criteria
 
 1. WHEN a washer starts Step 1 of onboarding THEN the system SHALL display a form for profile and service setup
-2. WHEN the profile form is displayed THEN it SHALL include fields for service area, availability, service types, and preferences
-3. WHEN a washer submits the profile form THEN the system SHALL save all data to the washer's profile in the backend
-4. WHEN the profile data is successfully saved THEN Step 1 SHALL be marked as completed and Step 2 SHALL become available
-5. WHEN Step 1 is completed THEN the washer SHALL be able to proceed to Stripe Connect KYC verification
+2. WHEN the profile form is displayed THEN it SHALL include First Name and Last Name fields pre-filled from signup data
+3. WHEN the profile form is displayed THEN it SHALL include a Service Area dropdown with all London boroughs plus "Other" option
+4. WHEN "Other" is selected for Service Area THEN the system SHALL display a text input for custom area entry
+5. WHEN a custom service area is entered THEN the system SHALL save it to the backend and display a message about future expansion
+6. WHEN the profile form is displayed THEN it SHALL include availability checkboxes matching the actual booking time slots
+7. WHEN a washer submits the profile form THEN the system SHALL save all data to the washer's profile for analytics and filtering
+8. WHEN the profile data is successfully saved THEN Step 1 SHALL be marked as completed and Step 2 SHALL become available
+9. WHEN Step 1 is completed THEN the washer SHALL be able to proceed to Stripe Connect KYC verification
 
 ### Requirement 3
 
@@ -107,3 +111,16 @@ This feature implements a comprehensive 4-step washer onboarding system integrat
 2. WHEN onboarding status is updated THEN the system SHALL log the change for audit purposes
 3. WHEN onboarding fails THEN the system SHALL capture error details for support purposes
 4. WHEN a washer completes onboarding THEN the system SHALL enable all washer functionality automatically
+
+### Requirement 10
+
+**User Story:** As a system administrator, I want to filter and analyze washer data by service areas and availability, so that I can understand market coverage and make data-driven business decisions.
+
+#### Acceptance Criteria
+
+1. WHEN viewing the admin dashboard THEN the system SHALL provide filtering options by service area
+2. WHEN a service area filter is applied THEN the system SHALL show the number of washers in that area
+3. WHEN viewing service area analytics THEN the system SHALL show active bookings and previous bookings per area
+4. WHEN a washer selects "Other" for service area THEN the system SHALL store the custom area in the backend for future analytics
+5. WHEN viewing availability analytics THEN the system SHALL show washer availability patterns by time slots
+6. WHEN custom service areas are entered THEN the system SHALL track expansion requests for business planning
