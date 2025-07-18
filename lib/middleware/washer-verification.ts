@@ -17,7 +17,7 @@ export async function requireWasherVerification(
   accountId?: string
   requirements?: unknown
   error?: string
-  user?: unknown
+  user?: User
   onboardingStatus?: unknown
 }> {
   try {
@@ -106,7 +106,7 @@ export async function requireCompleteOnboarding(
   completedSteps: number[]
   currentStep: number
   missingSteps: string[]
-  user?: unknown
+  user?: User
   error?: string
 }> {
   try {
@@ -206,7 +206,7 @@ export async function requireFeatureAccess(
   reason?: string
   message?: string
   onboardingStatus?: unknown
-  user?: unknown
+  user?: User
 }> {
   const {
     requireCompleteOnboarding = true,
