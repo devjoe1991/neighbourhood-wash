@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Analytics data aggregated successfully',
-      data: 'data' in result ? result.data : { processed: result.processed, errors: result.errors }
+      data: 'data' in result ? result.data : { 
+        processed: 'processed' in result ? result.processed : 0, 
+        errors: 'errors' in result ? result.errors : [] 
+      }
     })
   } catch (error) {
     console.error('API error aggregating analytics:', error)
