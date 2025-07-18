@@ -21,6 +21,10 @@ import {
 } from 'lucide-react'
 import { Tables } from '@/lib/database.types'
 import { getOnboardingStatus, saveProfileSetup, initiateStripeKYC, processOnboardingPayment, confirmOnboardingPayment, completeOnboarding, type ProfileSetupData, type OnboardingStatus } from '@/lib/stripe/actions'
+import { OnboardingErrorBoundary } from './OnboardingErrorBoundary'
+import { OnboardingLoadingState, LoadingOverlay } from './OnboardingLoadingState'
+import { useOnboardingErrorHandler, OnboardingRecovery } from '@/lib/onboarding-error-handling'
+import { OnboardingToasts, showErrorToastWithRetry, showStepCompletionToast } from '@/components/ui/toast-with-action'
 
 type Profile = Tables<'profiles'>
 
@@ -37,7 +41,7 @@ type OnboardingData = OnboardingStatus
 type ProfileData = ProfileSetupData
 
 interface WasherOnboardingFlowProps {
-  user: unknown
+  user: { id: string } | null
   profile: Profile
   onStepComplete: (step: number, data: unknown) => Promise<void>
   onOnboardingComplete: () => Promise<void>
@@ -57,6 +61,33 @@ export function WasherOnboardingFlow({
     completedSteps: [],
     isComplete: false
   })
+  const [hasError, setHasError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
+
+  // Check for recovery state on mount
+  useEffect(() => {
+    const recoveryState = OnboardingRecovery.getRecoveryState()
+    if (recoveryState && recoveryState.userId === user?.id) {
+      // Show recovery prompt
+      const handleRecover = () => {
+        setCurrentStep(recoveryState.step)
+        OnboardingRecovery.clearRecoveryState()
+        OnboardingToasts.showSuccessToast(
+          'Onboarding Resumed',
+          `Continuing from step ${recoveryState.step}`
+        )
+      }
+      
+      const handleDismiss = () => {
+        OnboardingRecovery.clearRecoveryState()
+      }
+      
+      // Show recovery prompt after a short delay
+      setTimeout(() => {
+        OnboardingRecovery.showRecoveryPrompt(recoveryState.step, handleRecover, handleDismiss)
+      }, 1000)
+    }
+  }, [user?.id])
 
   // Load onboarding status on component mount
   useEffect(() => {
@@ -64,15 +95,34 @@ export function WasherOnboardingFlow({
       if (!user?.id) return
 
       try {
+        setHasError(false)
         const result = await getOnboardingStatus(user.id)
         if (result.success && result.data) {
           setData(result.data)
           setCurrentStep(result.data.currentStep)
         } else {
           console.error('Failed to load onboarding status:', result.error)
+          setHasError(true)
+          setErrorMessage(result.error?.message || 'Failed to load onboarding status')
+          showErrorToastWithRetry(
+            'Loading Error',
+            'Failed to load your onboarding status. Please try again.',
+            () => window.location.reload(),
+            true,
+            'Reload Page'
+          )
         }
       } catch (error) {
         console.error('Error loading onboarding status:', error)
+        setHasError(true)
+        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred')
+        showErrorToastWithRetry(
+          'Connection Error',
+          'Unable to load onboarding status. Please check your connection.',
+          () => window.location.reload(),
+          true,
+          'Retry'
+        )
       } finally {
         setIsInitialLoading(false)
       }
@@ -114,17 +164,29 @@ export function WasherOnboardingFlow({
   ]
 
   const handleStepComplete = async (step: number, stepData: unknown) => {
+    if (!user?.id) return
+    
     setIsLoading(true)
     setIsTransitioning(true)
+    setHasError(false)
+    
+    // Save recovery state in case of interruption
+    OnboardingRecovery.saveRecoveryState(user.id, step, stepData)
     
     try {
+      // Show loading toast for the step
+      const loadingToast = step === 1 ? OnboardingToasts.profileSetupStart() :
+                          step === 2 ? OnboardingToasts.kycStart() :
+                          step === 3 ? OnboardingToasts.bankConnectionStart() :
+                          OnboardingToasts.paymentStart()
+
       // Handle Step 1: Profile Setup
-      if (step === 1 && user?.id) {
+      if (step === 1) {
         const result = await saveProfileSetup(user.id, stepData as ProfileData)
         if (!result.success) {
-          console.error('Failed to save profile setup:', result.error)
           throw new Error(result.error?.message || 'Failed to save profile setup')
         }
+        OnboardingToasts.profileSetupSuccess()
       }
 
       // Call the parent handler for other steps
@@ -139,15 +201,52 @@ export function WasherOnboardingFlow({
         profileData: step === 1 ? stepData : prev.profileData
       }))
       
+      // Show step completion toast
+      showStepCompletionToast(step, `Step ${step}`)
+      
       if (step < 4) {
         setCurrentStep(step + 1)
       } else {
+        // Clear recovery state on completion
+        OnboardingRecovery.clearRecoveryState()
+        OnboardingToasts.onboardingComplete()
         await onOnboardingComplete()
       }
+      
+      // Dismiss loading toast
+      loadingToast?.dismiss()
+      
     } catch (error) {
       console.error('Error completing step:', error)
-      // Handle error - could show toast notification
-      // For now, we'll just log it and not proceed to next step
+      setHasError(true)
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred')
+      
+      // Show error toast with retry option
+      const retryHandler = () => handleStepComplete(step, stepData)
+      
+      if (step === 1) {
+        OnboardingToasts.profileSetupError(
+          error instanceof Error ? error.message : 'Failed to save profile setup',
+          retryHandler
+        )
+      } else if (step === 2) {
+        OnboardingToasts.kycError(
+          error instanceof Error ? error.message : 'Failed to complete identity verification',
+          retryHandler
+        )
+      } else if (step === 3) {
+        OnboardingToasts.bankConnectionError(
+          error instanceof Error ? error.message : 'Failed to connect bank account',
+          retryHandler
+        )
+      } else if (step === 4) {
+        OnboardingToasts.paymentError(
+          error instanceof Error ? error.message : 'Failed to process payment',
+          retryHandler
+        )
+      }
+      
+      // Don't proceed to next step on error
     } finally {
       setIsLoading(false)
       setIsTransitioning(false)
@@ -209,26 +308,38 @@ export function WasherOnboardingFlow({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header */}
-      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-900">Complete Your Setup</h3>
-              <p className="text-sm text-gray-600">
-                Step {currentStep} of {steps.length}
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-medium text-blue-600">
-                {Math.round(progress)}% Complete
+    <OnboardingErrorBoundary userId={user?.id} step={currentStep}>
+      <div className="space-y-4">
+        {/* Show error state if there's a general error */}
+        {hasError && (
+          <OnboardingLoadingState
+            isLoading={false}
+            step={currentStep}
+            stepName={steps[currentStep - 1]?.title || 'Current Step'}
+            error={errorMessage}
+            className="mb-4"
+          />
+        )}
+
+        {/* Compact Header */}
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">Complete Your Setup</h3>
+                <p className="text-sm text-gray-600">
+                  Step {currentStep} of {steps.length}
+                </p>
               </div>
-              <Progress value={progress} className="w-24 h-2 mt-1" />
+              <div className="text-right">
+                <div className="text-sm font-medium text-blue-600">
+                  {Math.round(progress)}% Complete
+                </div>
+                <Progress value={progress} className="w-24 h-2 mt-1" />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       {/* 4-Step Progress Indicator */}
       <div className="flex justify-center space-x-2">
@@ -266,47 +377,51 @@ export function WasherOnboardingFlow({
       {/* Current Step Content */}
       <Card className="border-gray-200">
         <CardContent className="p-6">
-          <div className={`
-            transition-all duration-300 ease-in-out
-            ${isTransitioning ? 'opacity-0 transform translate-x-2' : 'opacity-100 transform translate-x-0'}
-          `}>
-            {currentStep === 1 && (
-              <ProfileSetupStep 
-                onNext={(data) => handleStepComplete(1, data)}
-                isLoading={isLoading}
-                initialData={data.profileData}
-              />
-            )}
-            {currentStep === 2 && (
-              <StripeKYCStep 
-                onNext={() => handleStepComplete(2, {})}
-                onBack={handleBack}
-                isLoading={isLoading}
-                accountId={data.stripeAccountId}
-                userId={user?.id || ''}
-              />
-            )}
-            {currentStep === 3 && (
-              <BankConnectionStep 
-                onNext={() => handleStepComplete(3, {})}
-                onBack={handleBack}
-                isLoading={isLoading}
-                userId={user?.id || ''}
-              />
-            )}
-            {currentStep === 4 && (
-              <PaymentStep 
-                onComplete={() => handleStepComplete(4, {})}
-                onBack={handleBack}
-                isLoading={isLoading}
-                fee={15}
-                userId={user?.id || ''}
-              />
-            )}
-          </div>
+          <LoadingOverlay isLoading={isLoading} message="Processing step...">
+            <div className={`
+              transition-all duration-300 ease-in-out
+              ${isTransitioning ? 'opacity-0 transform translate-x-2' : 'opacity-100 transform translate-x-0'}
+            `}>
+              {currentStep === 1 && (
+                <ProfileSetupStep 
+                  onNext={(data) => handleStepComplete(1, data)}
+                  isLoading={isLoading}
+                  initialData={data.profileData}
+                  userId={user?.id || ''}
+                />
+              )}
+              {currentStep === 2 && (
+                <StripeKYCStep 
+                  onNext={() => handleStepComplete(2, {})}
+                  onBack={handleBack}
+                  isLoading={isLoading}
+                  accountId={data.stripeAccountId}
+                  userId={user?.id || ''}
+                />
+              )}
+              {currentStep === 3 && (
+                <BankConnectionStep 
+                  onNext={() => handleStepComplete(3, {})}
+                  onBack={handleBack}
+                  isLoading={isLoading}
+                  userId={user?.id || ''}
+                />
+              )}
+              {currentStep === 4 && (
+                <PaymentStep 
+                  onComplete={() => handleStepComplete(4, {})}
+                  onBack={handleBack}
+                  isLoading={isLoading}
+                  fee={15}
+                  userId={user?.id || ''}
+                />
+              )}
+            </div>
+          </LoadingOverlay>
         </CardContent>
       </Card>
     </div>
+    </OnboardingErrorBoundary>
   )
 }
 
@@ -314,11 +429,13 @@ export function WasherOnboardingFlow({
 function ProfileSetupStep({ 
   onNext, 
   isLoading, 
-  initialData 
+  initialData,
+  userId 
 }: { 
   onNext: (data: ProfileData) => void
   isLoading: boolean
-  initialData?: ProfileData 
+  initialData?: ProfileData
+  userId: string
 }) {
   const [formData, setFormData] = useState<ProfileData>({
     serviceArea: initialData?.serviceArea || '',
@@ -330,6 +447,7 @@ function ProfileSetupStep({
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [hasValidationError, setHasValidationError] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -345,12 +463,27 @@ function ProfileSetupStep({
     }
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required'
+    } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number'
     }
     if (!formData.bio.trim()) {
       newErrors.bio = 'Bio is required'
+    } else if (formData.bio.trim().length < 20) {
+      newErrors.bio = 'Bio must be at least 20 characters long'
     }
 
     setErrors(newErrors)
+    setHasValidationError(Object.keys(newErrors).length > 0)
+    
+    if (Object.keys(newErrors).length > 0) {
+      showErrorToastWithRetry(
+        'Form Validation Error',
+        'Please fix the highlighted fields and try again.',
+        () => {}, // No retry needed for validation errors
+        false
+      )
+    }
+    
     return Object.keys(newErrors).length === 0
   }
 
@@ -538,6 +671,8 @@ function StripeKYCStep({
 }) {
   const [kycStatus, setKycStatus] = useState<'not_started' | 'in_progress' | 'completed' | 'failed'>('not_started')
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 2)
 
   // Check if KYC is already completed
   useEffect(() => {
@@ -552,19 +687,31 @@ function StripeKYCStep({
       setError(null)
       setKycStatus('in_progress')
 
-      // Use the new initiateStripeKYC function
-      const result = await initiateStripeKYC(userId)
-      
-      if (result.success && result.data) {
-        // Redirect to Stripe KYC
-        window.location.href = result.data.onboardingUrl
-      } else {
-        throw new Error(result.error?.message || 'Failed to initiate KYC verification')
-      }
+      // Use enhanced error handling with retry
+      await executeWithRetry(async () => {
+        const result = await initiateStripeKYC(userId)
+        
+        if (result.success && result.data) {
+          // Save recovery state before redirect
+          OnboardingRecovery.saveRecoveryState(userId, 2, { accountId: result.data.accountId })
+          
+          // Redirect to Stripe KYC
+          window.location.href = result.data.onboardingUrl
+        } else {
+          throw new Error(result.error?.message || 'Failed to initiate KYC verification')
+        }
+      }, {
+        maxAttempts: 2, // Fewer retries for external redirects
+        baseDelay: 2000,
+      })
     } catch (error) {
       console.error('Error starting KYC:', error)
       setError(error instanceof Error ? error.message : 'Failed to start KYC verification')
       setKycStatus('failed')
+      setRetryCount(prev => prev + 1)
+      
+      // Handle error with toast notification
+      await handleError(error)
     }
   }
 
@@ -739,26 +886,41 @@ function BankConnectionStep({
 }) {
   const [bankStatus, setBankStatus] = useState<'not_started' | 'in_progress' | 'completed' | 'failed'>('not_started')
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 3)
 
   const handleConnectBank = async () => {
     try {
       setError(null)
       setBankStatus('in_progress')
 
-      // Import the bank connection function
-      const { initiateBankConnection } = await import('@/lib/stripe/actions')
-      const result = await initiateBankConnection(userId)
-      
-      if (result.success && result.data) {
-        // Redirect to Stripe bank connection
-        window.location.href = result.data.bankConnectionUrl
-      } else {
-        throw new Error(result.error?.message || 'Failed to initiate bank connection')
-      }
+      // Use enhanced error handling with retry
+      await executeWithRetry(async () => {
+        // Import the bank connection function
+        const { initiateBankConnection } = await import('@/lib/stripe/actions')
+        const result = await initiateBankConnection(userId)
+        
+        if (result.success && result.data) {
+          // Save recovery state before redirect
+          OnboardingRecovery.saveRecoveryState(userId, 3, { bankConnectionUrl: result.data.bankConnectionUrl })
+          
+          // Redirect to Stripe bank connection
+          window.location.href = result.data.bankConnectionUrl
+        } else {
+          throw new Error(result.error?.message || 'Failed to initiate bank connection')
+        }
+      }, {
+        maxAttempts: 2, // Fewer retries for external redirects
+        baseDelay: 2000,
+      })
     } catch (error) {
       console.error('Error connecting bank:', error)
       setError(error instanceof Error ? error.message : 'Failed to connect bank account')
       setBankStatus('failed')
+      setRetryCount(prev => prev + 1)
+      
+      // Handle error with toast notification
+      await handleError(error)
     }
   }
 
@@ -945,6 +1107,8 @@ function PaymentStep({
   const [error, setError] = useState<string | null>(null)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 4)
 
   const handleStartPayment = async () => {
     if (!userId) {
@@ -956,23 +1120,34 @@ function PaymentStep({
       setError(null)
       setPaymentStatus('processing')
 
-      // Create payment intent
-      const result = await processOnboardingPayment(userId)
-      
-      if (result.success && result.data) {
-        setClientSecret(result.data.clientSecret)
-        setPaymentIntentId(result.data.paymentIntentId)
+      // Use enhanced error handling with retry
+      await executeWithRetry(async () => {
+        // Create payment intent
+        const result = await processOnboardingPayment(userId)
         
-        // For now, we'll simulate the payment process
-        // In a real implementation, you'd integrate with Stripe Elements here
-        await simulatePaymentProcess(result.data.clientSecret, result.data.paymentIntentId)
-      } else {
-        throw new Error(result.error?.message || 'Failed to create payment')
-      }
+        if (result.success && result.data) {
+          setClientSecret(result.data.clientSecret)
+          setPaymentIntentId(result.data.paymentIntentId)
+          
+          // For now, we'll simulate the payment process
+          // In a real implementation, you'd integrate with Stripe Elements here
+          await simulatePaymentProcess(result.data.clientSecret, result.data.paymentIntentId)
+        } else {
+          throw new Error(result.error?.message || 'Failed to create payment')
+        }
+      }, {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        maxDelay: 5000,
+      })
     } catch (error) {
       console.error('Error starting payment:', error)
       setError(error instanceof Error ? error.message : 'Failed to process payment')
       setPaymentStatus('failed')
+      setRetryCount(prev => prev + 1)
+      
+      // Handle error with toast notification
+      await handleError(error)
     }
   }
 

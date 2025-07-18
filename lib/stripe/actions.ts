@@ -16,6 +16,12 @@ import {
   withDatabaseMonitoring
 } from '@/lib/monitoring/performance-monitor'
 import { createSessionId } from '@/lib/monitoring/performance-utils'
+import { 
+  getOnboardingProgress,
+  updateOnboardingProgress,
+  logOnboardingStep,
+  initializeOnboardingProgress
+} from '@/lib/onboarding-progress'
 
 const supabase = createSupabaseServerClient()
 
@@ -648,6 +654,8 @@ export interface OnboardingStatus {
 
 /**
  * Gets the current onboarding status for a washer
+ * Enhanced with progress tracking integration
+ * Requirements: 8.1, 8.2, 8.3, 8.4
  */
 export async function getOnboardingStatus(userId: string): Promise<ServiceResponse<OnboardingStatus>> {
   try {
@@ -694,6 +702,32 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
         },
       }
     }
+
+    // First, try to get progress from the new tracking system
+    const progressResult = await getOnboardingProgress(userId)
+    if (progressResult.success && progressResult.data) {
+      const progressData = progressResult.data
+      
+      // Convert progress data to OnboardingStatus format
+      const status: OnboardingStatus = {
+        currentStep: progressData.currentStep,
+        completedSteps: progressData.completedSteps,
+        isComplete: progressData.isComplete,
+        profileData: progressData.stepData.profileSetup,
+        stripeAccountId: profile.stripe_account_id || undefined,
+        bankConnected: progressData.completedSteps.includes(3),
+        paymentCompleted: progressData.completedSteps.includes(4),
+      }
+
+      console.log(`[ONBOARDING_STATUS] Status from progress tracking for user ${userId}:`, status)
+      return {
+        success: true,
+        data: status,
+      }
+    }
+
+    // Fallback to legacy logic if progress tracking is not available
+    console.log(`[ONBOARDING_STATUS] Using legacy status check for user: ${userId}`)
 
     // Get washer application data for profile setup
     const { data: washerApp, error: appError } = await supabase
@@ -788,7 +822,21 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
       paymentCompleted: profile.onboarding_fee_paid || false,
     }
 
-    console.log(`[ONBOARDING_STATUS] Status for user ${userId}:`, status)
+    // Initialize progress tracking for this user with current status
+    try {
+      await initializeOnboardingProgress(userId)
+      
+      // Update progress tracking with current status
+      for (const step of completedSteps) {
+        await updateOnboardingProgress(userId, step, 
+          step === 1 ? profileData : undefined
+        )
+      }
+    } catch (progressError) {
+      console.warn('[ONBOARDING_STATUS] Failed to initialize progress tracking:', progressError)
+    }
+
+    console.log(`[ONBOARDING_STATUS] Legacy status for user ${userId}:`, status)
 
     return {
       success: true,
@@ -904,8 +952,83 @@ export async function initiateStripeKYC(userId: string): Promise<ServiceResponse
 }
 
 /**
+ * Save profile setup data (Step 1)
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
+ */
+export async function saveProfileSetup(userId: string, profileData: ProfileSetupData): Promise<ServiceResponse<void>> {
+  try {
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      return {
+        success: false,
+        error: {
+          type: 'validation_error',
+          message: 'Valid user ID is required',
+        },
+      }
+    }
+
+    console.log(`[PROFILE_SETUP] Saving profile setup for user: ${userId}`)
+
+    const supabase = createSupabaseServerClient()
+
+    // Save or update washer application data
+    const { error: upsertError } = await supabase
+      .from('washer_applications')
+      .upsert({
+        user_id: userId,
+        phone_number: profileData.phoneNumber,
+        service_address: profileData.serviceArea,
+        service_offerings: profileData.serviceTypes,
+        washer_bio: profileData.bio,
+        equipment_details: profileData.preferences,
+        updated_at: new Date().toISOString(),
+      })
+
+    if (upsertError) {
+      console.error('[PROFILE_SETUP] Error saving profile data:', upsertError)
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to save profile setup data',
+          details: upsertError,
+        },
+      }
+    }
+
+    // Update onboarding progress
+    const progressResult = await updateOnboardingProgress(userId, 1, profileData)
+    if (!progressResult.success) {
+      console.warn('[PROFILE_SETUP] Failed to update progress tracking:', progressResult.error)
+    }
+
+    // Log the step completion
+    await logOnboardingStep(userId, 1, 'completed', 'success', profileData)
+
+    console.log(`[PROFILE_SETUP] ✅ Profile setup completed for user: ${userId}`)
+
+    return {
+      success: true,
+      message: 'Profile setup saved successfully',
+    }
+  } catch (error) {
+    console.error('[PROFILE_SETUP] Error saving profile setup:', error)
+    
+    // Log the error
+    await logOnboardingStep(userId, 1, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
+    return {
+      success: false,
+      error: stripeError,
+    }
+  }
+}
+
+/**
  * Updates onboarding progress when KYC is completed
  * This is called by the callback handler when Stripe redirects back
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
  */
 export async function updateKYCProgress(userId: string, accountId: string): Promise<ServiceResponse<{ step: number }>> {
   try {
@@ -919,31 +1042,24 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
       }
     }
 
-    if (!accountId || typeof accountId !== 'string' || accountId.trim().length === 0) {
+    console.log(`[KYC_PROGRESS] Updating KYC progress for user: ${userId}, account: ${accountId}`)
+
+    // Check the actual Stripe account status
+    const statusResult = await getStripeAccountStatus(accountId)
+    if (!statusResult.success || !statusResult.data) {
       return {
         success: false,
         error: {
-          type: 'validation_error',
-          message: 'Valid account ID is required',
+          type: 'unknown_error',
+          message: 'Failed to verify KYC status with Stripe',
+          details: statusResult.error,
         },
       }
     }
 
-    console.log(`[KYC_PROGRESS] Updating KYC progress for user: ${userId}, account: ${accountId}`)
+    const accountStatus = statusResult.data.status
 
-    // Get the current Stripe account status
-    const statusResult = await getStripeAccountStatus(accountId)
-    if (!statusResult.success) {
-      return {
-        success: false,
-        error: statusResult.error,
-      }
-    }
-
-    const accountStatus = statusResult.data!.status
-    console.log(`[KYC_PROGRESS] Current account status: ${accountStatus}`)
-
-    // Update the profile with the latest status
+    // Update profile with latest status
     const supabase = createSupabaseServerClient()
     const { error: updateError } = await supabase
       .from('profiles')
@@ -951,34 +1067,289 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
       .eq('id', userId)
 
     if (updateError) {
-      console.error('[KYC_PROGRESS] Error updating profile status:', updateError)
-      return {
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'Failed to update KYC status',
-          details: updateError,
-        },
-      }
+      console.warn('[KYC_PROGRESS] Failed to update profile status:', updateError)
     }
 
-    console.log(`[KYC_PROGRESS] ✅ KYC progress updated for user ${userId}: ${accountStatus}`)
+    // If KYC is complete, update progress tracking
+    if (accountStatus === 'complete') {
+      const progressResult = await updateOnboardingProgress(userId, 2, { accountId, status: accountStatus })
+      if (!progressResult.success) {
+        console.warn('[KYC_PROGRESS] Failed to update progress tracking:', progressResult.error)
+      }
 
-    return {
-      success: true,
-      data: { step: 2 },
-      message: `KYC status updated to ${accountStatus}`,
+      // Log the step completion
+      await logOnboardingStep(userId, 2, 'completed', 'success', { accountId, status: accountStatus })
+
+      console.log(`[KYC_PROGRESS] ✅ KYC completed for user: ${userId}`)
+
+      return {
+        success: true,
+        data: { step: 2 },
+        message: 'KYC verification completed successfully',
+      }
+    } else {
+      // Log the status check
+      await logOnboardingStep(userId, 2, 'status_check', 'pending', { accountId, status: accountStatus })
+
+      return {
+        success: true,
+        data: { step: 2 },
+        message: `KYC status: ${accountStatus}. Please complete any remaining requirements.`,
+      }
     }
   } catch (error) {
     console.error('[KYC_PROGRESS] Error updating KYC progress:', error)
-    const stripeError = createStripeError(error)
     
+    // Log the error
+    await logOnboardingStep(userId, 2, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
     return {
       success: false,
       error: stripeError,
     }
   }
 }
+
+/**
+ * Updates onboarding progress when bank account is connected (Step 3)
+ * Requirements: 4.1, 4.2, 4.3, 4.4
+ */
+export async function updateBankConnectionProgress(userId: string, accountId: string): Promise<ServiceResponse<{ step: number }>> {
+  try {
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      return {
+        success: false,
+        error: {
+          type: 'validation_error',
+          message: 'Valid user ID is required',
+        },
+      }
+    }
+
+    console.log(`[BANK_CONNECTION] Updating bank connection progress for user: ${userId}, account: ${accountId}`)
+
+    // Check bank connection status
+    const bankStatusResult = await checkBankConnectionStatus(accountId)
+    if (!bankStatusResult.success || !bankStatusResult.data) {
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to verify bank connection status',
+          details: bankStatusResult.error,
+        },
+      }
+    }
+
+    const { bankConnected } = bankStatusResult.data
+
+    if (bankConnected) {
+      // Update progress tracking
+      const progressResult = await updateOnboardingProgress(userId, 3, { accountId, bankConnected: true })
+      if (!progressResult.success) {
+        console.warn('[BANK_CONNECTION] Failed to update progress tracking:', progressResult.error)
+      }
+
+      // Log the step completion
+      await logOnboardingStep(userId, 3, 'completed', 'success', { accountId, bankConnected: true })
+
+      console.log(`[BANK_CONNECTION] ✅ Bank connection completed for user: ${userId}`)
+
+      return {
+        success: true,
+        data: { step: 3 },
+        message: 'Bank account connected successfully',
+      }
+    } else {
+      // Log the status check
+      await logOnboardingStep(userId, 3, 'status_check', 'pending', { accountId, bankConnected: false })
+
+      return {
+        success: true,
+        data: { step: 3 },
+        message: 'Bank account connection is still pending verification',
+      }
+    }
+  } catch (error) {
+    console.error('[BANK_CONNECTION] Error updating bank connection progress:', error)
+    
+    // Log the error
+    await logOnboardingStep(userId, 3, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
+    return {
+      success: false,
+      error: stripeError,
+    }
+  }
+}
+
+/**
+ * Process onboarding fee payment (Step 4)
+ * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
+ */
+export async function processOnboardingPayment(userId: string): Promise<ServiceResponse<{ paymentIntentId: string }>> {
+  try {
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      return {
+        success: false,
+        error: {
+          type: 'validation_error',
+          message: 'Valid user ID is required',
+        },
+      }
+    }
+
+    console.log(`[ONBOARDING_PAYMENT] Processing payment for user: ${userId}`)
+
+    const supabase = createSupabaseServerClient()
+
+    // Check if payment is already completed
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('onboarding_fee_paid')
+      .eq('id', userId)
+      .single()
+
+    if (profileError || !profile) {
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'User profile not found',
+          details: profileError,
+        },
+      }
+    }
+
+    if (profile.onboarding_fee_paid) {
+      return {
+        success: true,
+        data: { paymentIntentId: 'already_paid' },
+        message: 'Onboarding fee already paid',
+      }
+    }
+
+    // Create payment intent for onboarding fee (£15 = 1500 pence)
+    const paymentResult = await createPaymentIntent(1500)
+    if (!paymentResult.success) {
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to create payment intent',
+          details: paymentResult.error,
+        },
+      }
+    }
+
+    // Log the payment initiation
+    await logOnboardingStep(userId, 4, 'payment_initiated', 'pending', { 
+      amount: 1500, 
+      currency: 'gbp',
+      paymentIntentId: paymentResult.clientSecret 
+    })
+
+    console.log(`[ONBOARDING_PAYMENT] ✅ Payment intent created for user: ${userId}`)
+
+    return {
+      success: true,
+      data: { paymentIntentId: paymentResult.clientSecret! },
+      message: 'Payment intent created successfully',
+    }
+  } catch (error) {
+    console.error('[ONBOARDING_PAYMENT] Error processing payment:', error)
+    
+    // Log the error
+    await logOnboardingStep(userId, 4, 'payment_failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
+    return {
+      success: false,
+      error: stripeError,
+    }
+  }
+}
+
+/**
+ * Complete onboarding and unlock features (called after payment confirmation)
+ * Requirements: 5.4, 5.5, 6.1, 6.2, 6.3, 6.4
+ */
+export async function completeOnboarding(userId: string, paymentIntentId?: string): Promise<ServiceResponse<void>> {
+  try {
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      return {
+        success: false,
+        error: {
+          type: 'validation_error',
+          message: 'Valid user ID is required',
+        },
+      }
+    }
+
+    console.log(`[COMPLETE_ONBOARDING] Completing onboarding for user: ${userId}`)
+
+    const supabase = createSupabaseServerClient()
+
+    // Mark onboarding fee as paid
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ onboarding_fee_paid: true })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('[COMPLETE_ONBOARDING] Error updating payment status:', updateError)
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to update payment status',
+          details: updateError,
+        },
+      }
+    }
+
+    // Update progress tracking
+    const progressResult = await updateOnboardingProgress(userId, 4, { 
+      paymentCompleted: true, 
+      paymentIntentId 
+    })
+    if (!progressResult.success) {
+      console.warn('[COMPLETE_ONBOARDING] Failed to update progress tracking:', progressResult.error)
+    }
+
+    // Log the completion
+    await logOnboardingStep(userId, 4, 'completed', 'success', { 
+      paymentCompleted: true, 
+      paymentIntentId,
+      completedAt: new Date().toISOString()
+    })
+
+    console.log(`[COMPLETE_ONBOARDING] ✅ Onboarding completed for user: ${userId}`)
+
+    // Revalidate relevant paths
+    revalidatePath('/washer/dashboard')
+
+    return {
+      success: true,
+      message: 'Onboarding completed successfully! All features are now unlocked.',
+    }
+  } catch (error) {
+    console.error('[COMPLETE_ONBOARDING] Error completing onboarding:', error)
+    
+    // Log the error
+    await logOnboardingStep(userId, 4, 'completion_failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
+    return {
+      success: false,
+      error: stripeError,
+    }
+  }
+}
+
+
 
 /**
  * Handles Step 3: Bank account connection to Stripe
@@ -1145,284 +1516,9 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
   }
 }
 
-/**
- * Updates onboarding progress when bank connection is completed
- */
-export async function updateBankConnectionProgress(userId: string): Promise<ServiceResponse<{ step: number }>> {
-  try {
-    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Valid user ID is required',
-        },
-      }
-    }
 
-    console.log(`[BANK_PROGRESS] Updating bank connection progress for user: ${userId}`)
 
-    const supabase = createSupabaseServerClient()
 
-    // Get user's profile to check Stripe account
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('stripe_account_id, role')
-      .eq('id', userId)
-      .single()
-
-    if (profileError || !profile) {
-      return {
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'User profile not found',
-          details: profileError,
-        },
-      }
-    }
-
-    if (!profile.stripe_account_id) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'No Stripe account found for user',
-        },
-      }
-    }
-
-    // Check if bank account is actually connected
-    const bankStatusResult = await checkBankConnectionStatus(profile.stripe_account_id)
-    if (!bankStatusResult.success) {
-      return {
-        success: false,
-        error: bankStatusResult.error,
-      }
-    }
-
-    if (!bankStatusResult.data?.bankConnected) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Bank account not yet connected',
-        },
-      }
-    }
-
-    // Update profile to mark bank connection as complete
-    // For now, we'll use a simple flag or rely on the Stripe account status
-    // In a full implementation, you might want to add a specific field for bank connection status
-    
-    console.log(`[BANK_PROGRESS] ✅ Bank connection confirmed for user ${userId}`)
-
-    return {
-      success: true,
-      data: { step: 3 },
-      message: 'Bank connection completed successfully',
-    }
-  } catch (error) {
-    console.error('[BANK_PROGRESS] Error updating bank connection progress:', error)
-    const stripeError = createStripeError(error)
-    
-    return {
-      success: false,
-      error: stripeError,
-    }
-  }
-}
-
-/**
- * Saves profile setup data for Step 1 of onboarding
- */
-export async function saveProfileSetup(userId: string, data: ProfileSetupData): Promise<ServiceResponse<{ step: number }>> {
-  try {
-    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Valid user ID is required',
-        },
-      }
-    }
-
-    // Validate required fields
-    if (!data.serviceArea?.trim()) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Service area is required',
-        },
-      }
-    }
-
-    if (!data.availability?.length) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'At least one availability slot is required',
-        },
-      }
-    }
-
-    if (!data.serviceTypes?.length) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'At least one service type is required',
-        },
-      }
-    }
-
-    if (!data.phoneNumber?.trim()) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Phone number is required',
-        },
-      }
-    }
-
-    if (!data.bio?.trim()) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Bio is required',
-        },
-      }
-    }
-
-    console.log(`[PROFILE_SETUP] Saving profile setup for user: ${userId}`)
-
-    const supabase = createSupabaseServerClient()
-
-    // Get user's profile to ensure they exist and are a washer
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', userId)
-      .single()
-
-    if (profileError || !profile) {
-      return {
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'User profile not found',
-          details: profileError,
-        },
-      }
-    }
-
-    if (profile.role !== 'washer') {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Only washers can complete profile setup',
-        },
-      }
-    }
-
-    // Update profile with phone number
-    const { error: profileUpdateError } = await supabase
-      .from('profiles')
-      .update({ phone_number: data.phoneNumber })
-      .eq('id', userId)
-
-    if (profileUpdateError) {
-      console.error('[PROFILE_SETUP] Error updating profile:', profileUpdateError)
-      return {
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'Failed to update profile',
-          details: profileUpdateError,
-        },
-      }
-    }
-
-    // Check if washer application already exists
-    const { data: existingApp, error: checkError } = await supabase
-      .from('washer_applications')
-      .select('id')
-      .eq('user_id', userId)
-      .single()
-
-    // Prepare washer application data
-    const washerAppData = {
-      user_id: userId,
-      profile_id: userId,
-      phone_number: data.phoneNumber,
-      service_address: data.serviceArea,
-      service_offerings: data.serviceTypes,
-      offers_collection: data.serviceTypes.includes('Collection & Delivery'),
-      equipment_details: `Availability: ${data.availability.join(', ')}${data.preferences ? `\n\nPreferences: ${data.preferences}` : ''}`,
-      washer_bio: data.bio,
-      status: 'approved', // Auto-approve for onboarding flow
-    }
-
-    if (existingApp) {
-      // Update existing application
-      const { error: updateError } = await supabase
-        .from('washer_applications')
-        .update(washerAppData)
-        .eq('id', existingApp.id)
-
-      if (updateError) {
-        console.error('[PROFILE_SETUP] Error updating washer application:', updateError)
-        return {
-          success: false,
-          error: {
-            type: 'unknown_error',
-            message: 'Failed to update washer application',
-            details: updateError,
-          },
-        }
-      }
-    } else {
-      // Create new application
-      const { error: insertError } = await supabase
-        .from('washer_applications')
-        .insert(washerAppData)
-
-      if (insertError) {
-        console.error('[PROFILE_SETUP] Error creating washer application:', insertError)
-        return {
-          success: false,
-          error: {
-            type: 'unknown_error',
-            message: 'Failed to create washer application',
-            details: insertError,
-          },
-        }
-      }
-    }
-
-    console.log(`[PROFILE_SETUP] ✅ Profile setup completed for user ${userId}`)
-
-    return {
-      success: true,
-      data: { step: 1 },
-      message: 'Profile setup completed successfully',
-    }
-  } catch (error) {
-    console.error('[PROFILE_SETUP] Error saving profile setup:', error)
-    const stripeError = createStripeError(error)
-    
-    return {
-      success: false,
-      error: stripeError,
-    }
-  }
-}
 
 export async function canAccessWasherFeatures(userId: string): Promise<ServiceResponse<{
   canAccess: boolean
@@ -2842,59 +2938,4 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
   }
 }
 
-/**
- * Completes the onboarding process and unlocks all washer features
- * This is called after all 4 steps are completed
- */
-export async function completeOnboarding(userId: string): Promise<ServiceResponse<{ unlocked: boolean }>> {
-  try {
-    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: 'Valid user ID is required',
-        },
-      }
-    }
 
-    console.log(`[COMPLETE_ONBOARDING] Completing onboarding for user: ${userId}`)
-
-    // Verify all onboarding steps are completed
-    const statusResult = await getOnboardingStatus(userId)
-    if (!statusResult.success) {
-      return {
-        success: false,
-        error: statusResult.error,
-      }
-    }
-
-    const status = statusResult.data!
-    if (!status.isComplete) {
-      return {
-        success: false,
-        error: {
-          type: 'validation_error',
-          message: `Onboarding not complete. Completed steps: ${status.completedSteps.length}/4`,
-        },
-      }
-    }
-
-    // All steps are complete - onboarding is finished
-    console.log(`[COMPLETE_ONBOARDING] ✅ Onboarding completed for user ${userId}`)
-
-    return {
-      success: true,
-      data: { unlocked: true },
-      message: 'Onboarding completed successfully. All features unlocked.',
-    }
-  } catch (error) {
-    console.error('[COMPLETE_ONBOARDING] Error completing onboarding:', error)
-    const stripeError = createStripeError(error)
-    
-    return {
-      success: false,
-      error: stripeError,
-    }
-  }
-}

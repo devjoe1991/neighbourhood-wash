@@ -24,7 +24,7 @@ export async function runScheduledMonitoringJob(): Promise<MonitoringJobResult> 
   const startTime = Date.now()
   const jobName = 'scheduled_monitoring_check'
   const errors: string[] = []
-  let results: Record<string, any> = {}
+  const results: Record<string, any> = {}
 
   try {
     console.log('[SCHEDULED_MONITORING] Starting scheduled monitoring job')
@@ -139,7 +139,7 @@ export async function runPerformanceMonitoringJob(): Promise<MonitoringJobResult
   const startTime = Date.now()
   const jobName = 'performance_monitoring_check'
   const errors: string[] = []
-  let results: Record<string, any> = {}
+  const results: Record<string, any> = {}
 
   try {
     console.log('[PERFORMANCE_MONITORING] Starting performance monitoring job')
@@ -210,7 +210,7 @@ export async function runUserJourneyAnalysisJob(): Promise<MonitoringJobResult> 
   const startTime = Date.now()
   const jobName = 'user_journey_analysis'
   const errors: string[] = []
-  let results: Record<string, any> = {}
+  const results: Record<string, any> = {}
 
   try {
     console.log('[USER_JOURNEY_ANALYSIS] Starting user journey analysis job')

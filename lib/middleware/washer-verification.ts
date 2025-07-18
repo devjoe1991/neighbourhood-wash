@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { canAccessWasherFeatures, hasCompletedOnboarding } from '@/lib/stripe/actions'
+import type { User } from '@supabase/supabase-js'
 
 /**
  * Middleware to check washer verification status and control access to washer-specific features

@@ -1,100 +1,143 @@
-import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { processOnboardingPayment, confirmOnboardingPayment, completeOnboarding } from '@/lib/stripe/actions'
+import userEvent from '@testing-library/user-event'
+import React from 'react'
 
-// Mock the stripe actions
+// Mock the server actions
 vi.mock('@/lib/stripe/actions', () => ({
   processOnboardingPayment: vi.fn(),
   confirmOnboardingPayment: vi.fn(),
-  completeOnboarding: vi.fn(),
 }))
 
-// Create a test component that includes the PaymentStep
-const TestPaymentStep = ({ 
+import { processOnboardingPayment, confirmOnboardingPayment } from '@/lib/stripe/actions'
+
+// Test component that simulates PaymentStep
+function TestPaymentStep({ 
   onComplete, 
   onBack, 
-  isLoading, 
-  fee,
-  userId 
-}: { 
+  isLoading = false, 
+  fee = 15,
+  userId = 'test-user' 
+}: {
   onComplete: () => void
   onBack: () => void
-  isLoading: boolean
-  fee: number
-  userId: string 
-}) => {
-  // This is a simplified version of the PaymentStep component for testing
+  isLoading?: boolean
+  fee?: number
+  userId?: string
+}) {
   const [paymentStatus, setPaymentStatus] = React.useState<'not_started' | 'processing' | 'completed' | 'failed'>('not_started')
   const [error, setError] = React.useState<string | null>(null)
+  const [paymentIntentId, setPaymentIntentId] = React.useState<string | null>(null)
 
-  const handleStartPayment = async () => {
-    if (!userId) {
-      setError('User not authenticated. Please refresh and try again.')
-      return
-    }
-
+  const handleProcessPayment = async () => {
     try {
       setError(null)
       setPaymentStatus('processing')
 
       const result = await processOnboardingPayment(userId)
       
-      if (result.success && result.data) {
-        // Simulate payment processing
-        const confirmResult = await confirmOnboardingPayment(userId, result.data.paymentIntentId)
+      if (result.success && result.paymentIntentId) {
+        setPaymentIntentId(result.paymentIntentId)
+        // Simulate payment confirmation
+        const confirmResult = await confirmOnboardingPayment(result.paymentIntentId)
         
         if (confirmResult.success) {
           setPaymentStatus('completed')
-          const completeResult = await completeOnboarding(userId)
-          if (completeResult.success) {
-            onComplete()
-          }
+          onComplete()
         } else {
           throw new Error(confirmResult.error?.message || 'Payment confirmation failed')
         }
       } else {
-        throw new Error(result.error?.message || 'Failed to create payment')
+        throw new Error(result.error?.message || 'Failed to process payment')
       }
     } catch (error) {
+      console.error('Error processing payment:', error)
       setError(error instanceof Error ? error.message : 'Failed to process payment')
       setPaymentStatus('failed')
     }
+  }
+
+  const handleRetryPayment = () => {
+    setPaymentStatus('not_started')
+    setError(null)
+    setPaymentIntentId(null)
   }
 
   return (
     <div data-testid="payment-step">
       <h4>Onboarding Fee Payment</h4>
       <p>Pay £{fee} onboarding fee to unlock features</p>
-      
-      {paymentStatus === 'completed' && (
-        <div data-testid="payment-success">Payment Successful!</div>
-      )}
-      
-      {paymentStatus === 'failed' && (
-        <div data-testid="payment-error">{error}</div>
-      )}
-      
-      {paymentStatus === 'processing' && (
-        <div data-testid="payment-processing">Processing Payment...</div>
-      )}
-      
-      <div>Total Amount: £{fee}</div>
-      
-      <button onClick={onBack} data-testid="back-button">Back</button>
-      
+
       {paymentStatus === 'completed' ? (
-        <button onClick={onComplete} data-testid="complete-button">Complete Setup</button>
+        <div data-testid="payment-completed">
+          <p>Payment Successful!</p>
+          <p>Your onboarding fee has been processed successfully.</p>
+          <p>All dashboard features are now unlocked.</p>
+        </div>
       ) : paymentStatus === 'failed' ? (
-        <button onClick={() => { setPaymentStatus('not_started'); setError(null) }} data-testid="retry-button">Try Again</button>
+        <div data-testid="payment-failed">
+          <p>Payment Failed</p>
+          <p>{error || 'There was an issue processing your payment.'}</p>
+        </div>
+      ) : paymentStatus === 'processing' ? (
+        <div data-testid="payment-processing">
+          <p>Processing Payment...</p>
+          <p>Please wait while we process your £{fee} onboarding fee.</p>
+        </div>
       ) : (
-        <button 
-          onClick={handleStartPayment} 
-          disabled={isLoading || paymentStatus === 'processing' || !userId}
-          data-testid="pay-button"
-        >
-          Pay £{fee} & Complete Setup
+        <div data-testid="payment-not-started">
+          <p>Complete Your Setup</p>
+          <p>A one-time fee of £{fee} is required to unlock all washer features.</p>
+          <div data-testid="fee-breakdown">
+            <h5>What's included:</h5>
+            <ul>
+              <li>Access to all available bookings</li>
+              <li>Payout processing</li>
+              <li>Customer communication tools</li>
+              <li>Performance analytics</li>
+            </ul>
+          </div>
+          <div data-testid="payment-info">
+            <p><strong>Amount: £{fee}</strong></p>
+            <p>Secure payment processed by Stripe</p>
+          </div>
+        </div>
+      )}
+
+      <div data-testid="action-buttons">
+        <button onClick={onBack} data-testid="back-button">
+          Back
         </button>
+        
+        {paymentStatus === 'completed' ? (
+          <button 
+            onClick={onComplete} 
+            data-testid="complete-button"
+          >
+            Complete Onboarding
+          </button>
+        ) : paymentStatus === 'failed' ? (
+          <button 
+            onClick={handleRetryPayment} 
+            data-testid="retry-button"
+          >
+            Try Again
+          </button>
+        ) : paymentStatus === 'not_started' ? (
+          <button 
+            onClick={handleProcessPayment} 
+            disabled={isLoading}
+            data-testid="pay-button"
+          >
+            {isLoading ? 'Processing...' : `Pay £${fee} Now`}
+          </button>
+        ) : null}
+      </div>
+
+      {paymentIntentId && (
+        <div data-testid="payment-intent-info">
+          <p>Payment ID: {paymentIntentId}</p>
+        </div>
       )}
     </div>
   )
@@ -103,224 +146,284 @@ const TestPaymentStep = ({
 describe('PaymentStep Component', () => {
   const mockOnComplete = vi.fn()
   const mockOnBack = vi.fn()
+  const user = userEvent.setup()
 
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should render payment step with correct fee amount', () => {
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
+  it('should render initial payment state', () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
     expect(screen.getByText('Onboarding Fee Payment')).toBeInTheDocument()
     expect(screen.getByText('Pay £15 onboarding fee to unlock features')).toBeInTheDocument()
-    expect(screen.getByText('Total Amount: £15')).toBeInTheDocument()
+    expect(screen.getByTestId('payment-not-started')).toBeInTheDocument()
+    expect(screen.getByText('Complete Your Setup')).toBeInTheDocument()
+    expect(screen.getByText('A one-time fee of £15 is required to unlock all washer features.')).toBeInTheDocument()
     expect(screen.getByTestId('pay-button')).toBeInTheDocument()
+    expect(screen.getByTestId('back-button')).toBeInTheDocument()
   })
 
-  it('should handle successful payment flow', async () => {
-    // Mock successful payment flow
+  it('should render with custom fee amount', () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} fee={25} />)
+
+    expect(screen.getByText('Pay £25 onboarding fee to unlock features')).toBeInTheDocument()
+    expect(screen.getByText('A one-time fee of £25 is required to unlock all washer features.')).toBeInTheDocument()
+    expect(screen.getByText('Amount: £25')).toBeInTheDocument()
+    expect(screen.getByText('Pay £25 Now')).toBeInTheDocument()
+  })
+
+  it('should display fee breakdown and included features', () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    expect(screen.getByTestId('fee-breakdown')).toBeInTheDocument()
+    expect(screen.getByText("What's included:")).toBeInTheDocument()
+    expect(screen.getByText('Access to all available bookings')).toBeInTheDocument()
+    expect(screen.getByText('Payout processing')).toBeInTheDocument()
+    expect(screen.getByText('Customer communication tools')).toBeInTheDocument()
+    expect(screen.getByText('Performance analytics')).toBeInTheDocument()
+  })
+
+  it('should display payment security information', () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    expect(screen.getByTestId('payment-info')).toBeInTheDocument()
+    expect(screen.getByText('Amount: £15')).toBeInTheDocument()
+    expect(screen.getByText('Secure payment processed by Stripe')).toBeInTheDocument()
+  })
+
+  it('should handle back button click', async () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    const backButton = screen.getByTestId('back-button')
+    await user.click(backButton)
+
+    expect(mockOnBack).toHaveBeenCalledTimes(1)
+  })
+
+  it('should process payment successfully', async () => {
     vi.mocked(processOnboardingPayment).mockResolvedValue({
       success: true,
-      data: {
-        clientSecret: 'pi_test_secret',
-        paymentIntentId: 'pi_test123',
-        amount: 1500,
-      },
+      paymentIntentId: 'pi_test123'
     })
 
     vi.mocked(confirmOnboardingPayment).mockResolvedValue({
       success: true,
-      data: { completed: true },
+      data: { status: 'succeeded' }
     })
 
-    vi.mocked(completeOnboarding).mockResolvedValue({
-      success: true,
-      data: { unlocked: true },
-    })
-
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
     const payButton = screen.getByTestId('pay-button')
-    fireEvent.click(payButton)
+    await user.click(payButton)
 
-    // Should show processing state
     await waitFor(() => {
       expect(screen.getByTestId('payment-processing')).toBeInTheDocument()
     })
 
-    // Should complete successfully
+    expect(screen.getByText('Processing Payment...')).toBeInTheDocument()
+    expect(screen.getByText('Please wait while we process your £15 onboarding fee.')).toBeInTheDocument()
+
     await waitFor(() => {
-      expect(screen.getByTestId('payment-success')).toBeInTheDocument()
+      expect(screen.getByTestId('payment-completed')).toBeInTheDocument()
     })
 
-    expect(mockOnComplete).toHaveBeenCalled()
+    expect(screen.getByText('Payment Successful!')).toBeInTheDocument()
+    expect(screen.getByText('Your onboarding fee has been processed successfully.')).toBeInTheDocument()
+    expect(screen.getByText('All dashboard features are now unlocked.')).toBeInTheDocument()
+    expect(screen.getByTestId('complete-button')).toBeInTheDocument()
+
+    expect(vi.mocked(processOnboardingPayment)).toHaveBeenCalledWith('test-user')
+    expect(vi.mocked(confirmOnboardingPayment)).toHaveBeenCalledWith('pi_test123')
+    expect(mockOnComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('should handle payment creation failure', async () => {
+  it('should handle payment processing failure', async () => {
     vi.mocked(processOnboardingPayment).mockResolvedValue({
       success: false,
       error: {
-        type: 'validation_error',
-        message: 'Onboarding fee has already been paid',
-      },
+        type: 'stripe_error',
+        message: 'Payment processing failed'
+      }
     })
 
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
     const payButton = screen.getByTestId('pay-button')
-    fireEvent.click(payButton)
+    await user.click(payButton)
 
     await waitFor(() => {
-      expect(screen.getByTestId('payment-error')).toBeInTheDocument()
-      expect(screen.getByText('Onboarding fee has already been paid')).toBeInTheDocument()
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
     })
 
-    expect(mockOnComplete).not.toHaveBeenCalled()
+    expect(screen.getByText('Payment Failed')).toBeInTheDocument()
+    expect(screen.getByText('Payment processing failed')).toBeInTheDocument()
+    expect(screen.getByTestId('retry-button')).toBeInTheDocument()
   })
 
   it('should handle payment confirmation failure', async () => {
     vi.mocked(processOnboardingPayment).mockResolvedValue({
       success: true,
-      data: {
-        clientSecret: 'pi_test_secret',
-        paymentIntentId: 'pi_test123',
-        amount: 1500,
-      },
+      paymentIntentId: 'pi_test123'
     })
 
     vi.mocked(confirmOnboardingPayment).mockResolvedValue({
       success: false,
       error: {
-        type: 'validation_error',
-        message: 'Payment not completed. Status: requires_payment_method',
-      },
+        type: 'stripe_error',
+        message: 'Payment confirmation failed'
+      }
     })
 
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
     const payButton = screen.getByTestId('pay-button')
-    fireEvent.click(payButton)
+    await user.click(payButton)
 
     await waitFor(() => {
-      expect(screen.getByTestId('payment-error')).toBeInTheDocument()
-      expect(screen.getByText('Payment not completed. Status: requires_payment_method')).toBeInTheDocument()
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
     })
 
-    expect(mockOnComplete).not.toHaveBeenCalled()
+    expect(screen.getByText('Payment confirmation failed')).toBeInTheDocument()
+    expect(screen.getByTestId('retry-button')).toBeInTheDocument()
   })
 
-  it('should handle missing user ID', async () => {
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId=""
-      />
-    )
+  it('should handle network error during payment', async () => {
+    vi.mocked(processOnboardingPayment).mockRejectedValue(new Error('Network error'))
+
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
     const payButton = screen.getByTestId('pay-button')
-    expect(payButton).toBeDisabled()
+    await user.click(payButton)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Network error')).toBeInTheDocument()
+    expect(screen.getByTestId('retry-button')).toBeInTheDocument()
   })
 
-  it('should call onBack when back button is clicked', () => {
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
-
-    const backButton = screen.getByTestId('back-button')
-    fireEvent.click(backButton)
-
-    expect(mockOnBack).toHaveBeenCalled()
-  })
-
-  it('should show retry button after payment failure', async () => {
+  it('should handle retry after payment failure', async () => {
     vi.mocked(processOnboardingPayment).mockResolvedValue({
       success: false,
       error: {
-        type: 'unknown_error',
-        message: 'Network error',
-      },
+        type: 'stripe_error',
+        message: 'Payment failed'
+      }
     })
 
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={false}
-        fee={15}
-        userId="user123"
-      />
-    )
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
 
+    // Process payment and fail
     const payButton = screen.getByTestId('pay-button')
-    fireEvent.click(payButton)
+    await user.click(payButton)
 
     await waitFor(() => {
-      expect(screen.getByTestId('payment-error')).toBeInTheDocument()
-      expect(screen.getByTestId('retry-button')).toBeInTheDocument()
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
     })
 
-    // Click retry button
+    // Retry
     const retryButton = screen.getByTestId('retry-button')
-    fireEvent.click(retryButton)
+    await user.click(retryButton)
 
-    // Should reset to initial state
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-not-started')).toBeInTheDocument()
+    })
+
     expect(screen.getByTestId('pay-button')).toBeInTheDocument()
-    expect(screen.queryByTestId('payment-error')).not.toBeInTheDocument()
   })
 
-  it('should disable pay button when loading', () => {
-    render(
-      <TestPaymentStep
-        onComplete={mockOnComplete}
-        onBack={mockOnBack}
-        isLoading={true}
-        fee={15}
-        userId="user123"
-      />
-    )
+  it('should show loading state during payment processing', () => {
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} isLoading={true} />)
 
     const payButton = screen.getByTestId('pay-button')
     expect(payButton).toBeDisabled()
+    expect(payButton).toHaveTextContent('Processing...')
+  })
+
+  it('should display payment intent ID when available', async () => {
+    vi.mocked(processOnboardingPayment).mockResolvedValue({
+      success: true,
+      paymentIntentId: 'pi_test123'
+    })
+
+    vi.mocked(confirmOnboardingPayment).mockResolvedValue({
+      success: true,
+      data: { status: 'succeeded' }
+    })
+
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    const payButton = screen.getByTestId('pay-button')
+    await user.click(payButton)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-intent-info')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Payment ID: pi_test123')).toBeInTheDocument()
+  })
+
+  it('should handle complete button click when payment is successful', async () => {
+    vi.mocked(processOnboardingPayment).mockResolvedValue({
+      success: true,
+      paymentIntentId: 'pi_test123'
+    })
+
+    vi.mocked(confirmOnboardingPayment).mockResolvedValue({
+      success: true,
+      data: { status: 'succeeded' }
+    })
+
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    const payButton = screen.getByTestId('pay-button')
+    await user.click(payButton)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('complete-button')).toBeInTheDocument()
+    })
+
+    const completeButton = screen.getByTestId('complete-button')
+    await user.click(completeButton)
+
+    expect(mockOnComplete).toHaveBeenCalledTimes(2) // Once from successful payment, once from button click
+  })
+
+  it('should handle undefined error gracefully', async () => {
+    vi.mocked(processOnboardingPayment).mockResolvedValue({
+      success: false,
+      error: undefined
+    })
+
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    const payButton = screen.getByTestId('pay-button')
+    await user.click(payButton)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Failed to process payment')).toBeInTheDocument()
+  })
+
+  it('should handle missing payment intent ID', async () => {
+    vi.mocked(processOnboardingPayment).mockResolvedValue({
+      success: true,
+      paymentIntentId: undefined
+    })
+
+    render(<TestPaymentStep onComplete={mockOnComplete} onBack={mockOnBack} />)
+
+    const payButton = screen.getByTestId('pay-button')
+    await user.click(payButton)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-failed')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Failed to process payment')).toBeInTheDocument()
   })
 })

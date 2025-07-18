@@ -212,17 +212,25 @@ function getStripeErrorMessage(error: StripeError): {
  */
 export function showErrorToast(
   error: unknown,
-  _onRetry?: () => void,
+  onRetry?: () => void,
   customMessage?: { title?: string; description?: string }
 ) {
   const errorInfo = getUserFriendlyErrorMessage(error)
   
-  toast({
+  const toastData: any = {
     variant: 'destructive',
     title: customMessage?.title || errorInfo.title,
     description: customMessage?.description || errorInfo.description,
-    // Note: action removed for now to avoid JSX in non-React file
-  })
+  }
+
+  // Add action if retry is available and callback is provided
+  if (errorInfo.canRetry && onRetry) {
+    // We'll handle the action in the component that calls this
+    toastData.actionText = errorInfo.actionText
+    toastData.onRetry = onRetry
+  }
+  
+  return toast(toastData)
 }
 
 /**
