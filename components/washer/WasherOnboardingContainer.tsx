@@ -3,7 +3,7 @@
 import { WasherOnboardingFlow } from './WasherOnboardingFlow'
 
 interface WasherOnboardingContainerProps {
-  user: { email?: string; id?: string }
+  user: { email?: string; id: string } | null
 }
 
 export function WasherOnboardingContainer({ user }: WasherOnboardingContainerProps) {
