@@ -35,19 +35,19 @@ const testimonials = [
     review:
       'Tried this once and now my neighbours keep asking who my “laundry plug” is. Stay out of my business, Linda.',
     author: 'Anonymous, London',
-    rating: 1,
+    rating: 5,
   },
   {
     review:
       'Told my parents I finally used the washing machine. Truth is, I used Neighbourhood Wash. Now they’ve invited me over to do their laundry. I’ve never even touched a detergent bottle.',
     author: 'Sam, Hackney',
-    rating: 1,
+    rating: 5,
   },
   {
     review:
       'Folded. Pressed. Organised by colour. Now I have to do the same to my life. Unbelievable.',
     author: 'Martin, Camden',
-    rating: 1,
+    rating: 5,
   },
   {
     review: 'All jokes aside, a top-notch service',
