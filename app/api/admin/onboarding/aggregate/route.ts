@@ -57,8 +57,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!result.success) {
+      const errorMessage = 'error' in result ? result.error : 'Failed to aggregate data'
       return NextResponse.json(
-        { error: result.error || 'Failed to aggregate data' },
+        { error: errorMessage || 'Failed to aggregate data' },
         { status: 500 }
       )
     }
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Analytics data aggregated successfully',
-      data: result.data || { processed: result.processed, errors: result.errors }
+      data: 'data' in result ? result.data : { processed: result.processed, errors: result.errors }
     })
   } catch (error) {
     console.error('API error aggregating analytics:', error)
