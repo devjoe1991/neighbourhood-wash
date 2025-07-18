@@ -75,6 +75,9 @@ export type Database = {
           stripe_account_status: string | null
           updated_at: string
           washer_status: string | null
+          service_offerings: string[] | null
+          availability_schedule: Json | null
+          service_area_radius: number | null
         }
         Insert: {
           created_at?: string

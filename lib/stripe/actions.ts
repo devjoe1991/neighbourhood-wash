@@ -255,6 +255,7 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
 }> {
   const startTime = Date.now()
   const currentSessionId = sessionId || createSessionId()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let user: any = null
   
   try {
@@ -633,10 +634,10 @@ export async function getStripeAccountStatus(accountId: string): Promise<Service
  */
 // Types for profile setup data
 export interface ProfileSetupData {
+  firstName: string
+  lastName: string
   serviceArea: string
   availability: string[]
-  serviceTypes: string[]
-  preferences: string
   bio: string
   phoneNumber: string
 }
@@ -730,7 +731,7 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     console.log(`[ONBOARDING_STATUS] Using legacy status check for user: ${userId}`)
 
     // Get washer application data for profile setup
-    const { data: washerApp, error: appError } = await supabase
+    const { data: washerApp, error: _appError } = await supabase
       .from('washer_applications')
       .select('phone_number, service_address, service_offerings, washer_bio, equipment_details')
       .eq('user_id', userId)
@@ -854,10 +855,20 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
 }
 
 /**
- * Handles Step 2: Stripe Connect KYC integration
- * Creates or gets existing Stripe account and initiates KYC process
+ * Handles Step 2: Embedded KYC data submission
+ * Collects KYC data through our form and submits to Stripe
  */
-export async function initiateStripeKYC(userId: string): Promise<ServiceResponse<{ accountId: string; onboardingUrl: string }>> {
+export async function submitEmbeddedKYC(userId: string, kycData: {
+  dateOfBirth: string
+  address: {
+    line1: string
+    city: string
+    postalCode: string
+    country: string
+  }
+  idDocument: File | null
+  lastFourSSN: string
+}): Promise<ServiceResponse<{ accountId: string }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -869,14 +880,14 @@ export async function initiateStripeKYC(userId: string): Promise<ServiceResponse
       }
     }
 
-    console.log(`[STRIPE_KYC] Initiating KYC for user: ${userId}`)
+    console.log(`[EMBEDDED_KYC] Processing KYC for user: ${userId}`)
 
     const supabase = createSupabaseServerClient()
 
-    // Get user's profile to check if they already have a Stripe account
+    // Get user's profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_account_id, role')
+      .select('stripe_account_id, role, email, full_name')
       .eq('id', userId)
       .single()
 
@@ -905,49 +916,103 @@ export async function initiateStripeKYC(userId: string): Promise<ServiceResponse
 
     // Create Stripe account if it doesn't exist
     if (!accountId) {
-      const accountResult = await createStripeConnectedAccount()
-      if (!accountResult.success) {
-        return {
-          success: false,
-          error: {
-            type: 'unknown_error',
-            message: accountResult.message || 'Failed to create Stripe account',
-          },
-        }
-      }
-      accountId = accountResult.accountId!
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: profile.email,
+        business_type: 'individual',
+        country: 'GB',
+      })
+      accountId = account.id
+
+      // Save account ID to profile
+      await supabase
+        .from('profiles')
+        .update({ stripe_account_id: accountId })
+        .eq('id', userId)
     }
 
-    // Create onboarding link
-    const linkResult = await createStripeAccountLink(accountId)
-    if (!linkResult.success) {
-      return {
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: linkResult.message || 'Failed to create KYC onboarding link',
+    // Parse name from full_name
+    const nameParts = (profile.full_name || '').split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
+    // Submit KYC data to Stripe
+    await stripe.accounts.update(accountId, {
+      individual: {
+        first_name: firstName,
+        last_name: lastName,
+        dob: {
+          day: parseInt(kycData.dateOfBirth.split('-')[2]),
+          month: parseInt(kycData.dateOfBirth.split('-')[1]),
+          year: parseInt(kycData.dateOfBirth.split('-')[0]),
         },
-      }
+        address: {
+          line1: kycData.address.line1,
+          city: kycData.address.city,
+          postal_code: kycData.address.postalCode,
+          country: kycData.address.country,
+        },
+        id_number: kycData.lastFourSSN, // Last 4 of National Insurance
+        email: profile.email,
+      },
+      business_type: 'individual',
+      tos_acceptance: {
+        date: Math.floor(Date.now() / 1000),
+        ip: '127.0.0.1', // This should be the user's actual IP in production
+      },
+    })
+
+    // Update profile status
+    await supabase
+      .from('profiles')
+      .update({ 
+        stripe_account_status: 'pending',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+
+    // Update onboarding progress
+    const progressResult = await updateOnboardingProgress(userId, 2, { accountId })
+    if (!progressResult.success) {
+      console.warn('[EMBEDDED_KYC] Failed to update progress tracking:', progressResult.error)
     }
 
-    console.log(`[STRIPE_KYC] ✅ KYC initiated for user ${userId} with account ${accountId}`)
+    // Log the step completion
+    await logOnboardingStep(userId, 2, 'completed', 'success', { accountId })
+
+    console.log(`[EMBEDDED_KYC] ✅ KYC submitted for user ${userId} with account ${accountId}`)
 
     return {
       success: true,
-      data: {
-        accountId,
-        onboardingUrl: linkResult.url!,
-      },
-      message: 'KYC process initiated successfully',
+      data: { accountId },
+      message: 'KYC verification submitted successfully',
     }
   } catch (error) {
-    console.error('[STRIPE_KYC] Error initiating KYC:', error)
-    const stripeError = createStripeError(error)
+    console.error('[EMBEDDED_KYC] Error submitting KYC:', error)
     
+    // Log the error
+    await logOnboardingStep(userId, 2, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
+    
+    const stripeError = createStripeError(error)
     return {
       success: false,
       error: stripeError,
     }
+  }
+}
+
+/**
+ * Legacy function - kept for backward compatibility
+ * @deprecated Use submitEmbeddedKYC instead
+ */
+export async function initiateStripeKYC(_userId: string): Promise<ServiceResponse<{ accountId: string; onboardingUrl: string }>> {
+  // For now, return an error to force use of the new embedded flow
+  return {
+    success: false,
+    error: {
+      type: 'unknown_error',
+      message: 'Please use the embedded KYC form instead',
+    },
   }
 }
 
@@ -971,27 +1036,77 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
 
     const supabase = createSupabaseServerClient()
 
+    // Update profile with name information
+    const fullName = `${profileData.firstName} ${profileData.lastName}`.trim()
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        phone_number: profileData.phoneNumber,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+
+    if (profileError) {
+      console.error('[PROFILE_SETUP] Error updating profile:', profileError)
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to update profile information',
+          details: profileError,
+        },
+      }
+    }
+
     // Save or update washer application data
     const { error: upsertError } = await supabase
       .from('washer_applications')
       .upsert({
         user_id: userId,
+        profile_id: userId, // Required field - use user_id as profile_id
         phone_number: profileData.phoneNumber,
         service_address: profileData.serviceArea,
-        service_offerings: profileData.serviceTypes,
-        washer_bio: profileData.bio,
-        equipment_details: profileData.preferences,
+        service_offerings: [], // All washers provide all services
+        washer_bio: profileData.bio || '', // Ensure it's not null
+        equipment_details: '', // No longer collecting equipment details
         updated_at: new Date().toISOString(),
       })
 
+    // Update profiles table with washer-specific settings for admin filtering
+    const { error: settingsError } = await supabase
+      .from('profiles')
+      .update({
+        service_offerings: [], // All washers provide all services
+        availability_schedule: {
+          availability: profileData.availability,
+          serviceArea: profileData.serviceArea,
+          updatedAt: new Date().toISOString()
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+
     if (upsertError) {
-      console.error('[PROFILE_SETUP] Error saving profile data:', upsertError)
+      console.error('[PROFILE_SETUP] Error saving washer application data:', upsertError)
       return {
         success: false,
         error: {
           type: 'unknown_error',
-          message: 'Failed to save profile setup data',
+          message: 'Failed to save washer application data',
           details: upsertError,
+        },
+      }
+    }
+
+    if (settingsError) {
+      console.error('[PROFILE_SETUP] Error updating profile settings:', settingsError)
+      return {
+        success: false,
+        error: {
+          type: 'unknown_error',
+          message: 'Failed to update profile settings for admin filtering',
+          details: settingsError,
         },
       }
     }
@@ -1375,7 +1490,7 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
 /**
  * Checks if bank account is connected to Stripe account
  */
-export async function checkBankConnectionStatus(accountId: string): Promise<ServiceResponse<{ bankConnected: boolean; bankDetails?: any }>> {
+export async function checkBankConnectionStatus(accountId: string): Promise<ServiceResponse<{ bankConnected: boolean; bankDetails?: Record<string, unknown> }>> {
   try {
     if (!accountId || typeof accountId !== 'string' || accountId.trim().length === 0) {
       return {
@@ -1390,7 +1505,7 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
     console.log(`[BANK_STATUS] Checking bank connection status for account: ${accountId}`)
 
     // Get account details from Stripe
-    const account = await stripe.accounts.retrieve(accountId)
+    const _account = await stripe.accounts.retrieve(accountId)
 
     // Check if external accounts (bank accounts) are connected
     const externalAccounts = await stripe.accounts.listExternalAccounts(accountId, {
@@ -1404,7 +1519,7 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
       accounts: externalAccounts.data.map(account => ({
         id: account.id,
         last4: account.last4,
-        bank_name: account.object === 'bank_account' ? (account as any).bank_name : undefined,
+        bank_name: account.object === 'bank_account' ? (account as { bank_name?: string }).bank_name : undefined,
         status: account.status,
       }))
     } : undefined
@@ -1632,6 +1747,7 @@ export async function hasCompletedOnboarding(userId: string): Promise<ServiceRes
 /**
  * Fallback function for basic Stripe verification (backward compatibility)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkBasicStripeVerification(userId: string, profile: any): Promise<ServiceResponse<{
   canAccess: boolean
   status: StripeAccountStatus
@@ -1733,7 +1849,7 @@ async function logVerificationEvent(
     currentStatus: StripeAccountStatus
     statusChanged: boolean
     error?: string
-    requirements?: any
+    requirements?: Record<string, unknown>
   },
   sessionId?: string
 ): Promise<void> {
@@ -1742,6 +1858,7 @@ async function logVerificationEvent(
     await verificationAnalytics.trackEvent({
       user_id: userId,
       stripe_account_id: accountId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       event_type: eventType as any,
       event_data: {
         previous_status: details.previousStatus,

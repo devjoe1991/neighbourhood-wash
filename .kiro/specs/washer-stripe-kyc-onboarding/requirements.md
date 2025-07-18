@@ -25,10 +25,10 @@ This feature implements a comprehensive 4-step washer onboarding system integrat
 
 1. WHEN a washer starts Step 1 of onboarding THEN the system SHALL display a form for profile and service setup
 2. WHEN the profile form is displayed THEN it SHALL include First Name and Last Name fields pre-filled from signup data
-3. WHEN the profile form is displayed THEN it SHALL include a Service Area dropdown with all London boroughs plus "Other" option
-4. WHEN "Other" is selected for Service Area THEN the system SHALL display a text input for custom area entry
-5. WHEN a custom service area is entered THEN the system SHALL save it to the backend and display a message about future expansion
-6. WHEN the profile form is displayed THEN it SHALL include availability checkboxes matching the actual booking time slots
+3. WHEN the profile form is displayed THEN it SHALL include a Service Area dropdown with the following London boroughs: Barking and Dagenham, Barnet, Bexley, Brent, Bromley, Camden, Croydon, Ealing, Enfield, Greenwich, Hackney, Hammersmith and Fulham, Haringey, Harrow, Havering, Hillingdon, Hounslow, Islington, Kensington and Chelsea, Kingston upon Thames, Lambeth, Lewisham, Merton, Newham, Redbridge, Richmond upon Thames, Southwark, Sutton, Tower Hamlets, Waltham Forest, Wandsworth, Westminster, City of London
+4. WHEN the profile form is displayed THEN it SHALL include availability checkboxes with clear time slots matching the exact booking time slots available to users
+5. WHEN the profile form is displayed THEN it SHALL NOT include service types selection as all washers provide all services
+6. WHEN the profile form is displayed THEN it SHALL NOT include additional preferences section
 7. WHEN a washer submits the profile form THEN the system SHALL save all data to the washer's profile for analytics and filtering
 8. WHEN the profile data is successfully saved THEN Step 1 SHALL be marked as completed and Step 2 SHALL become available
 9. WHEN Step 1 is completed THEN the washer SHALL be able to proceed to Stripe Connect KYC verification

@@ -42,6 +42,7 @@ interface Application {
   user_id: string
   created_at: string
   status: string
+  service_address: string | null
   profiles:
     | {
         first_name: string | null
@@ -49,6 +50,7 @@ interface Application {
         email: string | null
         stripe_account_id: string | null
         stripe_account_status: string | null
+        availability_schedule: Record<string, unknown> | null
       }[]
     | null
 }
@@ -93,12 +95,14 @@ async function fetchApplications(): Promise<{
         user_id,
         created_at,
         status,
+        service_address,
         profiles (
           first_name,
           last_name,
           email,
           stripe_account_id,
-          stripe_account_status
+          stripe_account_status,
+          availability_schedule
         )
       `
       )

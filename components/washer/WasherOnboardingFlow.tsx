@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   CheckCircle, 
   Shield, 
@@ -20,7 +21,8 @@ import {
   DollarSign
 } from 'lucide-react'
 import { Tables } from '@/lib/database.types'
-import { getOnboardingStatus, saveProfileSetup, initiateStripeKYC, processOnboardingPayment, confirmOnboardingPayment, completeOnboarding, type ProfileSetupData, type OnboardingStatus } from '@/lib/stripe/actions'
+import { createClient } from '@/utils/supabase/client'
+import { getOnboardingStatus, saveProfileSetup, submitEmbeddedKYC, processOnboardingPayment, confirmOnboardingPayment, completeOnboarding, type ProfileSetupData, type OnboardingStatus } from '@/lib/stripe/actions'
 import { OnboardingErrorBoundary } from './OnboardingErrorBoundary'
 import { OnboardingLoadingState, LoadingOverlay } from './OnboardingLoadingState'
 import { useOnboardingErrorHandler, OnboardingRecovery } from '@/lib/onboarding-error-handling'
@@ -32,7 +34,7 @@ interface OnboardingStep {
   id: string
   title: string
   description: string
-  icon: React.ComponentType<any>
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
   status: 'pending' | 'current' | 'completed'
 }
 
@@ -438,39 +440,71 @@ function ProfileSetupStep({
   userId: string
 }) {
   const [formData, setFormData] = useState<ProfileData>({
+    firstName: initialData?.firstName || '',
+    lastName: initialData?.lastName || '',
     serviceArea: initialData?.serviceArea || '',
     availability: initialData?.availability || [],
-    serviceTypes: initialData?.serviceTypes || [],
-    preferences: initialData?.preferences || '',
     bio: initialData?.bio || '',
     phoneNumber: initialData?.phoneNumber || ''
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [hasValidationError, setHasValidationError] = useState(false)
+  const [_hasValidationError, setHasValidationError] = useState(false)
+
+  // Pre-fill name fields from user profile on component mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const supabase = createClient()
+        // Get user profile data to pre-fill first and last name
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .single()
+        
+        if (profile?.full_name) {
+          const nameParts = profile.full_name.split(' ')
+          const firstName = nameParts[0] || ''
+          const lastName = nameParts.slice(1).join(' ') || ''
+          
+          setFormData(prev => ({
+            ...prev,
+            firstName: prev.firstName || firstName,
+            lastName: prev.lastName || lastName
+          }))
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error)
+      }
+    }
+
+    if (userId && !formData.firstName && !formData.lastName) {
+      loadUserProfile()
+    }
+  }, [userId, formData.firstName, formData.lastName])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required'
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required'
+    }
     if (!formData.serviceArea.trim()) {
       newErrors.serviceArea = 'Service area is required'
     }
     if (formData.availability.length === 0) {
       newErrors.availability = 'Please select at least one availability slot'
     }
-    if (formData.serviceTypes.length === 0) {
-      newErrors.serviceTypes = 'Please select at least one service type'
-    }
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required'
     } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phoneNumber)) {
       newErrors.phoneNumber = 'Please enter a valid phone number'
     }
-    if (!formData.bio.trim()) {
-      newErrors.bio = 'Bio is required'
-    } else if (formData.bio.trim().length < 20) {
-      newErrors.bio = 'Bio must be at least 20 characters long'
-    }
+    // Bio is now optional - no validation needed
 
     setErrors(newErrors)
     setHasValidationError(Object.keys(newErrors).length > 0)
@@ -493,18 +527,66 @@ function ProfileSetupStep({
     }
   }
 
-  const availabilityOptions = [
-    'Monday Morning', 'Monday Afternoon', 'Monday Evening',
-    'Tuesday Morning', 'Tuesday Afternoon', 'Tuesday Evening',
-    'Wednesday Morning', 'Wednesday Afternoon', 'Wednesday Evening',
-    'Thursday Morning', 'Thursday Afternoon', 'Thursday Evening',
-    'Friday Morning', 'Friday Afternoon', 'Friday Evening',
-    'Saturday Morning', 'Saturday Afternoon', 'Saturday Evening',
-    'Sunday Morning', 'Sunday Afternoon', 'Sunday Evening'
+  // London boroughs for service area dropdown
+  const londonBoroughs = [
+    'Barking and Dagenham',
+    'Barnet',
+    'Bexley',
+    'Brent',
+    'Bromley',
+    'Camden',
+    'Croydon',
+    'Ealing',
+    'Enfield',
+    'Greenwich',
+    'Hackney',
+    'Hammersmith and Fulham',
+    'Haringey',
+    'Harrow',
+    'Havering',
+    'Hillingdon',
+    'Hounslow',
+    'Islington',
+    'Kensington and Chelsea',
+    'Kingston upon Thames',
+    'Lambeth',
+    'Lewisham',
+    'Merton',
+    'Newham',
+    'Redbridge',
+    'Richmond upon Thames',
+    'Southwark',
+    'Sutton',
+    'Tower Hamlets',
+    'Waltham Forest',
+    'Wandsworth',
+    'Westminster',
+    'City of London'
   ]
 
-  const serviceTypeOptions = [
-    'Wash & Dry', 'Wash Only', 'Dry Only', 'Ironing', 'Folding', 'Collection & Delivery'
+  // Availability options matching booking time slots
+  const availabilityOptions = [
+    'Monday 9:00 AM - 12:00 PM',
+    'Monday 1:00 PM - 4:00 PM', 
+    'Monday 5:00 PM - 8:00 PM',
+    'Tuesday 9:00 AM - 12:00 PM',
+    'Tuesday 1:00 PM - 4:00 PM',
+    'Tuesday 5:00 PM - 8:00 PM',
+    'Wednesday 9:00 AM - 12:00 PM',
+    'Wednesday 1:00 PM - 4:00 PM',
+    'Wednesday 5:00 PM - 8:00 PM',
+    'Thursday 9:00 AM - 12:00 PM',
+    'Thursday 1:00 PM - 4:00 PM',
+    'Thursday 5:00 PM - 8:00 PM',
+    'Friday 9:00 AM - 12:00 PM',
+    'Friday 1:00 PM - 4:00 PM',
+    'Friday 5:00 PM - 8:00 PM',
+    'Saturday 9:00 AM - 12:00 PM',
+    'Saturday 1:00 PM - 4:00 PM',
+    'Saturday 5:00 PM - 8:00 PM',
+    'Sunday 9:00 AM - 12:00 PM',
+    'Sunday 1:00 PM - 4:00 PM',
+    'Sunday 5:00 PM - 8:00 PM'
   ]
 
   return (
@@ -520,16 +602,50 @@ function ProfileSetupStep({
       </div>
 
       <div className="space-y-4">
-        {/* Service Area */}
+        {/* First Name and Last Name */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First Name *</Label>
+            <Input
+              id="firstName"
+              placeholder="First name"
+              value={formData.firstName}
+              onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+              className={errors.firstName ? 'border-red-500' : ''}
+            />
+            {errors.firstName && <p className="text-sm text-red-500">{errors.firstName}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last Name *</Label>
+            <Input
+              id="lastName"
+              placeholder="Last name"
+              value={formData.lastName}
+              onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+              className={errors.lastName ? 'border-red-500' : ''}
+            />
+            {errors.lastName && <p className="text-sm text-red-500">{errors.lastName}</p>}
+          </div>
+        </div>
+
+        {/* Service Area Dropdown */}
         <div className="space-y-2">
           <Label htmlFor="serviceArea">Service Area *</Label>
-          <Input
-            id="serviceArea"
-            placeholder="e.g., Central London, Manchester City Centre"
+          <Select
             value={formData.serviceArea}
-            onChange={(e) => setFormData(prev => ({ ...prev, serviceArea: e.target.value }))}
-            className={errors.serviceArea ? 'border-red-500' : ''}
-          />
+            onValueChange={(value) => setFormData(prev => ({ ...prev, serviceArea: value }))}
+          >
+            <SelectTrigger className={errors.serviceArea ? 'border-red-500' : ''}>
+              <SelectValue placeholder="Select your service area" />
+            </SelectTrigger>
+            <SelectContent>
+              {londonBoroughs.map((borough) => (
+                <SelectItem key={borough} value={borough}>
+                  {borough}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.serviceArea && <p className="text-sm text-red-500">{errors.serviceArea}</p>}
         </div>
 
@@ -548,10 +664,10 @@ function ProfileSetupStep({
 
         {/* Bio */}
         <div className="space-y-2">
-          <Label htmlFor="bio">About You *</Label>
+          <Label htmlFor="bio">About You</Label>
           <Textarea
             id="bio"
-            placeholder="Tell customers about your experience and approach to laundry..."
+            placeholder="Tell customers about your experience and approach to laundry (optional)..."
             value={formData.bio}
             onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
             className={errors.bio ? 'border-red-500' : ''}
@@ -560,10 +676,11 @@ function ProfileSetupStep({
           {errors.bio && <p className="text-sm text-red-500">{errors.bio}</p>}
         </div>
 
-        {/* Availability */}
+        {/* Availability - matching booking time slots */}
         <div className="space-y-2">
           <Label>Availability *</Label>
-          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
+          <p className="text-xs text-gray-500">Select the time slots when you're available to collect and deliver laundry</p>
+          <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
             {availabilityOptions.map((option) => (
               <div key={option} className="flex items-center space-x-2">
                 <Checkbox
@@ -583,53 +700,11 @@ function ProfileSetupStep({
                     }
                   }}
                 />
-                <Label htmlFor={option} className="text-xs">{option}</Label>
-              </div>
-            ))}
-          </div>
-          {errors.availability && <p className="text-sm text-red-500">{errors.availability}</p>}
-        </div>
-
-        {/* Service Types */}
-        <div className="space-y-2">
-          <Label>Service Types *</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {serviceTypeOptions.map((option) => (
-              <div key={option} className="flex items-center space-x-2">
-                <Checkbox
-                  id={option}
-                  checked={formData.serviceTypes.includes(option)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        serviceTypes: [...prev.serviceTypes, option] 
-                      }))
-                    } else {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        serviceTypes: prev.serviceTypes.filter(s => s !== option) 
-                      }))
-                    }
-                  }}
-                />
                 <Label htmlFor={option} className="text-sm">{option}</Label>
               </div>
             ))}
           </div>
-          {errors.serviceTypes && <p className="text-sm text-red-500">{errors.serviceTypes}</p>}
-        </div>
-
-        {/* Preferences */}
-        <div className="space-y-2">
-          <Label htmlFor="preferences">Additional Preferences</Label>
-          <Textarea
-            id="preferences"
-            placeholder="Any special preferences or notes about your service..."
-            value={formData.preferences}
-            onChange={(e) => setFormData(prev => ({ ...prev, preferences: e.target.value }))}
-            rows={2}
-          />
+          {errors.availability && <p className="text-sm text-red-500">{errors.availability}</p>}
         </div>
       </div>
 
@@ -655,7 +730,7 @@ function ProfileSetupStep({
   )
 }
 
-// Step 2: Stripe KYC Component
+// Step 2: Embedded KYC Component
 function StripeKYCStep({ 
   onNext, 
   onBack, 
@@ -669,204 +744,462 @@ function StripeKYCStep({
   accountId?: string
   userId: string
 }) {
-  const [kycStatus, setKycStatus] = useState<'not_started' | 'in_progress' | 'completed' | 'failed'>('not_started')
+  const [kycData, setKycData] = useState({
+    dateOfBirth: '',
+    address: {
+      line1: '',
+      city: '',
+      postalCode: '',
+      country: 'GB'
+    },
+    idDocument: null as File | null,
+    lastFourSSN: ''
+  })
+  
+  const [kycStatus, setKycStatus] = useState<'form' | 'uploading' | 'processing' | 'completed' | 'failed'>('form')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 2)
 
   // Check if KYC is already completed
   useEffect(() => {
     if (accountId) {
-      // If we have an account ID, check its status
       setKycStatus('completed')
     }
   }, [accountId])
 
-  const handleStartKYC = async () => {
-    try {
-      setError(null)
-      setKycStatus('in_progress')
-
-      // Use enhanced error handling with retry
-      await executeWithRetry(async () => {
-        const result = await initiateStripeKYC(userId)
-        
-        if (result.success && result.data) {
-          // Save recovery state before redirect
-          OnboardingRecovery.saveRecoveryState(userId, 2, { accountId: result.data.accountId })
-          
-          // Redirect to Stripe KYC
-          window.location.href = result.data.onboardingUrl
-        } else {
-          throw new Error(result.error?.message || 'Failed to initiate KYC verification')
-        }
-      }, {
-        maxAttempts: 2, // Fewer retries for external redirects
-        baseDelay: 2000,
-      })
-    } catch (error) {
-      console.error('Error starting KYC:', error)
-      setError(error instanceof Error ? error.message : 'Failed to start KYC verification')
-      setKycStatus('failed')
-      setRetryCount(prev => prev + 1)
-      
-      // Handle error with toast notification
-      await handleError(error)
-    }
-  }
-
-  const handleRetryKYC = () => {
-    setKycStatus('not_started')
-    setError(null)
-  }
-
-  const handleKYCComplete = () => {
-    setKycStatus('completed')
-    onNext()
-  }
-
-  // Listen for callback from Stripe KYC completion
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-      
-      if (event.data?.type === 'stripe_kyc_complete') {
-        handleKYCComplete()
+  const validateKYCForm = () => {
+    const newErrors: Record<string, string> = {}
+    
+    // Date of Birth validation
+    if (!kycData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Date of birth is required'
+    } else {
+      const dob = new Date(kycData.dateOfBirth)
+      const age = (new Date().getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+      if (age < 18) {
+        newErrors.dateOfBirth = 'You must be at least 18 years old'
       }
     }
+    
+    // Address validation
+    if (!kycData.address.line1.trim()) {
+      newErrors.addressLine1 = 'Address is required'
+    }
+    if (!kycData.address.city.trim()) {
+      newErrors.city = 'City is required'
+    }
+    if (!kycData.address.postalCode.trim()) {
+      newErrors.postalCode = 'Postal code is required'
+    } else if (!/^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i.test(kycData.address.postalCode)) {
+      newErrors.postalCode = 'Please enter a valid UK postal code'
+    }
+    
+    // ID Document validation
+    if (!kycData.idDocument) {
+      newErrors.idDocument = 'ID document is required'
+    } else {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+      if (!validTypes.includes(kycData.idDocument.type)) {
+        newErrors.idDocument = 'Please upload a JPG, PNG, or PDF file'
+      }
+      if (kycData.idDocument.size > 10 * 1024 * 1024) { // 10MB limit
+        newErrors.idDocument = 'File size must be less than 10MB'
+      }
+    }
+    
+    // Last 4 digits validation (UK National Insurance number last 4)
+    if (!kycData.lastFourSSN.trim()) {
+      newErrors.lastFourSSN = 'Last 4 characters of National Insurance number required'
+    } else if (!/^[A-Z0-9]{4}$/i.test(kycData.lastFourSSN)) {
+      newErrors.lastFourSSN = 'Please enter 4 characters (letters and numbers)'
+    }
 
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-          <Shield className="w-5 h-5 text-green-600" />
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setKycData(prev => ({ ...prev, idDocument: file }))
+      // Clear any previous file errors
+      setErrors(prev => ({ ...prev, idDocument: '' }))
+    }
+  }
+
+  const handleKYCSubmit = async () => {
+    if (!validateKYCForm()) {
+      showErrorToastWithRetry(
+        'Form Validation Error',
+        'Please fix the highlighted fields and try again.',
+        () => {},
+        false
+      )
+      return
+    }
+
+    try {
+      setKycStatus('uploading')
+      setError(null)
+      setUploadProgress(0)
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 200)
+
+      // Submit KYC data to our backend
+      const result = await submitEmbeddedKYC(userId, kycData)
+      
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      if (result.success) {
+        setKycStatus('processing')
+        
+        // Show processing state for a moment
+        setTimeout(() => {
+          setKycStatus('completed')
+          showStepCompletionToast(2, 'Identity Verification')
+        }, 2000)
+      } else {
+        throw new Error(result.error?.message || 'Failed to submit verification documents')
+      }
+    } catch (error) {
+      console.error('Error submitting KYC:', error)
+      setError(error instanceof Error ? error.message : 'Failed to submit verification')
+      setKycStatus('failed')
+      setUploadProgress(0)
+      
+      showErrorToastWithRetry(
+        'Verification Error',
+        error instanceof Error ? error.message : 'Failed to submit verification',
+        () => handleKYCSubmit(),
+        true
+      )
+    }
+  }
+
+  const handleRetry = () => {
+    setKycStatus('form')
+    setError(null)
+    setUploadProgress(0)
+  }
+
+  if (kycStatus === 'completed') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900">Identity Verification Complete</h4>
+            <p className="text-sm text-gray-600">Your identity has been successfully verified</p>
+          </div>
         </div>
-        <div>
-          <h4 className="font-medium text-gray-900">Stripe Connect KYC</h4>
-          <p className="text-sm text-gray-600">Verify your identity with ID uploads</p>
-        </div>
-      </div>
 
-      {kycStatus === 'completed' ? (
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="flex items-start space-x-3">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div className="space-y-2">
               <p className="text-sm font-medium text-green-900">
-                KYC Verification Complete
+                Verification Successful
               </p>
               <p className="text-xs text-green-700">
-                Your identity has been successfully verified with Stripe. You can now proceed to the next step.
+                Your documents have been verified and your account is ready for the next step.
               </p>
             </div>
           </div>
         </div>
-      ) : kycStatus === 'failed' ? (
-        <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-red-900">
-                KYC Verification Failed
-              </p>
-              <p className="text-xs text-red-700">
-                {error || 'There was an issue starting the verification process. Please try again.'}
-              </p>
-            </div>
+
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={onBack} size="sm" className="flex-1">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button onClick={onNext} size="sm" className="flex-1">
+            Continue to Bank Connection
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (kycStatus === 'processing') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900">Processing Verification</h4>
+            <p className="text-sm text-gray-600">We're verifying your documents...</p>
           </div>
         </div>
-      ) : kycStatus === 'in_progress' ? (
+
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-start space-x-3">
             <Loader2 className="w-5 h-5 text-blue-600 mt-0.5 animate-spin" />
             <div className="space-y-2">
               <p className="text-sm font-medium text-blue-900">
-                Redirecting to Stripe...
+                Verifying Your Identity
               </p>
               <p className="text-xs text-blue-700">
-                You'll be redirected to Stripe's secure platform to complete your identity verification.
+                This usually takes just a few seconds. Please don't close this page.
               </p>
             </div>
           </div>
         </div>
-      ) : (
+      </div>
+    )
+  }
+
+  if (kycStatus === 'uploading') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900">Uploading Documents</h4>
+            <p className="text-sm text-gray-600">Securely uploading your verification documents</p>
+          </div>
+        </div>
+
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">Upload Progress</span>
+              <span className="text-sm text-blue-700">{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} className="h-2" />
+            <p className="text-xs text-blue-700">
+              Please don't close this page while we upload your documents securely.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (kycStatus === 'failed') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900">Verification Failed</h4>
+            <p className="text-sm text-gray-600">There was an issue with your verification</p>
+          </div>
+        </div>
+
+        <div className="bg-red-50 rounded-lg p-4 border border-red-200">
           <div className="flex items-start space-x-3">
-            <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
             <div className="space-y-2">
-              <p className="text-sm font-medium text-blue-900">
-                Secure Identity Verification
+              <p className="text-sm font-medium text-red-900">
+                Verification Error
               </p>
-              <p className="text-xs text-blue-700">
-                We use Stripe's secure platform to verify your identity. You'll need to upload a government-issued ID and complete verification steps.
+              <p className="text-xs text-red-700">
+                {error || 'There was an issue processing your verification. Please try again.'}
               </p>
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-xs text-blue-600">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>Bank-level security</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={onBack} size="sm" className="flex-1">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button onClick={handleRetry} size="sm" className="flex-1">
+            <Shield className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Main KYC Form
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3">
+        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+          <Shield className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h4 className="font-medium text-gray-900">Identity Verification</h4>
+          <p className="text-sm text-gray-600">Verify your identity to start receiving payments</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* Date of Birth */}
+        <div className="space-y-2">
+          <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            value={kycData.dateOfBirth}
+            onChange={(e) => setKycData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+            className={errors.dateOfBirth ? 'border-red-500' : ''}
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+          />
+          {errors.dateOfBirth && <p className="text-sm text-red-500">{errors.dateOfBirth}</p>}
+        </div>
+
+        {/* Address */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">Address *</Label>
+          
+          <div className="space-y-2">
+            <Label htmlFor="addressLine1">Street Address</Label>
+            <Input
+              id="addressLine1"
+              placeholder="123 Main Street"
+              value={kycData.address.line1}
+              onChange={(e) => setKycData(prev => ({ 
+                ...prev, 
+                address: { ...prev.address, line1: e.target.value }
+              }))}
+              className={errors.addressLine1 ? 'border-red-500' : ''}
+            />
+            {errors.addressLine1 && <p className="text-sm text-red-500">{errors.addressLine1}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                placeholder="London"
+                value={kycData.address.city}
+                onChange={(e) => setKycData(prev => ({ 
+                  ...prev, 
+                  address: { ...prev.address, city: e.target.value }
+                }))}
+                className={errors.city ? 'border-red-500' : ''}
+              />
+              {errors.city && <p className="text-sm text-red-500">{errors.city}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="postalCode">Postal Code</Label>
+              <Input
+                id="postalCode"
+                placeholder="SW1A 1AA"
+                value={kycData.address.postalCode}
+                onChange={(e) => setKycData(prev => ({ 
+                  ...prev, 
+                  address: { ...prev.address, postalCode: e.target.value.toUpperCase() }
+                }))}
+                className={errors.postalCode ? 'border-red-500' : ''}
+              />
+              {errors.postalCode && <p className="text-sm text-red-500">{errors.postalCode}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* ID Document Upload */}
+        <div className="space-y-2">
+          <Label htmlFor="idDocument">Government ID Document *</Label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <input
+              id="idDocument"
+              type="file"
+              accept="image/*,.pdf"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Label htmlFor="idDocument" className="cursor-pointer">
+              <div className="space-y-2">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                  <Shield className="w-6 h-6 text-blue-600" />
                 </div>
-                <div className="flex items-center space-x-2 text-xs text-blue-600">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>ID document upload</span>
-                </div>
-                <div className="flex items-center space-x-2 text-xs text-blue-600">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>Personal information verification</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {kycData.idDocument ? kycData.idDocument.name : 'Upload ID Document'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Passport, Driving License, or National ID (JPG, PNG, PDF)
+                  </p>
                 </div>
               </div>
-            </div>
+            </Label>
+          </div>
+          {errors.idDocument && <p className="text-sm text-red-500">{errors.idDocument}</p>}
+        </div>
+
+        {/* Last 4 of National Insurance */}
+        <div className="space-y-2">
+          <Label htmlFor="lastFourSSN">Last 4 Characters of National Insurance Number *</Label>
+          <Input
+            id="lastFourSSN"
+            placeholder="e.g., 23A"
+            value={kycData.lastFourSSN}
+            onChange={(e) => setKycData(prev => ({ ...prev, lastFourSSN: e.target.value.toUpperCase() }))}
+            className={errors.lastFourSSN ? 'border-red-500' : ''}
+            maxLength={4}
+          />
+          {errors.lastFourSSN && <p className="text-sm text-red-500">{errors.lastFourSSN}</p>}
+          <p className="text-xs text-gray-500">
+            We only need the last 4 characters for verification purposes
+          </p>
+        </div>
+      </div>
+
+      {/* Security Notice */}
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div className="flex items-start space-x-3">
+          <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-blue-900">
+              Your Information is Secure
+            </p>
+            <p className="text-xs text-blue-700">
+              All data is encrypted and processed securely through Stripe's bank-level security infrastructure. We never store your ID documents on our servers.
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="flex space-x-2">
         <Button variant="outline" onClick={onBack} size="sm" className="flex-1">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        
-        {kycStatus === 'completed' ? (
-          <Button 
-            onClick={handleKYCComplete} 
-            size="sm" 
-            className="flex-1"
-          >
-            Continue to Bank Connection
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        ) : kycStatus === 'failed' ? (
-          <Button 
-            onClick={handleRetryKYC} 
-            size="sm" 
-            className="flex-1"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Try Again
-          </Button>
-        ) : (
-          <Button 
-            onClick={handleStartKYC} 
-            disabled={isLoading || kycStatus === 'in_progress'}
-            size="sm" 
-            className="flex-1"
-          >
-            {isLoading || kycStatus === 'in_progress' ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Starting KYC...
-              </>
-            ) : (
-              <>
-                Start KYC Verification
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
-          </Button>
-        )}
+        <Button 
+          onClick={handleKYCSubmit} 
+          disabled={isLoading}
+          size="sm" 
+          className="flex-1"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            <>
+              <Shield className="w-4 h-4 mr-2" />
+              Verify Identity
+            </>
+          )}
+        </Button>
       </div>
     </div>
   )
@@ -886,7 +1219,7 @@ function BankConnectionStep({
 }) {
   const [bankStatus, setBankStatus] = useState<'not_started' | 'in_progress' | 'completed' | 'failed'>('not_started')
   const [error, setError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
+  const [_retryCount, setRetryCount] = useState(0)
   const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 3)
 
   const handleConnectBank = async () => {
@@ -929,10 +1262,10 @@ function BankConnectionStep({
     setError(null)
   }
 
-  const handleBankComplete = () => {
+  const handleBankComplete = useCallback(() => {
     setBankStatus('completed')
     onNext()
-  }
+  }, [onNext])
 
   // Listen for callback from Stripe bank connection completion
   useEffect(() => {
@@ -946,7 +1279,7 @@ function BankConnectionStep({
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
+  }, [handleBankComplete])
 
   // Check URL parameters for bank connection completion
   useEffect(() => {
@@ -954,7 +1287,7 @@ function BankConnectionStep({
     if (urlParams.get('bank_connection') === 'complete') {
       handleBankComplete()
     }
-  }, [])
+  }, [handleBankComplete])
 
   return (
     <div className="space-y-4">
@@ -1105,9 +1438,9 @@ function PaymentStep({
 }) {
   const [paymentStatus, setPaymentStatus] = useState<'not_started' | 'processing' | 'completed' | 'failed'>('not_started')
   const [error, setError] = useState<string | null>(null)
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
+  const [_clientSecret, setClientSecret] = useState<string | null>(null)
+  const [_paymentIntentId, setPaymentIntentId] = useState<string | null>(null)
+  const [_retryCount, setRetryCount] = useState(0)
   const { executeWithRetry, handleError } = useOnboardingErrorHandler(userId, 4)
 
   const handleStartPayment = async () => {
@@ -1151,7 +1484,7 @@ function PaymentStep({
     }
   }
 
-  const simulatePaymentProcess = async (clientSecret: string, paymentIntentId: string) => {
+  const simulatePaymentProcess = async (_clientSecret: string, paymentIntentId: string) => {
     // Simulate payment processing delay
     await new Promise(resolve => setTimeout(resolve, 2000))
     

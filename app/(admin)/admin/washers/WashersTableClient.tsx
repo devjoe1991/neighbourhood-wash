@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -18,6 +18,9 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +43,7 @@ interface Application {
   user_id: string
   created_at: string
   status: string
+  service_address: string | null
   profiles:
     | {
         first_name: string | null
@@ -47,6 +51,7 @@ interface Application {
         email: string | null
         stripe_account_id: string | null
         stripe_account_status: string | null
+        availability_schedule: Record<string, unknown> | null
       }[]
     | null
 }
@@ -77,7 +82,51 @@ export default function WashersTableClient({
   applications,
 }: WashersTableClientProps) {
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [serviceAreaFilter, setServiceAreaFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const router = useRouter()
+
+  // London boroughs for filtering (not currently used but kept for future enhancement)
+  // const londonBoroughs = [
+  //   'Barking and Dagenham', 'Barnet', 'Bexley', 'Brent', 'Bromley', 'Camden',
+  //   'Croydon', 'Ealing', 'Enfield', 'Greenwich', 'Hackney', 'Hammersmith and Fulham',
+  //   'Haringey', 'Harrow', 'Havering', 'Hillingdon', 'Hounslow', 'Islington',
+  //   'Kensington and Chelsea', 'Kingston upon Thames', 'Lambeth', 'Lewisham',
+  //   'Merton', 'Newham', 'Redbridge', 'Richmond upon Thames', 'Southwark',
+  //   'Sutton', 'Tower Hamlets', 'Waltham Forest', 'Wandsworth', 'Westminster', 'City of London'
+  // ]
+
+  // Filter applications based on search and filters
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
+      // Search filter (name or email)
+      const searchMatch = searchTerm === '' || 
+        (app.profiles?.[0]?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         app.profiles?.[0]?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         app.profiles?.[0]?.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+
+      // Service area filter
+      const serviceAreaMatch = serviceAreaFilter === 'all' || 
+        app.service_address === serviceAreaFilter
+
+      // Status filter
+      const statusMatch = statusFilter === 'all' || app.status === statusFilter
+
+      return searchMatch && serviceAreaMatch && statusMatch
+    })
+  }, [applications, searchTerm, serviceAreaFilter, statusFilter])
+
+  // Get unique service areas from applications for filter dropdown
+  const availableServiceAreas = useMemo(() => {
+    const areas = new Set<string>()
+    applications.forEach(app => {
+      if (app.service_address) {
+        areas.add(app.service_address)
+      }
+    })
+    return Array.from(areas).sort()
+  }, [applications])
 
   const handleStatusUpdate = async (
     applicationId: string,
@@ -120,12 +169,77 @@ export default function WashersTableClient({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {applications.length > 0 ? (
+        {/* Filters Section */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="space-y-2">
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="serviceArea">Service Area</Label>
+            <Select value={serviceAreaFilter} onValueChange={setServiceAreaFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All areas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Areas</SelectItem>
+                {availableServiceAreas.map((area) => (
+                  <SelectItem key={area} value={area}>
+                    {area}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm('')
+                setServiceAreaFilter('all')
+                setStatusFilter('all')
+              }}
+              className="w-full"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Results Summary */}
+        <div className="mb-4 text-sm text-gray-600">
+          Showing {filteredApplications.length} of {applications.length} applications
+        </div>
+
+        {filteredApplications.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Applicant</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Service Area</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead>App Status</TableHead>
                 <TableHead>KYC Status</TableHead>
@@ -133,7 +247,7 @@ export default function WashersTableClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applications.map((app) => (
+              {filteredApplications.map((app) => (
                 <TableRow key={app.id}>
                   <TableCell className='font-medium'>
                     {app.profiles?.[0]?.first_name &&
@@ -143,6 +257,11 @@ export default function WashersTableClient({
                   </TableCell>
                   <TableCell>
                     {app.profiles?.[0]?.email || 'No email'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {app.service_address || 'Not specified'}
+                    </Badge>
                   </TableCell>
                   <TableCell className='text-sm text-gray-600'>
                     {new Date(app.created_at).toLocaleDateString('en-GB')}
