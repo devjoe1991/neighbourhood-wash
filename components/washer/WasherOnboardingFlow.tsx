@@ -72,9 +72,9 @@ export function WasherOnboardingFlow({
       const handleRecover = () => {
         setCurrentStep(recoveryState.step)
         OnboardingRecovery.clearRecoveryState()
-        OnboardingToasts.showSuccessToast(
-          'Onboarding Resumed',
-          `Continuing from step ${recoveryState.step}`
+        showStepCompletionToast(
+          recoveryState.step,
+          'Onboarding Resumed'
         )
       }
       

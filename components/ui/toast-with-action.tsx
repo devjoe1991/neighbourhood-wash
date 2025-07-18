@@ -2,7 +2,8 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { toast, type ToastActionElement } from '@/lib/hooks/use-toast'
+import { toast } from '@/lib/hooks/use-toast'
+import type { ToastActionElement } from '@/components/ui/toast'
 import { RefreshCw } from 'lucide-react'
 
 /**
