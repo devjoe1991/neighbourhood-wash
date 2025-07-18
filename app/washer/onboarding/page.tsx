@@ -18,7 +18,7 @@ export default async function WasherOnboardingPage() {
   // Get user profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, washer_status, stripe_account_id, stripe_account_status')
+    .select('*')
     .eq('id', user.id)
     .single()
 
@@ -50,7 +50,7 @@ export default async function WasherOnboardingPage() {
   return (
     <WasherOnboardingFlow 
       user={user}
-      profile={profile as unknown}
+      profile={profile}
       onStepComplete={handleStepComplete}
       onOnboardingComplete={handleOnboardingComplete}
     />
