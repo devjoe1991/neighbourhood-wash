@@ -94,7 +94,7 @@ function UnverifiedWasherView({ user }: { user: { email?: string; id?: string } 
         </div>
 
         {/* Integrated Onboarding Flow */}
-        <WasherOnboardingContainer user={user} />
+        <WasherOnboardingContainer user={user.id ? { ...user, id: user.id } : null} />
       </div>
 
       {/* Dashboard Preview - All Features Locked/Disabled */}
