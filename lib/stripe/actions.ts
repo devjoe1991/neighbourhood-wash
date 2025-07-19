@@ -1769,9 +1769,7 @@ export async function initiateBankConnection(
 /**
  * Checks if bank account is connected to Stripe account
  */
-export async function checkBankConnectionStatus(
-  accountId: string
-): Promise<
+export async function checkBankConnectionStatus(accountId: string): Promise<
   ServiceResponse<{
     bankConnected: boolean
     bankDetails?: Record<string, unknown>
@@ -1923,7 +1921,22 @@ export async function canAccessWasherFeatures(userId: string): Promise<
         '[ACCESS_CONTROL] Failed to get onboarding status:',
         onboardingResult.error
       )
-      // Fall back to basic Stripe verification for backward compatibility
+
+      // CRITICAL: For new washers without proper onboarding data, deny access by default
+      if (!profile.stripe_account_id || !profile.onboarding_fee_paid) {
+        console.log(
+          `[ACCESS_CONTROL] User ${userId} lacks basic onboarding requirements, access denied`
+        )
+        return {
+          success: true,
+          data: {
+            canAccess: false,
+            status: 'incomplete',
+          },
+        }
+      }
+
+      // Fall back to basic Stripe verification only for users with existing Stripe accounts
       return await checkBasicStripeVerification(userId, profile)
     }
 
@@ -2100,6 +2113,20 @@ async function checkBasicStripeVerification(
     if (!profile.stripe_account_id) {
       console.log(
         `[ACCESS_CONTROL] User ${userId} has no Stripe account, access denied`
+      )
+      return {
+        success: true,
+        data: {
+          canAccess: false,
+          status: 'incomplete',
+        },
+      }
+    }
+
+    // CRITICAL: Also check if onboarding fee is paid
+    if (!profile.onboarding_fee_paid) {
+      console.log(
+        `[ACCESS_CONTROL] User ${userId} hasn't paid onboarding fee, access denied`
       )
       return {
         success: true,
