@@ -9,13 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Rocket,
-  User,
-  HelpCircle,
-  ClipboardList,
-  LayoutGrid,
-} from 'lucide-react'
+import { Rocket, User, HelpCircle } from 'lucide-react'
 import { getCompletedBookingsNeedingReview } from './actions'
 import PostBookingPrompt from '@/components/dashboard/PostBookingPrompt'
 import LaundryPreferencesCard from '@/components/dashboard/LaundryPreferencesCard'
@@ -41,14 +35,21 @@ export default async function DashboardPage() {
 
   const userRole = profile?.role || user.user_metadata?.selected_role
   const isWasher = userRole === 'washer'
-  const washerStatus = profile?.washer_status
+
+  // CRITICAL FIX: Washers should NEVER see the user dashboard
+  // Immediately redirect them to the washer dashboard
+  if (isWasher) {
+    console.log(
+      `[USER_DASHBOARD] Washer ${user.id} accessing user dashboard, redirecting to washer dashboard`
+    )
+    return redirect('/washer/dashboard')
+  }
+
   const preferencesExist =
     !!profile?.product_preferences && profile.product_preferences.length > 0
 
   // Get completed bookings that need review (only for users, not washers)
-  const completedBookingsResult = !isWasher
-    ? await getCompletedBookingsNeedingReview()
-    : { success: true, data: [] }
+  const completedBookingsResult = await getCompletedBookingsNeedingReview()
 
   const completedBookings = completedBookingsResult.success
     ? completedBookingsResult.data
@@ -66,22 +67,6 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
-
-      {/* Redirect washers to their dedicated dashboard */}
-      {isWasher && washerStatus === 'approved' && (
-        <div className='rounded-lg border-2 border-dashed border-green-300 bg-green-50 p-6 text-center shadow-sm'>
-          <h2 className='text-2xl font-bold text-green-800'>
-            Welcome, Washer!
-          </h2>
-          <p className='text-muted-foreground mt-2 mb-4'>
-            You have access to the washer dashboard. Click below to manage your
-            services and bookings.
-          </p>
-          <Button asChild>
-            <Link href='/washer/dashboard'>Go to Washer Dashboard</Link>
-          </Button>
-        </div>
-      )}
 
       {userRole && (
         <div className='rounded-md border border-blue-200 bg-blue-50 p-4'>
@@ -118,106 +103,38 @@ export default async function DashboardPage() {
       )}
 
       <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-        {/* Card for Setting Laundry Preferences (for Users) */}
-        {!isWasher && (
-          <LaundryPreferencesCard preferencesExist={preferencesExist} />
-        )}
+        {/* Card for Setting Laundry Preferences */}
+        <LaundryPreferencesCard preferencesExist={preferencesExist} />
 
-        {/* Card for Becoming a Washer - Now shown as a secondary option for users */}
-        {!isWasher && (
-          <Card className='flex flex-col'>
-            <CardHeader>
-              <div className='flex items-center space-x-3'>
-                <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
-                  <Rocket className='text-primary h-6 w-6' />
-                </div>
-                <div>
-                  <CardTitle>Become a Washer</CardTitle>
-                  <CardDescription>
-                    Start earning from your laundry room.
-                  </CardDescription>
-                </div>
+        {/* Card for Becoming a Washer - Available to all users */}
+        <Card className='flex flex-col'>
+          <CardHeader>
+            <div className='flex items-center space-x-3'>
+              <div className='bg-primary/10 flex h-10 w-10 items-center justify-center rounded-lg'>
+                <Rocket className='text-primary h-6 w-6' />
               </div>
-            </CardHeader>
-            <CardContent className='flex-grow'>
-              <p>
-                Interested in earning? Join our community of trusted locals.
-                Start the application process here.
-              </p>
-            </CardContent>
-            <div className='p-6 pt-0'>
-              <Button asChild className='w-full' variant='secondary'>
-                <Link href='/user/dashboard/become-washer'>
-                  {washerStatus
-                    ? 'Check Application Status'
-                    : 'Start Your Application'}
-                </Link>
-              </Button>
+              <div>
+                <CardTitle>Become a Washer</CardTitle>
+                <CardDescription>
+                  Start earning from your laundry room.
+                </CardDescription>
+              </div>
             </div>
-          </Card>
-        )}
-
-        {/* Card for Approved Washers */}
-        {isWasher && washerStatus === 'approved' && (
-          <Card className='flex flex-col'>
-            <CardHeader>
-              <div className='flex items-center space-x-3'>
-                <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10'>
-                  <LayoutGrid className='h-6 w-6 text-green-600' />
-                </div>
-                <div>
-                  <CardTitle>Washer Hub</CardTitle>
-                  <CardDescription>Manage your services</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className='flex-grow'>
-              <p>
-                Your application is approved! Head to your hub to set your
-                prices, manage your availability, and view your jobs.
-              </p>
-            </CardContent>
-            <div className='p-6 pt-0'>
-              <Button asChild className='w-full' variant='default'>
-                <Link href='/washer/dashboard'>Go to Hub</Link>
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Card for Pending Washers */}
-        {isWasher &&
-          (washerStatus === 'pending_application' ||
-            washerStatus === 'pending_verification') && (
-            <Card className='flex flex-col'>
-              <CardHeader>
-                <div className='flex items-center space-x-3'>
-                  <div className='flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10'>
-                    <ClipboardList className='h-6 w-6 text-yellow-600' />
-                  </div>
-                  <div>
-                    <CardTitle>Application Status</CardTitle>
-                    <CardDescription>
-                      Your application is in progress
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className='flex-grow'>
-                <p>
-                  Thank you for applying! You can check the current status of
-                  your application and see the next steps here.
-                </p>
-              </CardContent>
-              <div className='p-6 pt-0'>
-                <Button asChild className='w-full'>
-                  <Link href='/dashboard/become-washer'>
-                    View Application Status
-                  </Link>
-                </Button>
-              </div>
-            </Card>
-          )}
+          </CardHeader>
+          <CardContent className='flex-grow'>
+            <p>
+              Interested in earning? Join our community of trusted locals. Start
+              the application process here.
+            </p>
+          </CardContent>
+          <div className='p-6 pt-0'>
+            <Button asChild className='w-full' variant='secondary'>
+              <Link href='/user/dashboard/become-washer'>
+                Start Your Application
+              </Link>
+            </Button>
+          </div>
+        </Card>
 
         {/* How It Works Card */}
         <Card className='flex flex-col'>

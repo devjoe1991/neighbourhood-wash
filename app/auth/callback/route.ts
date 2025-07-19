@@ -25,18 +25,23 @@ export async function GET(request: NextRequest) {
 
         if (user) {
           // Check if profile exists, create if it doesn't
-          const { data: existingProfile, error: profileCheckError } = await supabase
-            .from('profiles')
-            .select('id, role')
-            .eq('id', user.id)
-            .maybeSingle()
+          const { data: existingProfile, error: profileCheckError } =
+            await supabase
+              .from('profiles')
+              .select('id, role')
+              .eq('id', user.id)
+              .maybeSingle()
 
           let userRole = existingProfile?.role
 
           // If no profile exists, create one using user metadata
           if (!existingProfile && !profileCheckError) {
             const selectedRole = user.user_metadata?.selected_role || 'user'
-            
+
+            console.log(
+              `[AUTH_CALLBACK] Creating profile for user ${user.id} with role: ${selectedRole}`
+            )
+
             const { error: profileCreationError } = await supabase
               .from('profiles')
               .insert({
@@ -44,13 +49,24 @@ export async function GET(request: NextRequest) {
                 email: user.email,
                 full_name: user.user_metadata?.full_name || user.email,
                 role: selectedRole,
+                // For washers, set initial washer_status
+                ...(selectedRole === 'washer' && {
+                  washer_status: 'pending_application',
+                }),
               })
 
             if (profileCreationError) {
-              console.error('Error creating profile in callback:', profileCreationError)
+              console.error(
+                'Error creating profile in callback:',
+                profileCreationError
+              )
               // Continue anyway, using metadata role for redirect
+            } else {
+              console.log(
+                `[AUTH_CALLBACK] Successfully created profile for user ${user.id}`
+              )
             }
-            
+
             userRole = selectedRole
           }
 
@@ -60,13 +76,22 @@ export async function GET(request: NextRequest) {
           }
 
           // Redirect based on role
+          console.log(
+            `[AUTH_CALLBACK] Redirecting user ${user.id} with role: ${userRole}`
+          )
           switch (userRole) {
             case 'admin':
+              console.log(
+                `[AUTH_CALLBACK] Redirecting admin to /admin/dashboard`
+              )
               return NextResponse.redirect(`${origin}/admin/dashboard`)
             case 'washer':
+              console.log(
+                `[AUTH_CALLBACK] Redirecting washer to /washer/dashboard`
+              )
               return NextResponse.redirect(`${origin}/washer/dashboard`)
             default:
-              // Default to regular user dashboard
+              console.log(`[AUTH_CALLBACK] Redirecting user to /user/dashboard`)
               return NextResponse.redirect(`${origin}/user/dashboard`)
           }
         }
