@@ -1923,9 +1923,9 @@ export async function canAccessWasherFeatures(userId: string): Promise<
       )
 
       // CRITICAL: For new washers without proper onboarding data, deny access by default
-      if (!profile.stripe_account_id || !profile.onboarding_fee_paid) {
+      if (!profile.stripe_account_id || profile.onboarding_fee_paid !== true) {
         console.log(
-          `[ACCESS_CONTROL] User ${userId} lacks basic onboarding requirements, access denied`
+          `[ACCESS_CONTROL] User ${userId} lacks basic onboarding requirements (stripe_account_id: ${profile.stripe_account_id}, onboarding_fee_paid: ${profile.onboarding_fee_paid}), access denied`
         )
         return {
           success: true,
@@ -2124,9 +2124,9 @@ async function checkBasicStripeVerification(
     }
 
     // CRITICAL: Also check if onboarding fee is paid
-    if (!profile.onboarding_fee_paid) {
+    if (profile.onboarding_fee_paid !== true) {
       console.log(
-        `[ACCESS_CONTROL] User ${userId} hasn't paid onboarding fee, access denied`
+        `[ACCESS_CONTROL] User ${userId} hasn't paid onboarding fee (${profile.onboarding_fee_paid}), access denied`
       )
       return {
         success: true,

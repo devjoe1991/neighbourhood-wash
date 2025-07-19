@@ -1022,7 +1022,9 @@ export default async function WasherDashboardPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, washer_status, stripe_account_id, stripe_account_status')
+    .select(
+      'role, washer_status, stripe_account_id, stripe_account_status, onboarding_fee_paid'
+    )
     .eq('id', user.id)
     .maybeSingle()
 
@@ -1080,9 +1082,9 @@ export default async function WasherDashboardPage() {
   }
 
   // If user hasn't paid onboarding fee, they need onboarding
-  if (!profile.onboarding_fee_paid) {
+  if (profile.onboarding_fee_paid !== true) {
     console.log(
-      `[WASHER_DASHBOARD] User ${user.id} hasn't paid onboarding fee - showing onboarding`
+      `[WASHER_DASHBOARD] User ${user.id} hasn't paid onboarding fee (${profile.onboarding_fee_paid}) - showing onboarding`
     )
     return <UnverifiedWasherView user={user} />
   }
