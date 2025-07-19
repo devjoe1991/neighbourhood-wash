@@ -46,8 +46,24 @@ export async function checkWasherFeatureAccess(
       `[ACCESS_CONTROL] Checking ${featureName} access for user: ${userId}`
     )
 
+    // Handle build-time context where Supabase might not be available
+    let supabase
+    try {
+      supabase = createSupabaseServerClient()
+    } catch (error) {
+      console.warn(
+        '[ACCESS_CONTROL] Supabase client creation failed during build:',
+        error
+      )
+      return {
+        canAccess: false,
+        reason: 'build_context',
+        redirectPath: fallbackPath,
+        message: 'Build-time context - authentication not available',
+      }
+    }
+
     // Get user authentication and role
-    const supabase = createSupabaseServerClient()
     const {
       data: { user },
       error: authError,
