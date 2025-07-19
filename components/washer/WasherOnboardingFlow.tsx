@@ -509,6 +509,8 @@ function ProfileSetupStep({
     lastName: initialData?.lastName || '',
     serviceArea: initialData?.serviceArea || '',
     availability: initialData?.availability || [],
+    serviceTypes: initialData?.serviceTypes || [],
+    preferences: initialData?.preferences || '',
     bio: initialData?.bio || '',
     phoneNumber: initialData?.phoneNumber || '',
   })

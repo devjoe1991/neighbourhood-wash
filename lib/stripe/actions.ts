@@ -9,18 +9,18 @@ import {
   trackVerificationFailedAction,
   trackAccountCreatedAction,
   trackOnboardingLinkGeneratedAction,
-  trackStripeRedirectAction
+  trackStripeRedirectAction,
 } from '@/lib/monitoring/verification-analytics-actions'
-import { 
+import {
   withStripeApiMonitoring,
-  withDatabaseMonitoring
+  withDatabaseMonitoring,
 } from '@/lib/monitoring/performance-monitor'
 import { createSessionId } from '@/lib/monitoring/performance-utils'
-import { 
+import {
   getOnboardingProgress,
   updateOnboardingProgress,
   logOnboardingStep,
-  initializeOnboardingProgress
+  initializeOnboardingProgress,
 } from '@/lib/onboarding-progress'
 
 const supabase = createSupabaseServerClient()
@@ -83,7 +83,7 @@ export async function createOnboardingFeeCheckoutSession() {
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?payment_success=true`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?payment_cancelled=true`,
     // We use the user's ID as the client reference to identify them in the webhook
-    client_reference_id: user.id,
+    client_reference_id: user!.id,
   })
 
   if (!checkoutSession.url) {
@@ -101,7 +101,7 @@ export async function createOnboardingFeeCheckoutSession() {
 export async function createAndOnboardStripeConnectAccount() {
   const sessionId = createSessionId()
   const startTime = Date.now()
-  
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -111,31 +111,40 @@ export async function createAndOnboardStripeConnectAccount() {
   }
 
   try {
-    console.log(`[STRIPE_CONNECT] Starting account creation for user: ${user.id}`)
+    console.log(
+      `[STRIPE_CONNECT] Starting account creation for user: ${user!.id}`
+    )
 
     // 1. Create a new Stripe Connect Express account for the user with monitoring
     const account = await withStripeApiMonitoring(
       'account_create',
-      () => stripe.accounts.create({
-        type: 'express',
-        email: user.email,
-        business_type: 'individual',
-        country: 'GB',
-      }),
+      () =>
+        stripe.accounts.create({
+          type: 'express',
+          email: user!.email,
+          business_type: 'individual',
+          country: 'GB',
+        }),
       {
-        userId: user.id,
+        userId: user!.id,
         sessionId,
         metadata: {
-          email: user.email,
+          email: user!.email,
           business_type: 'individual',
-          country: 'GB'
-        }
+          country: 'GB',
+        },
       }
     )
 
     if (!account) {
       const error = new Error('Could not create Stripe Connect account')
-      await trackVerificationFailedAction(user.id, undefined, sessionId, error, 'account_creation')
+      await trackVerificationFailedAction(
+        user!.id,
+        undefined,
+        sessionId,
+        error,
+        'account_creation'
+      )
       throw error
     }
 
@@ -143,65 +152,89 @@ export async function createAndOnboardStripeConnectAccount() {
 
     // Track account creation
     const accountCreationDuration = Date.now() - startTime
-    await trackAccountCreatedAction(user.id, account.id, sessionId, accountCreationDuration, {
-      email: user.email,
-      business_type: 'individual',
-      country: 'GB'
-    })
+    await trackAccountCreatedAction(
+      user!.id,
+      account.id,
+      sessionId,
+      accountCreationDuration,
+      {
+        email: user!.email,
+        business_type: 'individual',
+        country: 'GB',
+      }
+    )
 
     // 2. Save the new account ID to the user's profile in Supabase with monitoring
     const profileUpdateResult = await withDatabaseMonitoring(
       'profile_update_stripe_account',
-      async () => await supabase
-        .from('profiles')
-        .update({ 
-          stripe_account_id: account.id,
-          stripe_account_status: 'incomplete' // Set initial status
-        })
-        .eq('id', user.id),
+      async () =>
+        await supabase
+          .from('profiles')
+          .update({
+            stripe_account_id: account.id,
+            stripe_account_status: 'incomplete', // Set initial status
+          })
+          .eq('id', user!.id),
       {
-        userId: user.id,
+        userId: user!.id,
         sessionId,
         table: 'profiles',
         metadata: {
           stripe_account_id: account.id,
-          operation: 'update_stripe_account_id'
-        }
+          operation: 'update_stripe_account_id',
+        },
       }
     )
 
     if (profileUpdateResult.error) {
-      const error = new Error('Could not save Stripe account ID to user profile.')
-      await trackVerificationFailedAction(user.id, account.id, sessionId, error, 'profile_update')
+      const error = new Error(
+        'Could not save Stripe account ID to user profile.'
+      )
+      await trackVerificationFailedAction(
+        user!.id,
+        account.id,
+        sessionId,
+        error,
+        'profile_update'
+      )
       throw error
     }
 
-    console.log(`[STRIPE_CONNECT] Profile updated with account ID: ${account.id}`)
+    console.log(
+      `[STRIPE_CONNECT] Profile updated with account ID: ${account.id}`
+    )
 
     // 3. Create the unique, single-use onboarding link with monitoring
     const accountLink = await withStripeApiMonitoring(
       'account_link_create',
-      () => stripe.accountLinks.create({
-        account: account.id,
-        refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
-        return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
-        type: 'account_onboarding',
-      }),
+      () =>
+        stripe.accountLinks.create({
+          account: account.id,
+          refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
+          return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
+          type: 'account_onboarding',
+        }),
       {
-        userId: user.id,
+        userId: user!.id,
         sessionId,
         accountId: account.id,
         metadata: {
           refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
           return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
-          type: 'account_onboarding'
-        }
+          type: 'account_onboarding',
+        },
       }
     )
 
     if (!accountLink.url) {
       const error = new Error('Could not create Stripe account link')
-      await trackVerificationFailedAction(user.id, account.id, sessionId, error, 'onboarding_link_creation')
+      await trackVerificationFailedAction(
+        user!.id,
+        account.id,
+        sessionId,
+        error,
+        'onboarding_link_creation'
+      )
       throw error
     }
 
@@ -209,15 +242,21 @@ export async function createAndOnboardStripeConnectAccount() {
 
     // Track onboarding link generation
     const linkGenerationDuration = Date.now() - startTime
-    await trackOnboardingLinkGeneratedAction(user.id, account.id, sessionId, linkGenerationDuration, {
-      onboarding_url: accountLink.url,
-      expires_at: accountLink.expires_at
-    })
+    await trackOnboardingLinkGeneratedAction(
+      user!.id,
+      account.id,
+      sessionId,
+      linkGenerationDuration,
+      {
+        onboarding_url: accountLink.url,
+        expires_at: accountLink.expires_at,
+      }
+    )
 
     // Track redirect to Stripe
-    await trackStripeRedirectAction(user.id, account.id, sessionId, {
+    await trackStripeRedirectAction(user!.id, account.id, sessionId, {
       url: accountLink.url,
-      type: 'account_onboarding'
+      type: 'account_onboarding',
     })
 
     // Revalidate path to ensure profile data is fresh on the client
@@ -227,19 +266,18 @@ export async function createAndOnboardStripeConnectAccount() {
 
     // 4. Redirect the user to the onboarding link
     return redirect(accountLink.url)
-
   } catch (error) {
     console.error(`[STRIPE_CONNECT] Error in account creation flow:`, error)
-    
+
     // Track the failure
     await trackVerificationFailedAction(
-      user.id, 
-      undefined, 
-      sessionId, 
-      error instanceof Error ? error : new Error(String(error)), 
+      user!.id,
+      undefined,
+      sessionId,
+      error instanceof Error ? error : new Error(String(error)),
       'account_creation_flow'
     )
-    
+
     throw error
   }
 }
@@ -248,27 +286,34 @@ export async function createAndOnboardStripeConnectAccount() {
  * Creates a Stripe Connect Express account for the washer if they don't already have one
  * Enhanced with monitoring and analytics
  */
-export async function createStripeConnectedAccount(sessionId?: string): Promise<{
+export async function createStripeConnectedAccount(
+  sessionId?: string
+): Promise<{
   success: boolean
   accountId?: string
   message?: string
 }> {
   const startTime = Date.now()
   const currentSessionId = sessionId || createSessionId()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let user: any = null
-  
+  let user: { id: string; email?: string } | null = null
+
   try {
     const {
       data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser()
-    
+
     user = authUser
 
     if (authError || !user) {
       const error = new Error('Authentication error. Please log in again.')
-      await trackVerificationFailedAction(user?.id || 'unknown', undefined, currentSessionId, error, 'authentication')
+      await trackVerificationFailedAction(
+        user?.id || 'unknown',
+        undefined,
+        currentSessionId,
+        error,
+        'authentication'
+      )
       return {
         success: false,
         message: error.message,
@@ -282,7 +327,7 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('stripe_account_id, email, role')
-          .eq('id', user.id)
+          .eq('id', user!.id)
           .single()
 
         if (profileError || !profile) {
@@ -290,13 +335,19 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
         }
         return profile
       },
-      { userId: user.id, sessionId: currentSessionId, table: 'profiles' }
+      { userId: user!.id, sessionId: currentSessionId, table: 'profiles' }
     )
 
     // Check if user is a washer
     if (profile.role !== 'washer') {
       const error = new Error('Only washers can connect payment accounts.')
-      await trackVerificationFailedAction(user.id, undefined, currentSessionId, error, 'role_validation')
+      await trackVerificationFailedAction(
+        user!.id,
+        undefined,
+        currentSessionId,
+        error,
+        'role_validation'
+      )
       return {
         success: false,
         message: error.message,
@@ -305,7 +356,9 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
 
     // If they already have a Stripe account, return it
     if (profile.stripe_account_id) {
-      console.log(`[ACCOUNT_CREATE] User ${user.id} already has Stripe account: ${profile.stripe_account_id}`)
+      console.log(
+        `[ACCOUNT_CREATE] User ${user!.id} already has Stripe account: ${profile.stripe_account_id}`
+      )
       return {
         success: true,
         accountId: profile.stripe_account_id,
@@ -318,12 +371,12 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
       async () => {
         return await stripe.accounts.create({
           type: 'express',
-          email: user.email || profile.email,
+          email: user!.email || profile.email,
           business_type: 'individual',
           country: 'GB',
         })
       },
-      { userId: user.id, sessionId: currentSessionId }
+      { userId: user!.id, sessionId: currentSessionId }
     )
 
     // Save account ID to user's profile with monitoring
@@ -333,25 +386,35 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ stripe_account_id: account.id })
-          .eq('id', user.id)
+          .eq('id', user!.id)
 
         if (updateError) {
-          throw new Error('Failed to save account information. Please try again.')
+          throw new Error(
+            'Failed to save account information. Please try again.'
+          )
         }
       },
-      { userId: user.id, sessionId: currentSessionId, table: 'profiles' }
+      { userId: user!.id, sessionId: currentSessionId, table: 'profiles' }
     )
 
     const duration = Date.now() - startTime
 
     // Track successful account creation
-    await trackAccountCreatedAction(user.id, account.id, currentSessionId, duration, {
-      email: user.email || profile.email,
-      business_type: 'individual',
-      country: 'GB'
-    })
+    await trackAccountCreatedAction(
+      user!.id,
+      account.id,
+      currentSessionId,
+      duration,
+      {
+        email: user!.email || profile.email,
+        business_type: 'individual',
+        country: 'GB',
+      }
+    )
 
-    console.log(`[ACCOUNT_CREATE] ✅ Created Stripe account for user ${user.id}: ${account.id} (${duration}ms)`)
+    console.log(
+      `[ACCOUNT_CREATE] ✅ Created Stripe account for user ${user!.id}: ${account.id} (${duration}ms)`
+    )
 
     return {
       success: true,
@@ -359,11 +422,21 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
     }
   } catch (error) {
     const duration = Date.now() - startTime
-    console.error(`[ACCOUNT_CREATE] ❌ Error creating Stripe Connect account (${duration}ms):`, error)
-    
-    const errorInstance = error instanceof Error ? error : new Error(String(error))
-    await trackVerificationFailedAction(user?.id || 'unknown', undefined, currentSessionId, errorInstance, 'account_creation')
-    
+    console.error(
+      `[ACCOUNT_CREATE] ❌ Error creating Stripe Connect account (${duration}ms):`,
+      error
+    )
+
+    const errorInstance =
+      error instanceof Error ? error : new Error(String(error))
+    await trackVerificationFailedAction(
+      user?.id || 'unknown',
+      undefined,
+      currentSessionId,
+      errorInstance,
+      'account_creation'
+    )
+
     return {
       success: false,
       message: 'An unexpected error occurred. Please try again.',
@@ -375,17 +448,22 @@ export async function createStripeConnectedAccount(sessionId?: string): Promise<
  * Creates a Stripe account link for onboarding
  * Enhanced with monitoring and analytics
  */
-export async function createStripeAccountLink(accountId: string, sessionId?: string): Promise<{
+export async function createStripeAccountLink(
+  accountId: string,
+  sessionId?: string
+): Promise<{
   success: boolean
   url?: string
   message?: string
 }> {
   const startTime = Date.now()
   const currentSessionId = sessionId || createSessionId()
-  
+
   try {
     // Get current user for tracking
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     const userId = user?.id || 'unknown'
 
     // Create account link with monitoring
@@ -405,13 +483,21 @@ export async function createStripeAccountLink(accountId: string, sessionId?: str
     const duration = Date.now() - startTime
 
     // Track successful link generation
-    await trackOnboardingLinkGeneratedAction(userId, accountId, currentSessionId, duration, {
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
-      type: 'account_onboarding'
-    })
+    await trackOnboardingLinkGeneratedAction(
+      userId,
+      accountId,
+      currentSessionId,
+      duration,
+      {
+        refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts`,
+        return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/washer/dashboard/payouts?connect_success=true`,
+        type: 'account_onboarding',
+      }
+    )
 
-    console.log(`[ACCOUNT_LINK] ✅ Created onboarding link for account ${accountId} (${duration}ms)`)
+    console.log(
+      `[ACCOUNT_LINK] ✅ Created onboarding link for account ${accountId} (${duration}ms)`
+    )
 
     return {
       success: true,
@@ -419,14 +505,26 @@ export async function createStripeAccountLink(accountId: string, sessionId?: str
     }
   } catch (error) {
     const duration = Date.now() - startTime
-    console.error(`[ACCOUNT_LINK] ❌ Error creating Stripe account link (${duration}ms):`, error)
-    
-    const { data: { user } } = await supabase.auth.getUser()
+    console.error(
+      `[ACCOUNT_LINK] ❌ Error creating Stripe account link (${duration}ms):`,
+      error
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     const userId = user?.id || 'unknown'
-    
-    const errorInstance = error instanceof Error ? error : new Error(String(error))
-    await trackVerificationFailedAction(userId, accountId, currentSessionId, errorInstance, 'onboarding_link_creation')
-    
+
+    const errorInstance =
+      error instanceof Error ? error : new Error(String(error))
+    await trackVerificationFailedAction(
+      userId,
+      accountId,
+      currentSessionId,
+      errorInstance,
+      'onboarding_link_creation'
+    )
+
     return {
       success: false,
       message: 'Failed to create onboarding link. Please try again.',
@@ -435,11 +533,11 @@ export async function createStripeAccountLink(accountId: string, sessionId?: str
 }
 
 // Types for Stripe account status management
-export type StripeAccountStatus = 
-  | 'incomplete' 
-  | 'pending' 
-  | 'complete' 
-  | 'requires_action' 
+export type StripeAccountStatus =
+  | 'incomplete'
+  | 'pending'
+  | 'complete'
+  | 'requires_action'
   | 'rejected'
 
 export interface StripeAccountDetails {
@@ -463,7 +561,12 @@ export interface StripeAccountDetails {
 
 // Enhanced error types for better error handling
 export interface StripeError {
-  type: 'stripe_error' | 'network_error' | 'validation_error' | 'auth_error' | 'unknown_error'
+  type:
+    | 'stripe_error'
+    | 'network_error'
+    | 'validation_error'
+    | 'auth_error'
+    | 'unknown_error'
   code?: string
   message: string
   details?: unknown
@@ -480,8 +583,19 @@ export interface ServiceResponse<T = unknown> {
  * Helper function to create standardized error responses
  */
 function createStripeError(error: unknown): StripeError {
-  if (error && typeof error === 'object' && 'type' in error && error.type === 'StripeError') {
-    const stripeError = error as { type: string; code?: string; message: string; param?: string; decline_code?: string }
+  if (
+    error &&
+    typeof error === 'object' &&
+    'type' in error &&
+    error.type === 'StripeError'
+  ) {
+    const stripeError = error as {
+      type: string
+      code?: string
+      message: string
+      param?: string
+      decline_code?: string
+    }
     return {
       type: 'stripe_error',
       code: stripeError.code,
@@ -494,16 +608,28 @@ function createStripeError(error: unknown): StripeError {
     }
   }
 
-  if (error && typeof error === 'object' && 'code' in error && (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')
+  ) {
     const networkError = error as { code: string }
     return {
       type: 'network_error',
-      message: 'Network connection error. Please check your internet connection.',
+      message:
+        'Network connection error. Please check your internet connection.',
       details: { code: networkError.code },
     }
   }
 
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('Invalid API key')) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.includes('Invalid API key')
+  ) {
     return {
       type: 'auth_error',
       message: 'Authentication error with payment provider',
@@ -513,9 +639,13 @@ function createStripeError(error: unknown): StripeError {
 
   return {
     type: 'unknown_error',
-    message: (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') 
-      ? error.message 
-      : 'An unexpected error occurred',
+    message:
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : 'An unexpected error occurred',
     details: error,
   }
 }
@@ -523,10 +653,16 @@ function createStripeError(error: unknown): StripeError {
 /**
  * Gets the current Stripe account status from Stripe API with comprehensive error handling
  */
-export async function getStripeAccountStatus(accountId: string): Promise<ServiceResponse<StripeAccountDetails>> {
+export async function getStripeAccountStatus(
+  accountId: string
+): Promise<ServiceResponse<StripeAccountDetails>> {
   try {
     // Input validation
-    if (!accountId || typeof accountId !== 'string' || accountId.trim().length === 0) {
+    if (
+      !accountId ||
+      typeof accountId !== 'string' ||
+      accountId.trim().length === 0
+    ) {
       return {
         success: false,
         error: {
@@ -553,12 +689,12 @@ export async function getStripeAccountStatus(accountId: string): Promise<Service
 
     // Determine status based on Stripe account properties with enhanced logic
     let status: StripeAccountStatus = 'incomplete'
-    
+
     if (account.details_submitted) {
       // Check if account is fully functional
       if (account.charges_enabled && account.payouts_enabled) {
         // Double-check no outstanding requirements
-        const hasOutstandingRequirements = 
+        const hasOutstandingRequirements =
           (account.requirements?.currently_due?.length || 0) > 0 ||
           (account.requirements?.past_due?.length || 0) > 0
 
@@ -572,7 +708,9 @@ export async function getStripeAccountStatus(accountId: string): Promise<Service
       ) {
         // Action required from user
         status = 'requires_action'
-      } else if ((account.requirements?.pending_verification?.length || 0) > 0) {
+      } else if (
+        (account.requirements?.pending_verification?.length || 0) > 0
+      ) {
         // Waiting for Stripe to verify submitted information
         status = 'pending'
       } else {
@@ -584,13 +722,16 @@ export async function getStripeAccountStatus(accountId: string): Promise<Service
     const accountDetails: StripeAccountDetails = {
       id: account.id,
       status,
-      requirements: account.requirements ? {
-        currently_due: account.requirements.currently_due || [],
-        eventually_due: account.requirements.eventually_due || [],
-        past_due: account.requirements.past_due || [],
-        pending_verification: account.requirements.pending_verification || [],
-        disabled_reason: account.requirements.disabled_reason || undefined,
-      } : undefined,
+      requirements: account.requirements
+        ? {
+            currently_due: account.requirements.currently_due || [],
+            eventually_due: account.requirements.eventually_due || [],
+            past_due: account.requirements.past_due || [],
+            pending_verification:
+              account.requirements.pending_verification || [],
+            disabled_reason: account.requirements.disabled_reason || undefined,
+          }
+        : undefined,
       capabilities: {
         transfers: account.capabilities?.transfers,
         card_payments: account.capabilities?.card_payments,
@@ -608,11 +749,14 @@ export async function getStripeAccountStatus(accountId: string): Promise<Service
     }
   } catch (error) {
     console.error('Error retrieving Stripe account status:', error)
-    
+
     const stripeError = createStripeError(error)
-    
+
     // Handle specific error cases
-    if (stripeError.type === 'stripe_error' && stripeError.code === 'account_invalid') {
+    if (
+      stripeError.type === 'stripe_error' &&
+      stripeError.code === 'account_invalid'
+    ) {
       return {
         success: false,
         error: {
@@ -638,6 +782,8 @@ export interface ProfileSetupData {
   lastName: string
   serviceArea: string
   availability: string[]
+  serviceTypes: string[]
+  preferences: string
   bio: string
   phoneNumber: string
 }
@@ -658,7 +804,9 @@ export interface OnboardingStatus {
  * Enhanced with progress tracking integration
  * Requirements: 8.1, 8.2, 8.3, 8.4
  */
-export async function getOnboardingStatus(userId: string): Promise<ServiceResponse<OnboardingStatus>> {
+export async function getOnboardingStatus(
+  userId: string
+): Promise<ServiceResponse<OnboardingStatus>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -670,14 +818,18 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
       }
     }
 
-    console.log(`[ONBOARDING_STATUS] Checking onboarding status for user: ${userId}`)
+    console.log(
+      `[ONBOARDING_STATUS] Checking onboarding status for user: ${userId}`
+    )
 
     const supabase = createSupabaseServerClient()
 
     // Get user's profile and washer application data
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_account_id, stripe_account_status, role, onboarding_fee_paid, phone_number')
+      .select(
+        'stripe_account_id, stripe_account_status, role, onboarding_fee_paid, phone_number, first_name, last_name'
+      )
       .eq('id', userId)
       .single()
 
@@ -708,7 +860,7 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     const progressResult = await getOnboardingProgress(userId)
     if (progressResult.success && progressResult.data) {
       const progressData = progressResult.data
-      
+
       // Convert progress data to OnboardingStatus format
       const status: OnboardingStatus = {
         currentStep: progressData.currentStep,
@@ -720,7 +872,10 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
         paymentCompleted: progressData.completedSteps.includes(4),
       }
 
-      console.log(`[ONBOARDING_STATUS] Status from progress tracking for user ${userId}:`, status)
+      console.log(
+        `[ONBOARDING_STATUS] Status from progress tracking for user ${userId}:`,
+        status
+      )
       return {
         success: true,
         data: status,
@@ -728,12 +883,16 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     }
 
     // Fallback to legacy logic if progress tracking is not available
-    console.log(`[ONBOARDING_STATUS] Using legacy status check for user: ${userId}`)
+    console.log(
+      `[ONBOARDING_STATUS] Using legacy status check for user: ${userId}`
+    )
 
     // Get washer application data for profile setup
     const { data: washerApp, error: _appError } = await supabase
       .from('washer_applications')
-      .select('phone_number, service_address, service_offerings, washer_bio, equipment_details')
+      .select(
+        'phone_number, service_address, service_offerings, washer_bio, equipment_details'
+      )
       .eq('user_id', userId)
       .single()
 
@@ -742,8 +901,13 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     let currentStep = 1
 
     // Step 1: Profile Setup - check if washer application exists with required data
-    if (washerApp && washerApp.phone_number && washerApp.service_address && 
-        washerApp.service_offerings?.length > 0 && washerApp.washer_bio) {
+    if (
+      washerApp &&
+      washerApp.phone_number &&
+      washerApp.service_address &&
+      washerApp.service_offerings?.length > 0 &&
+      washerApp.washer_bio
+    ) {
       completedSteps.push(1)
       currentStep = 2
     }
@@ -751,10 +915,12 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     // Step 2: Stripe KYC - check if account exists and is verified
     if (profile.stripe_account_id) {
       // Get the actual Stripe account status
-      const accountStatusResult = await getStripeAccountStatus(profile.stripe_account_id)
+      const accountStatusResult = await getStripeAccountStatus(
+        profile.stripe_account_id
+      )
       if (accountStatusResult.success && accountStatusResult.data) {
         const accountStatus = accountStatusResult.data.status
-        
+
         // Update the profile with the latest status if it's different
         if (accountStatus !== profile.stripe_account_status) {
           try {
@@ -766,7 +932,7 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
             console.warn('Failed to update stripe account status:', updateError)
           }
         }
-        
+
         // Check if KYC is complete
         if (accountStatus === 'complete') {
           completedSteps.push(2)
@@ -784,7 +950,9 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     // Step 3: Bank Connection - check if bank account is connected
     if (completedSteps.includes(2) && profile.stripe_account_id) {
       // Check if bank account is connected
-      const bankStatusResult = await checkBankConnectionStatus(profile.stripe_account_id)
+      const bankStatusResult = await checkBankConnectionStatus(
+        profile.stripe_account_id
+      )
       if (bankStatusResult.success && bankStatusResult.data?.bankConnected) {
         completedSteps.push(3)
         currentStep = 4
@@ -804,6 +972,8 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     let profileData: ProfileSetupData | undefined
     if (washerApp) {
       profileData = {
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
         serviceArea: washerApp.service_address || '',
         availability: [], // This would need to be stored separately or parsed from equipment_details
         serviceTypes: washerApp.service_offerings || [],
@@ -826,15 +996,20 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
     // Initialize progress tracking for this user with current status
     try {
       await initializeOnboardingProgress(userId)
-      
+
       // Update progress tracking with current status
       for (const step of completedSteps) {
-        await updateOnboardingProgress(userId, step, 
+        await updateOnboardingProgress(
+          userId,
+          step,
           step === 1 ? profileData : undefined
         )
       }
     } catch (progressError) {
-      console.warn('[ONBOARDING_STATUS] Failed to initialize progress tracking:', progressError)
+      console.warn(
+        '[ONBOARDING_STATUS] Failed to initialize progress tracking:',
+        progressError
+      )
     }
 
     console.log(`[ONBOARDING_STATUS] Legacy status for user ${userId}:`, status)
@@ -844,9 +1019,12 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
       data: status,
     }
   } catch (error) {
-    console.error('[ONBOARDING_STATUS] Error checking onboarding status:', error)
+    console.error(
+      '[ONBOARDING_STATUS] Error checking onboarding status:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -858,17 +1036,20 @@ export async function getOnboardingStatus(userId: string): Promise<ServiceRespon
  * Handles Step 2: Embedded KYC data submission
  * Collects KYC data through our form and submits to Stripe
  */
-export async function submitEmbeddedKYC(userId: string, kycData: {
-  dateOfBirth: string
-  address: {
-    line1: string
-    city: string
-    postalCode: string
-    country: string
+export async function submitEmbeddedKYC(
+  userId: string,
+  kycData: {
+    dateOfBirth: string
+    address: {
+      line1: string
+      city: string
+      postalCode: string
+      country: string
+    }
+    idDocument: File | null
+    lastFourSSN: string
   }
-  idDocument: File | null
-  lastFourSSN: string
-}): Promise<ServiceResponse<{ accountId: string }>> {
+): Promise<ServiceResponse<{ accountId: string }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -965,22 +1146,29 @@ export async function submitEmbeddedKYC(userId: string, kycData: {
     // Update profile status
     await supabase
       .from('profiles')
-      .update({ 
+      .update({
         stripe_account_status: 'pending',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
 
     // Update onboarding progress
-    const progressResult = await updateOnboardingProgress(userId, 2, { accountId })
+    const progressResult = await updateOnboardingProgress(userId, 2, {
+      accountId,
+    })
     if (!progressResult.success) {
-      console.warn('[EMBEDDED_KYC] Failed to update progress tracking:', progressResult.error)
+      console.warn(
+        '[EMBEDDED_KYC] Failed to update progress tracking:',
+        progressResult.error
+      )
     }
 
     // Log the step completion
     await logOnboardingStep(userId, 2, 'completed', 'success', { accountId })
 
-    console.log(`[EMBEDDED_KYC] ✅ KYC submitted for user ${userId} with account ${accountId}`)
+    console.log(
+      `[EMBEDDED_KYC] ✅ KYC submitted for user ${userId} with account ${accountId}`
+    )
 
     return {
       success: true,
@@ -989,10 +1177,12 @@ export async function submitEmbeddedKYC(userId: string, kycData: {
     }
   } catch (error) {
     console.error('[EMBEDDED_KYC] Error submitting KYC:', error)
-    
+
     // Log the error
-    await logOnboardingStep(userId, 2, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
-    
+    await logOnboardingStep(userId, 2, 'failed', 'error', null, {
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     const stripeError = createStripeError(error)
     return {
       success: false,
@@ -1005,7 +1195,9 @@ export async function submitEmbeddedKYC(userId: string, kycData: {
  * Legacy function - kept for backward compatibility
  * @deprecated Use submitEmbeddedKYC instead
  */
-export async function initiateStripeKYC(_userId: string): Promise<ServiceResponse<{ accountId: string; onboardingUrl: string }>> {
+export async function initiateStripeKYC(
+  _userId: string
+): Promise<ServiceResponse<{ accountId: string; onboardingUrl: string }>> {
   // For now, return an error to force use of the new embedded flow
   return {
     success: false,
@@ -1020,7 +1212,10 @@ export async function initiateStripeKYC(_userId: string): Promise<ServiceRespons
  * Save profile setup data (Step 1)
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
  */
-export async function saveProfileSetup(userId: string, profileData: ProfileSetupData): Promise<ServiceResponse<void>> {
+export async function saveProfileSetup(
+  userId: string,
+  profileData: ProfileSetupData
+): Promise<ServiceResponse<void>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1081,14 +1276,17 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
         availability_schedule: {
           availability: profileData.availability,
           serviceArea: profileData.serviceArea,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         },
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
 
     if (upsertError) {
-      console.error('[PROFILE_SETUP] Error saving washer application data:', upsertError)
+      console.error(
+        '[PROFILE_SETUP] Error saving washer application data:',
+        upsertError
+      )
       return {
         success: false,
         error: {
@@ -1100,7 +1298,10 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
     }
 
     if (settingsError) {
-      console.error('[PROFILE_SETUP] Error updating profile settings:', settingsError)
+      console.error(
+        '[PROFILE_SETUP] Error updating profile settings:',
+        settingsError
+      )
       return {
         success: false,
         error: {
@@ -1112,15 +1313,24 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
     }
 
     // Update onboarding progress
-    const progressResult = await updateOnboardingProgress(userId, 1, profileData)
+    const progressResult = await updateOnboardingProgress(
+      userId,
+      1,
+      profileData
+    )
     if (!progressResult.success) {
-      console.warn('[PROFILE_SETUP] Failed to update progress tracking:', progressResult.error)
+      console.warn(
+        '[PROFILE_SETUP] Failed to update progress tracking:',
+        progressResult.error
+      )
     }
 
     // Log the step completion
     await logOnboardingStep(userId, 1, 'completed', 'success', profileData)
 
-    console.log(`[PROFILE_SETUP] ✅ Profile setup completed for user: ${userId}`)
+    console.log(
+      `[PROFILE_SETUP] ✅ Profile setup completed for user: ${userId}`
+    )
 
     return {
       success: true,
@@ -1128,10 +1338,12 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
     }
   } catch (error) {
     console.error('[PROFILE_SETUP] Error saving profile setup:', error)
-    
+
     // Log the error
-    await logOnboardingStep(userId, 1, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
-    
+    await logOnboardingStep(userId, 1, 'failed', 'error', null, {
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     const stripeError = createStripeError(error)
     return {
       success: false,
@@ -1145,7 +1357,10 @@ export async function saveProfileSetup(userId: string, profileData: ProfileSetup
  * This is called by the callback handler when Stripe redirects back
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
  */
-export async function updateKYCProgress(userId: string, accountId: string): Promise<ServiceResponse<{ step: number }>> {
+export async function updateKYCProgress(
+  userId: string,
+  accountId: string
+): Promise<ServiceResponse<{ step: number }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1157,7 +1372,9 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
       }
     }
 
-    console.log(`[KYC_PROGRESS] Updating KYC progress for user: ${userId}, account: ${accountId}`)
+    console.log(
+      `[KYC_PROGRESS] Updating KYC progress for user: ${userId}, account: ${accountId}`
+    )
 
     // Check the actual Stripe account status
     const statusResult = await getStripeAccountStatus(accountId)
@@ -1182,18 +1399,30 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
       .eq('id', userId)
 
     if (updateError) {
-      console.warn('[KYC_PROGRESS] Failed to update profile status:', updateError)
+      console.warn(
+        '[KYC_PROGRESS] Failed to update profile status:',
+        updateError
+      )
     }
 
     // If KYC is complete, update progress tracking
     if (accountStatus === 'complete') {
-      const progressResult = await updateOnboardingProgress(userId, 2, { accountId, status: accountStatus })
+      const progressResult = await updateOnboardingProgress(userId, 2, {
+        accountId,
+        status: accountStatus,
+      })
       if (!progressResult.success) {
-        console.warn('[KYC_PROGRESS] Failed to update progress tracking:', progressResult.error)
+        console.warn(
+          '[KYC_PROGRESS] Failed to update progress tracking:',
+          progressResult.error
+        )
       }
 
       // Log the step completion
-      await logOnboardingStep(userId, 2, 'completed', 'success', { accountId, status: accountStatus })
+      await logOnboardingStep(userId, 2, 'completed', 'success', {
+        accountId,
+        status: accountStatus,
+      })
 
       console.log(`[KYC_PROGRESS] ✅ KYC completed for user: ${userId}`)
 
@@ -1204,7 +1433,10 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
       }
     } else {
       // Log the status check
-      await logOnboardingStep(userId, 2, 'status_check', 'pending', { accountId, status: accountStatus })
+      await logOnboardingStep(userId, 2, 'status_check', 'pending', {
+        accountId,
+        status: accountStatus,
+      })
 
       return {
         success: true,
@@ -1214,10 +1446,12 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
     }
   } catch (error) {
     console.error('[KYC_PROGRESS] Error updating KYC progress:', error)
-    
+
     // Log the error
-    await logOnboardingStep(userId, 2, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
-    
+    await logOnboardingStep(userId, 2, 'failed', 'error', null, {
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     const stripeError = createStripeError(error)
     return {
       success: false,
@@ -1230,7 +1464,10 @@ export async function updateKYCProgress(userId: string, accountId: string): Prom
  * Updates onboarding progress when bank account is connected (Step 3)
  * Requirements: 4.1, 4.2, 4.3, 4.4
  */
-export async function updateBankConnectionProgress(userId: string, accountId: string): Promise<ServiceResponse<{ step: number }>> {
+export async function updateBankConnectionProgress(
+  userId: string,
+  accountId: string
+): Promise<ServiceResponse<{ step: number }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1242,7 +1479,9 @@ export async function updateBankConnectionProgress(userId: string, accountId: st
       }
     }
 
-    console.log(`[BANK_CONNECTION] Updating bank connection progress for user: ${userId}, account: ${accountId}`)
+    console.log(
+      `[BANK_CONNECTION] Updating bank connection progress for user: ${userId}, account: ${accountId}`
+    )
 
     // Check bank connection status
     const bankStatusResult = await checkBankConnectionStatus(accountId)
@@ -1261,15 +1500,26 @@ export async function updateBankConnectionProgress(userId: string, accountId: st
 
     if (bankConnected) {
       // Update progress tracking
-      const progressResult = await updateOnboardingProgress(userId, 3, { accountId, bankConnected: true })
+      const progressResult = await updateOnboardingProgress(userId, 3, {
+        accountId,
+        bankConnected: true,
+      })
       if (!progressResult.success) {
-        console.warn('[BANK_CONNECTION] Failed to update progress tracking:', progressResult.error)
+        console.warn(
+          '[BANK_CONNECTION] Failed to update progress tracking:',
+          progressResult.error
+        )
       }
 
       // Log the step completion
-      await logOnboardingStep(userId, 3, 'completed', 'success', { accountId, bankConnected: true })
+      await logOnboardingStep(userId, 3, 'completed', 'success', {
+        accountId,
+        bankConnected: true,
+      })
 
-      console.log(`[BANK_CONNECTION] ✅ Bank connection completed for user: ${userId}`)
+      console.log(
+        `[BANK_CONNECTION] ✅ Bank connection completed for user: ${userId}`
+      )
 
       return {
         success: true,
@@ -1278,7 +1528,10 @@ export async function updateBankConnectionProgress(userId: string, accountId: st
       }
     } else {
       // Log the status check
-      await logOnboardingStep(userId, 3, 'status_check', 'pending', { accountId, bankConnected: false })
+      await logOnboardingStep(userId, 3, 'status_check', 'pending', {
+        accountId,
+        bankConnected: false,
+      })
 
       return {
         success: true,
@@ -1287,11 +1540,16 @@ export async function updateBankConnectionProgress(userId: string, accountId: st
       }
     }
   } catch (error) {
-    console.error('[BANK_CONNECTION] Error updating bank connection progress:', error)
-    
+    console.error(
+      '[BANK_CONNECTION] Error updating bank connection progress:',
+      error
+    )
+
     // Log the error
-    await logOnboardingStep(userId, 3, 'failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
-    
+    await logOnboardingStep(userId, 3, 'failed', 'error', null, {
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     const stripeError = createStripeError(error)
     return {
       success: false,
@@ -1304,7 +1562,10 @@ export async function updateBankConnectionProgress(userId: string, accountId: st
  * Complete onboarding and unlock features (called after payment confirmation)
  * Requirements: 5.4, 5.5, 6.1, 6.2, 6.3, 6.4
  */
-export async function completeOnboarding(userId: string, paymentIntentId?: string): Promise<ServiceResponse<void>> {
+export async function completeOnboarding(
+  userId: string,
+  paymentIntentId?: string
+): Promise<ServiceResponse<void>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1316,7 +1577,9 @@ export async function completeOnboarding(userId: string, paymentIntentId?: strin
       }
     }
 
-    console.log(`[COMPLETE_ONBOARDING] Completing onboarding for user: ${userId}`)
+    console.log(
+      `[COMPLETE_ONBOARDING] Completing onboarding for user: ${userId}`
+    )
 
     const supabase = createSupabaseServerClient()
 
@@ -1327,7 +1590,10 @@ export async function completeOnboarding(userId: string, paymentIntentId?: strin
       .eq('id', userId)
 
     if (updateError) {
-      console.error('[COMPLETE_ONBOARDING] Error updating payment status:', updateError)
+      console.error(
+        '[COMPLETE_ONBOARDING] Error updating payment status:',
+        updateError
+      )
       return {
         success: false,
         error: {
@@ -1339,36 +1605,44 @@ export async function completeOnboarding(userId: string, paymentIntentId?: strin
     }
 
     // Update progress tracking
-    const progressResult = await updateOnboardingProgress(userId, 4, { 
-      paymentCompleted: true, 
-      paymentIntentId 
+    const progressResult = await updateOnboardingProgress(userId, 4, {
+      paymentCompleted: true,
+      paymentIntentId,
     })
     if (!progressResult.success) {
-      console.warn('[COMPLETE_ONBOARDING] Failed to update progress tracking:', progressResult.error)
+      console.warn(
+        '[COMPLETE_ONBOARDING] Failed to update progress tracking:',
+        progressResult.error
+      )
     }
 
     // Log the completion
-    await logOnboardingStep(userId, 4, 'completed', 'success', { 
-      paymentCompleted: true, 
+    await logOnboardingStep(userId, 4, 'completed', 'success', {
+      paymentCompleted: true,
       paymentIntentId,
-      completedAt: new Date().toISOString()
+      completedAt: new Date().toISOString(),
     })
 
-    console.log(`[COMPLETE_ONBOARDING] ✅ Onboarding completed for user: ${userId}`)
+    console.log(
+      `[COMPLETE_ONBOARDING] ✅ Onboarding completed for user: ${userId}`
+    )
 
     // Revalidate relevant paths
     revalidatePath('/washer/dashboard')
 
     return {
       success: true,
-      message: 'Onboarding completed successfully! All features are now unlocked.',
+      message:
+        'Onboarding completed successfully! All features are now unlocked.',
     }
   } catch (error) {
     console.error('[COMPLETE_ONBOARDING] Error completing onboarding:', error)
-    
+
     // Log the error
-    await logOnboardingStep(userId, 4, 'completion_failed', 'error', null, { error: error instanceof Error ? error.message : String(error) })
-    
+    await logOnboardingStep(userId, 4, 'completion_failed', 'error', null, {
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     const stripeError = createStripeError(error)
     return {
       success: false,
@@ -1377,13 +1651,13 @@ export async function completeOnboarding(userId: string, paymentIntentId?: strin
   }
 }
 
-
-
 /**
  * Handles Step 3: Bank account connection to Stripe
  * Creates external account link for bank account connection
  */
-export async function initiateBankConnection(userId: string): Promise<ServiceResponse<{ accountId: string; bankConnectionUrl: string }>> {
+export async function initiateBankConnection(
+  userId: string
+): Promise<ServiceResponse<{ accountId: string; bankConnectionUrl: string }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1395,7 +1669,9 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
       }
     }
 
-    console.log(`[BANK_CONNECTION] Initiating bank connection for user: ${userId}`)
+    console.log(
+      `[BANK_CONNECTION] Initiating bank connection for user: ${userId}`
+    )
 
     const supabase = createSupabaseServerClient()
 
@@ -1443,7 +1719,8 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
         success: false,
         error: {
           type: 'validation_error',
-          message: 'KYC verification must be complete before connecting bank account',
+          message:
+            'KYC verification must be complete before connecting bank account',
         },
       }
     }
@@ -1466,7 +1743,9 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
       }
     }
 
-    console.log(`[BANK_CONNECTION] ✅ Bank connection link created for user ${userId}`)
+    console.log(
+      `[BANK_CONNECTION] ✅ Bank connection link created for user ${userId}`
+    )
 
     return {
       success: true,
@@ -1479,7 +1758,7 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
   } catch (error) {
     console.error('[BANK_CONNECTION] Error initiating bank connection:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -1490,9 +1769,20 @@ export async function initiateBankConnection(userId: string): Promise<ServiceRes
 /**
  * Checks if bank account is connected to Stripe account
  */
-export async function checkBankConnectionStatus(accountId: string): Promise<ServiceResponse<{ bankConnected: boolean; bankDetails?: Record<string, unknown> }>> {
+export async function checkBankConnectionStatus(
+  accountId: string
+): Promise<
+  ServiceResponse<{
+    bankConnected: boolean
+    bankDetails?: Record<string, unknown>
+  }>
+> {
   try {
-    if (!accountId || typeof accountId !== 'string' || accountId.trim().length === 0) {
+    if (
+      !accountId ||
+      typeof accountId !== 'string' ||
+      accountId.trim().length === 0
+    ) {
       return {
         success: false,
         error: {
@@ -1502,29 +1792,41 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
       }
     }
 
-    console.log(`[BANK_STATUS] Checking bank connection status for account: ${accountId}`)
+    console.log(
+      `[BANK_STATUS] Checking bank connection status for account: ${accountId}`
+    )
 
     // Get account details from Stripe
     const _account = await stripe.accounts.retrieve(accountId)
 
     // Check if external accounts (bank accounts) are connected
-    const externalAccounts = await stripe.accounts.listExternalAccounts(accountId, {
-      object: 'bank_account',
-      limit: 10,
-    })
+    const externalAccounts = await stripe.accounts.listExternalAccounts(
+      accountId,
+      {
+        object: 'bank_account',
+        limit: 10,
+      }
+    )
 
     const bankConnected = externalAccounts.data.length > 0
-    const bankDetails = bankConnected ? {
-      count: externalAccounts.data.length,
-      accounts: externalAccounts.data.map(account => ({
-        id: account.id,
-        last4: account.last4,
-        bank_name: account.object === 'bank_account' ? (account as { bank_name?: string }).bank_name : undefined,
-        status: account.status,
-      }))
-    } : undefined
+    const bankDetails = bankConnected
+      ? {
+          count: externalAccounts.data.length,
+          accounts: externalAccounts.data.map((account) => ({
+            id: account.id,
+            last4: account.last4,
+            bank_name:
+              account.object === 'bank_account'
+                ? (account as { bank_name?: string }).bank_name
+                : undefined,
+            status: account.status,
+          })),
+        }
+      : undefined
 
-    console.log(`[BANK_STATUS] Bank connection status for ${accountId}: ${bankConnected ? 'connected' : 'not connected'}`)
+    console.log(
+      `[BANK_STATUS] Bank connection status for ${accountId}: ${bankConnected ? 'connected' : 'not connected'}`
+    )
 
     return {
       success: true,
@@ -1536,7 +1838,7 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
   } catch (error) {
     console.error('[BANK_STATUS] Error checking bank connection status:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -1544,17 +1846,15 @@ export async function checkBankConnectionStatus(accountId: string): Promise<Serv
   }
 }
 
-
-
-
-
-export async function canAccessWasherFeatures(userId: string): Promise<ServiceResponse<{
-  canAccess: boolean
-  status: StripeAccountStatus
-  accountId?: string
-  requirements?: StripeAccountDetails['requirements']
-  onboardingStatus?: OnboardingStatus
-}>> {
+export async function canAccessWasherFeatures(userId: string): Promise<
+  ServiceResponse<{
+    canAccess: boolean
+    status: StripeAccountStatus
+    accountId?: string
+    requirements?: StripeAccountDetails['requirements']
+    onboardingStatus?: OnboardingStatus
+  }>
+> {
   try {
     // Input validation
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
@@ -1567,12 +1867,16 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
       }
     }
 
-    console.log(`[ACCESS_CONTROL] Checking washer feature access for user: ${userId}`)
+    console.log(
+      `[ACCESS_CONTROL] Checking washer feature access for user: ${userId}`
+    )
 
     // Get user's profile with Stripe account information
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_account_id, stripe_account_status, role, onboarding_fee_paid')
+      .select(
+        'stripe_account_id, stripe_account_status, role, onboarding_fee_paid'
+      )
       .eq('id', userId)
       .single()
 
@@ -1600,7 +1904,9 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
 
     // Only washers need verification
     if (profile.role !== 'washer') {
-      console.log(`[ACCESS_CONTROL] User ${userId} is not a washer, granting full access`)
+      console.log(
+        `[ACCESS_CONTROL] User ${userId} is not a washer, granting full access`
+      )
       return {
         success: true,
         data: {
@@ -1613,7 +1919,10 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
     // Get comprehensive onboarding status for 4-step verification
     const onboardingResult = await getOnboardingStatus(userId)
     if (!onboardingResult.success) {
-      console.error('[ACCESS_CONTROL] Failed to get onboarding status:', onboardingResult.error)
+      console.error(
+        '[ACCESS_CONTROL] Failed to get onboarding status:',
+        onboardingResult.error
+      )
       // Fall back to basic Stripe verification for backward compatibility
       return await checkBasicStripeVerification(userId, profile)
     }
@@ -1622,11 +1931,13 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
     console.log(`[ACCESS_CONTROL] Onboarding status for user ${userId}:`, {
       currentStep: onboardingStatus.currentStep,
       completedSteps: onboardingStatus.completedSteps,
-      isComplete: onboardingStatus.isComplete
+      isComplete: onboardingStatus.isComplete,
     })
 
     // For 4-step onboarding, user must complete ALL steps to access features
-    const canAccess = onboardingStatus.isComplete && onboardingStatus.completedSteps.length === 4
+    const canAccess =
+      onboardingStatus.isComplete &&
+      onboardingStatus.completedSteps.length === 4
 
     // Determine the overall status based on onboarding progress
     let overallStatus: StripeAccountStatus = 'incomplete'
@@ -1635,11 +1946,14 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
     } else if (onboardingStatus.completedSteps.includes(2)) {
       // If Stripe KYC is done, check the actual Stripe status
       if (profile.stripe_account_id) {
-        const statusResult = await getStripeAccountStatus(profile.stripe_account_id)
+        const statusResult = await getStripeAccountStatus(
+          profile.stripe_account_id
+        )
         if (statusResult.success && statusResult.data) {
           overallStatus = statusResult.data.status
         } else {
-          overallStatus = (profile.stripe_account_status as StripeAccountStatus) || 'pending'
+          overallStatus =
+            (profile.stripe_account_status as StripeAccountStatus) || 'pending'
         }
       } else {
         overallStatus = 'pending'
@@ -1648,7 +1962,9 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
       overallStatus = 'pending'
     }
 
-    console.log(`[ACCESS_CONTROL] Access decision for user ${userId}: ${canAccess ? 'GRANTED' : 'DENIED'} (status: ${overallStatus})`)
+    console.log(
+      `[ACCESS_CONTROL] Access decision for user ${userId}: ${canAccess ? 'GRANTED' : 'DENIED'} (status: ${overallStatus})`
+    )
 
     return {
       success: true,
@@ -1660,9 +1976,12 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
       },
     }
   } catch (error) {
-    console.error('[ACCESS_CONTROL] Error checking washer feature access:', error)
+    console.error(
+      '[ACCESS_CONTROL] Error checking washer feature access:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -1674,12 +1993,14 @@ export async function canAccessWasherFeatures(userId: string): Promise<ServiceRe
  * Checks if a washer has completed all 4 onboarding steps
  * Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4
  */
-export async function hasCompletedOnboarding(userId: string): Promise<ServiceResponse<{
-  isComplete: boolean
-  completedSteps: number[]
-  currentStep: number
-  missingSteps: string[]
-}>> {
+export async function hasCompletedOnboarding(userId: string): Promise<
+  ServiceResponse<{
+    isComplete: boolean
+    completedSteps: number[]
+    currentStep: number
+    missingSteps: string[]
+  }>
+> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -1691,7 +2012,9 @@ export async function hasCompletedOnboarding(userId: string): Promise<ServiceRes
       }
     }
 
-    console.log(`[ONBOARDING_CHECK] Checking onboarding completion for user: ${userId}`)
+    console.log(
+      `[ONBOARDING_CHECK] Checking onboarding completion for user: ${userId}`
+    )
 
     const onboardingResult = await getOnboardingStatus(userId)
     if (!onboardingResult.success) {
@@ -1721,7 +2044,7 @@ export async function hasCompletedOnboarding(userId: string): Promise<ServiceRes
     console.log(`[ONBOARDING_CHECK] User ${userId} completion status:`, {
       isComplete: status.isComplete,
       completedSteps: status.completedSteps,
-      missingSteps
+      missingSteps,
     })
 
     return {
@@ -1734,9 +2057,12 @@ export async function hasCompletedOnboarding(userId: string): Promise<ServiceRes
       },
     }
   } catch (error) {
-    console.error('[ONBOARDING_CHECK] Error checking onboarding completion:', error)
+    console.error(
+      '[ONBOARDING_CHECK] Error checking onboarding completion:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -1747,19 +2073,34 @@ export async function hasCompletedOnboarding(userId: string): Promise<ServiceRes
 /**
  * Fallback function for basic Stripe verification (backward compatibility)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function checkBasicStripeVerification(userId: string, profile: any): Promise<ServiceResponse<{
-  canAccess: boolean
-  status: StripeAccountStatus
-  accountId?: string
-  requirements?: StripeAccountDetails['requirements']
-}>> {
+interface BasicProfile {
+  stripe_account_id?: string
+  stripe_account_status?: string
+  role?: string
+  onboarding_fee_paid?: boolean
+}
+
+async function checkBasicStripeVerification(
+  userId: string,
+  profile: BasicProfile
+): Promise<
+  ServiceResponse<{
+    canAccess: boolean
+    status: StripeAccountStatus
+    accountId?: string
+    requirements?: StripeAccountDetails['requirements']
+  }>
+> {
   try {
-    console.log(`[ACCESS_CONTROL] Using fallback basic Stripe verification for user: ${userId}`)
+    console.log(
+      `[ACCESS_CONTROL] Using fallback basic Stripe verification for user: ${userId}`
+    )
 
     // If no Stripe account, they can't access features
     if (!profile.stripe_account_id) {
-      console.log(`[ACCESS_CONTROL] User ${userId} has no Stripe account, access denied`)
+      console.log(
+        `[ACCESS_CONTROL] User ${userId} has no Stripe account, access denied`
+      )
       return {
         success: true,
         data: {
@@ -1771,12 +2112,15 @@ async function checkBasicStripeVerification(userId: string, profile: any): Promi
 
     // Check current status from Stripe API with retry logic
     const statusResult = await getStripeAccountStatus(profile.stripe_account_id)
-    
+
     if (!statusResult.success) {
-      console.warn('[ACCESS_CONTROL] Failed to get current Stripe status, falling back to cached status')
-      
+      console.warn(
+        '[ACCESS_CONTROL] Failed to get current Stripe status, falling back to cached status'
+      )
+
       // Fall back to cached status if API call fails
-      const cachedStatus = (profile.stripe_account_status as StripeAccountStatus) || 'incomplete'
+      const cachedStatus =
+        (profile.stripe_account_status as StripeAccountStatus) || 'incomplete'
       return {
         success: true,
         data: {
@@ -1800,13 +2144,21 @@ async function checkBasicStripeVerification(userId: string, profile: any): Promi
           .eq('id', userId)
 
         if (updateError) {
-          console.error('[ACCESS_CONTROL] Failed to update cached status:', updateError)
+          console.error(
+            '[ACCESS_CONTROL] Failed to update cached status:',
+            updateError
+          )
           // Continue execution - this is not a critical failure
         } else {
-          console.log(`[ACCESS_CONTROL] Updated cached status for user ${userId}: ${profile.stripe_account_status} -> ${currentStatus}`)
+          console.log(
+            `[ACCESS_CONTROL] Updated cached status for user ${userId}: ${profile.stripe_account_status} -> ${currentStatus}`
+          )
         }
       } catch (updateError) {
-        console.error('[ACCESS_CONTROL] Exception updating cached status:', updateError)
+        console.error(
+          '[ACCESS_CONTROL] Exception updating cached status:',
+          updateError
+        )
         // Continue execution - this is not a critical failure
       }
     }
@@ -1814,7 +2166,9 @@ async function checkBasicStripeVerification(userId: string, profile: any): Promi
     // Only 'complete' status allows full access
     const canAccess = currentStatus === 'complete'
 
-    console.log(`[ACCESS_CONTROL] Access check result for user ${userId}: ${canAccess ? 'granted' : 'denied'} (status: ${currentStatus})`)
+    console.log(
+      `[ACCESS_CONTROL] Access check result for user ${userId}: ${canAccess ? 'granted' : 'denied'} (status: ${currentStatus})`
+    )
 
     return {
       success: true,
@@ -1826,9 +2180,12 @@ async function checkBasicStripeVerification(userId: string, profile: any): Promi
       },
     }
   } catch (error) {
-    console.error('[ACCESS_CONTROL] Error checking washer feature access:', error)
+    console.error(
+      '[ACCESS_CONTROL] Error checking washer feature access:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -1843,7 +2200,11 @@ async function checkBasicStripeVerification(userId: string, profile: any): Promi
 async function logVerificationEvent(
   userId: string,
   accountId: string,
-  eventType: 'callback_processed' | 'status_updated' | 'verification_completed' | 'verification_failed',
+  eventType:
+    | 'status_updated'
+    | 'verification_completed'
+    | 'verification_failed'
+    | 'callback_received',
   details: {
     previousStatus?: StripeAccountStatus
     currentStatus: StripeAccountStatus
@@ -1858,20 +2219,21 @@ async function logVerificationEvent(
     await verificationAnalytics.trackEvent({
       user_id: userId,
       stripe_account_id: accountId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      event_type: eventType as any,
+      event_type: eventType,
       event_data: {
         previous_status: details.previousStatus,
         current_status: details.currentStatus,
         status_changed: details.statusChanged,
         requirements: details.requirements,
-        error_message: details.error
+        error_message: details.error,
       },
       session_id: sessionId,
-      error_details: details.error ? {
-        type: 'verification_error',
-        message: details.error
-      } : undefined
+      error_details: details.error
+        ? {
+            type: 'verification_error',
+            message: details.error,
+          }
+        : undefined,
     })
   } catch (error) {
     console.error('Failed to log verification event:', error)
@@ -1886,14 +2248,16 @@ async function logVerificationEvent(
 export async function handleVerificationCallback(
   userId: string,
   accountId?: string
-): Promise<ServiceResponse<{
-  status: StripeAccountStatus
-  previousStatus?: StripeAccountStatus
-  accountId: string
-  statusChanged: boolean
-}>> {
+): Promise<
+  ServiceResponse<{
+    status: StripeAccountStatus
+    previousStatus?: StripeAccountStatus
+    accountId: string
+    statusChanged: boolean
+  }>
+> {
   const startTime = Date.now()
-  
+
   try {
     // Input validation
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
@@ -1901,32 +2265,47 @@ export async function handleVerificationCallback(
         type: 'validation_error' as const,
         message: 'Valid user ID is required',
       }
-      
-      await logVerificationEvent(userId || 'unknown', accountId || 'unknown', 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: error.message,
-      })
-      
+
+      await logVerificationEvent(
+        userId || 'unknown',
+        accountId || 'unknown',
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: error.message,
+        }
+      )
+
       return { success: false, error }
     }
 
-    if (accountId && (!accountId.startsWith('acct_') || accountId.trim().length === 0)) {
+    if (
+      accountId &&
+      (!accountId.startsWith('acct_') || accountId.trim().length === 0)
+    ) {
       const error = {
         type: 'validation_error' as const,
         message: 'Invalid Stripe account ID format',
       }
-      
-      await logVerificationEvent(userId, accountId || 'unknown', 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: error.message,
-      })
-      
+
+      await logVerificationEvent(
+        userId,
+        accountId || 'unknown',
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: error.message,
+        }
+      )
+
       return { success: false, error }
     }
 
-    console.log(`[VERIFICATION_CALLBACK] Processing verification callback for user: ${userId}${accountId ? `, account: ${accountId}` : ''}`)
+    console.log(
+      `[VERIFICATION_CALLBACK] Processing verification callback for user: ${userId}${accountId ? `, account: ${accountId}` : ''}`
+    )
 
     // Get user's profile
     const { data: profile, error: profileError } = await supabase
@@ -1936,20 +2315,28 @@ export async function handleVerificationCallback(
       .single()
 
     if (profileError) {
-      console.error('[VERIFICATION_CALLBACK] Database error fetching profile:', profileError)
-      
+      console.error(
+        '[VERIFICATION_CALLBACK] Database error fetching profile:',
+        profileError
+      )
+
       const error = {
         type: 'unknown_error' as const,
         message: 'Failed to retrieve user profile',
         details: profileError,
       }
-      
-      await logVerificationEvent(userId, accountId || 'unknown', 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: `Database error: ${profileError.message}`,
-      })
-      
+
+      await logVerificationEvent(
+        userId,
+        accountId || 'unknown',
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: `Database error: ${profileError.message}`,
+        }
+      )
+
       return { success: false, error }
     }
 
@@ -1958,13 +2345,18 @@ export async function handleVerificationCallback(
         type: 'validation_error' as const,
         message: 'User profile not found',
       }
-      
-      await logVerificationEvent(userId, accountId || 'unknown', 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: error.message,
-      })
-      
+
+      await logVerificationEvent(
+        userId,
+        accountId || 'unknown',
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: error.message,
+        }
+      )
+
       return { success: false, error }
     }
 
@@ -1974,13 +2366,18 @@ export async function handleVerificationCallback(
         type: 'validation_error' as const,
         message: 'Verification callbacks only apply to washers',
       }
-      
-      await logVerificationEvent(userId, accountId || 'unknown', 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: error.message,
-      })
-      
+
+      await logVerificationEvent(
+        userId,
+        accountId || 'unknown',
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: error.message,
+        }
+      )
+
       return { success: false, error }
     }
 
@@ -1992,29 +2389,39 @@ export async function handleVerificationCallback(
         type: 'validation_error' as const,
         message: 'No Stripe account found for user',
       }
-      
+
       await logVerificationEvent(userId, 'unknown', 'verification_failed', {
         currentStatus: 'incomplete',
         statusChanged: false,
         error: error.message,
       })
-      
+
       return { success: false, error }
     }
 
     // Get current status from Stripe with retry logic
-    console.log(`[VERIFICATION_CALLBACK] Fetching current status from Stripe for account: ${stripeAccountId}`)
+    console.log(
+      `[VERIFICATION_CALLBACK] Fetching current status from Stripe for account: ${stripeAccountId}`
+    )
     const statusResult = await getStripeAccountStatus(stripeAccountId)
 
     if (!statusResult.success) {
-      console.error('[VERIFICATION_CALLBACK] Failed to retrieve account status:', statusResult.error)
-      
-      await logVerificationEvent(userId, stripeAccountId, 'verification_failed', {
-        currentStatus: 'incomplete',
-        statusChanged: false,
-        error: `Stripe API error: ${statusResult.error?.message}`,
-      })
-      
+      console.error(
+        '[VERIFICATION_CALLBACK] Failed to retrieve account status:',
+        statusResult.error
+      )
+
+      await logVerificationEvent(
+        userId,
+        stripeAccountId,
+        'verification_failed',
+        {
+          currentStatus: 'incomplete',
+          statusChanged: false,
+          error: `Stripe API error: ${statusResult.error?.message}`,
+        }
+      )
+
       return {
         success: false,
         error: statusResult.error || {
@@ -2029,14 +2436,16 @@ export async function handleVerificationCallback(
     const previousStatus = profile.stripe_account_status as StripeAccountStatus
     const statusChanged = currentStatus !== previousStatus
 
-    console.log(`[VERIFICATION_CALLBACK] Status comparison - Previous: ${previousStatus || 'null'}, Current: ${currentStatus}, Changed: ${statusChanged}`)
+    console.log(
+      `[VERIFICATION_CALLBACK] Status comparison - Previous: ${previousStatus || 'null'}, Current: ${currentStatus}, Changed: ${statusChanged}`
+    )
 
     // Prepare update data (Requirement 6.1: Update profile record when status changes)
-    const updateData: { 
+    const updateData: {
       stripe_account_status: string
       stripe_account_id?: string
       updated_at?: string
-    } = { 
+    } = {
       stripe_account_status: currentStatus,
       updated_at: new Date().toISOString(),
     }
@@ -2044,7 +2453,9 @@ export async function handleVerificationCallback(
     // Update account ID if it was provided and different
     if (accountId && accountId !== profile.stripe_account_id) {
       updateData.stripe_account_id = accountId
-      console.log(`[VERIFICATION_CALLBACK] Updating account ID for user ${userId}: ${profile.stripe_account_id} -> ${accountId}`)
+      console.log(
+        `[VERIFICATION_CALLBACK] Updating account ID for user ${userId}: ${profile.stripe_account_id} -> ${accountId}`
+      )
     }
 
     // Update profile with current status (Requirement 6.1)
@@ -2054,31 +2465,41 @@ export async function handleVerificationCallback(
       .eq('id', userId)
 
     if (updateError) {
-      console.error('[VERIFICATION_CALLBACK] Error updating profile status:', updateError)
-      
+      console.error(
+        '[VERIFICATION_CALLBACK] Error updating profile status:',
+        updateError
+      )
+
       const error = {
         type: 'unknown_error' as const,
         message: 'Failed to update verification status in database',
         details: updateError,
       }
-      
-      await logVerificationEvent(userId, stripeAccountId, 'verification_failed', {
-        previousStatus,
-        currentStatus,
-        statusChanged,
-        error: `Database update error: ${updateError.message}`,
-        requirements: accountDetails.requirements,
-      })
-      
+
+      await logVerificationEvent(
+        userId,
+        stripeAccountId,
+        'verification_failed',
+        {
+          previousStatus,
+          currentStatus,
+          statusChanged,
+          error: `Database update error: ${updateError.message}`,
+          requirements: accountDetails.requirements,
+        }
+      )
+
       return { success: false, error }
     }
 
     // Log the callback processing and status change for audit purposes (Requirement 6.2)
     const processingTime = Date.now() - startTime
-    
+
     if (statusChanged) {
-      console.log(`[VERIFICATION_CALLBACK] ✅ Verification status updated for user ${userId}: ${previousStatus || 'null'} -> ${currentStatus} (${processingTime}ms)`)
-      
+      console.log(
+        `[VERIFICATION_CALLBACK] ✅ Verification status updated for user ${userId}: ${previousStatus || 'null'} -> ${currentStatus} (${processingTime}ms)`
+      )
+
       await logVerificationEvent(userId, stripeAccountId, 'status_updated', {
         previousStatus,
         currentStatus,
@@ -2088,18 +2509,25 @@ export async function handleVerificationCallback(
 
       // Log verification completion if status is now complete
       if (currentStatus === 'complete') {
-        await logVerificationEvent(userId, stripeAccountId, 'verification_completed', {
-          previousStatus,
-          currentStatus,
-          statusChanged: true,
-        })
+        await logVerificationEvent(
+          userId,
+          stripeAccountId,
+          'verification_completed',
+          {
+            previousStatus,
+            currentStatus,
+            statusChanged: true,
+          }
+        )
       }
     } else {
-      console.log(`[VERIFICATION_CALLBACK] ✅ Verification status confirmed for user ${userId}: ${currentStatus} (${processingTime}ms)`)
+      console.log(
+        `[VERIFICATION_CALLBACK] ✅ Verification status confirmed for user ${userId}: ${currentStatus} (${processingTime}ms)`
+      )
     }
 
     // Always log callback processing
-    await logVerificationEvent(userId, stripeAccountId, 'callback_processed', {
+    await logVerificationEvent(userId, stripeAccountId, 'callback_received', {
       previousStatus,
       currentStatus,
       statusChanged,
@@ -2114,22 +2542,30 @@ export async function handleVerificationCallback(
         accountId: stripeAccountId,
         statusChanged,
       },
-      message: statusChanged 
+      message: statusChanged
         ? `Verification status updated to ${currentStatus}`
         : `Verification status confirmed as ${currentStatus}`,
     }
   } catch (error) {
     const processingTime = Date.now() - startTime
-    console.error(`[VERIFICATION_CALLBACK] ❌ Error handling verification callback (${processingTime}ms):`, error)
-    
+    console.error(
+      `[VERIFICATION_CALLBACK] ❌ Error handling verification callback (${processingTime}ms):`,
+      error
+    )
+
     const stripeError = createStripeError(error)
-    
-    await logVerificationEvent(userId, accountId || 'unknown', 'verification_failed', {
-      currentStatus: 'incomplete',
-      statusChanged: false,
-      error: `Unexpected error: ${stripeError.message}`,
-    })
-    
+
+    await logVerificationEvent(
+      userId,
+      accountId || 'unknown',
+      'verification_failed',
+      {
+        currentStatus: 'incomplete',
+        statusChanged: false,
+        error: `Unexpected error: ${stripeError.message}`,
+      }
+    )
+
     return {
       success: false,
       error: stripeError,
@@ -2141,16 +2577,21 @@ export async function handleVerificationCallback(
  * Processes verification callback for the current user
  * This is a wrapper around handleVerificationCallback for client-side use
  */
-export async function processVerificationCallback(): Promise<ServiceResponse<{
-  status: StripeAccountStatus
-  previousStatus?: StripeAccountStatus
-  accountId: string
-  statusChanged: boolean
-  message?: string
-}>> {
+export async function processVerificationCallback(): Promise<
+  ServiceResponse<{
+    status: StripeAccountStatus
+    previousStatus?: StripeAccountStatus
+    accountId: string
+    statusChanged: boolean
+    message?: string
+  }>
+> {
   try {
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
       return {
         success: false,
@@ -2161,13 +2602,15 @@ export async function processVerificationCallback(): Promise<ServiceResponse<{
       }
     }
 
-    console.log(`[PROCESS_CALLBACK] Processing verification callback for user: ${user.id}`)
-    
+    console.log(
+      `[PROCESS_CALLBACK] Processing verification callback for user: ${user!.id}`
+    )
+
     // First check if user has a Stripe account before processing callback
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('stripe_account_id, role')
-      .eq('id', user.id)
+      .eq('id', user!.id)
       .single()
 
     if (profileError || !profile) {
@@ -2192,30 +2635,38 @@ export async function processVerificationCallback(): Promise<ServiceResponse<{
     }
 
     if (!profile.stripe_account_id) {
-      console.log(`[PROCESS_CALLBACK] User ${user.id} has no Stripe account, skipping callback processing`)
+      console.log(
+        `[PROCESS_CALLBACK] User ${user!.id} has no Stripe account, skipping callback processing`
+      )
       return {
         success: false,
         error: {
           type: 'validation_error',
-          message: 'No Stripe account found for user - callback processing not needed',
+          message:
+            'No Stripe account found for user - callback processing not needed',
         },
       }
     }
-    
-    const result = await handleVerificationCallback(user.id)
-    
+
+    const result = await handleVerificationCallback(user!.id)
+
     if (result.success && result.data) {
       // Also update KYC progress for the 4-step onboarding flow
       if (result.data.status === 'complete' && result.data.accountId) {
         try {
-          await updateKYCProgress(user.id, result.data.accountId)
-          console.log(`[PROCESS_CALLBACK] KYC progress updated for user ${user.id}`)
+          await updateKYCProgress(user!.id, result.data.accountId)
+          console.log(
+            `[PROCESS_CALLBACK] KYC progress updated for user ${user!.id}`
+          )
         } catch (kycError) {
-          console.warn('[PROCESS_CALLBACK] Failed to update KYC progress:', kycError)
+          console.warn(
+            '[PROCESS_CALLBACK] Failed to update KYC progress:',
+            kycError
+          )
           // Don't fail the entire callback processing if KYC progress update fails
         }
       }
-      
+
       return {
         success: true,
         data: {
@@ -2234,9 +2685,12 @@ export async function processVerificationCallback(): Promise<ServiceResponse<{
       },
     }
   } catch (error) {
-    console.error('[PROCESS_CALLBACK] Error processing verification callback:', error)
+    console.error(
+      '[PROCESS_CALLBACK] Error processing verification callback:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -2247,11 +2701,15 @@ export async function processVerificationCallback(): Promise<ServiceResponse<{
 /**
  * Creates or retrieves Stripe Connect account and generates onboarding link with comprehensive error handling
  */
-export async function initializeStripeConnectOnboarding(userId: string): Promise<ServiceResponse<{
-  accountId: string
-  onboardingUrl: string
-  isNewAccount: boolean
-}>> {
+export async function initializeStripeConnectOnboarding(
+  userId: string
+): Promise<
+  ServiceResponse<{
+    accountId: string
+    onboardingUrl: string
+    isNewAccount: boolean
+  }>
+> {
   try {
     // Input validation
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
@@ -2267,8 +2725,11 @@ export async function initializeStripeConnectOnboarding(userId: string): Promise
     console.log(`Initializing Stripe Connect onboarding for user: ${userId}`)
 
     // Get user's profile and auth info
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
     if (authError || !user || user.id !== userId) {
       return {
         success: false,
@@ -2324,11 +2785,11 @@ export async function initializeStripeConnectOnboarding(userId: string): Promise
     // Create Stripe Connect account if doesn't exist
     if (!accountId) {
       console.log(`Creating new Stripe Connect account for user: ${userId}`)
-      
+
       try {
         const account = await stripe.accounts.create({
           type: 'express',
-          email: user.email || profile.email,
+          email: user!.email || profile.email,
           business_type: 'individual',
           country: 'GB',
           capabilities: {
@@ -2343,9 +2804,9 @@ export async function initializeStripeConnectOnboarding(userId: string): Promise
         // Save account ID to profile
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             stripe_account_id: accountId,
-            stripe_account_status: 'incomplete'
+            stripe_account_status: 'incomplete',
           })
           .eq('id', userId)
 
@@ -2412,7 +2873,7 @@ export async function initializeStripeConnectOnboarding(userId: string): Promise
   } catch (error) {
     console.error('Error initializing Stripe Connect onboarding:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -2440,20 +2901,26 @@ export async function requireWasherVerification(redirectTo?: string): Promise<{
       }
     }
 
-    const verificationResult = await canAccessWasherFeatures(user.id)
-    
+    const verificationResult = await canAccessWasherFeatures(user!.id)
+
     if (!verificationResult.success) {
-      console.error('Failed to check verification status:', verificationResult.error)
+      console.error(
+        'Failed to check verification status:',
+        verificationResult.error
+      )
       return {
         canAccess: false,
-        redirectUrl: '/washer/dashboard?message=Verification+status+check+failed',
+        redirectUrl:
+          '/washer/dashboard?message=Verification+status+check+failed',
       }
     }
 
     if (!verificationResult.data?.canAccess) {
       return {
         canAccess: false,
-        redirectUrl: redirectTo || '/washer/dashboard?message=Please+complete+verification+to+access+this+feature',
+        redirectUrl:
+          redirectTo ||
+          '/washer/dashboard?message=Please+complete+verification+to+access+this+feature',
       }
     }
 
@@ -2464,25 +2931,26 @@ export async function requireWasherVerification(redirectTo?: string): Promise<{
     console.error('Error in requireWasherVerification:', error)
     return {
       canAccess: false,
-      redirectUrl: '/washer/dashboard?message=An+error+occurred+checking+verification+status',
+      redirectUrl:
+        '/washer/dashboard?message=An+error+occurred+checking+verification+status',
     }
   }
 }
-
-
 
 /**
  * Manually synchronizes verification status with Stripe API
  * Useful for debugging and ensuring status consistency
  */
-export async function syncVerificationStatus(userId?: string): Promise<ServiceResponse<{
-  userId: string
-  accountId: string
-  previousStatus: StripeAccountStatus
-  currentStatus: StripeAccountStatus
-  statusChanged: boolean
-  syncedAt: string
-}>> {
+export async function syncVerificationStatus(userId?: string): Promise<
+  ServiceResponse<{
+    userId: string
+    accountId: string
+    previousStatus: StripeAccountStatus
+    currentStatus: StripeAccountStatus
+    statusChanged: boolean
+    syncedAt: string
+  }>
+> {
   try {
     const {
       data: { user },
@@ -2499,7 +2967,7 @@ export async function syncVerificationStatus(userId?: string): Promise<ServiceRe
       }
     }
 
-    const targetUserId = userId || user.id
+    const targetUserId = userId || user!.id
 
     // Get user's profile
     const { data: profile, error: profileError } = await supabase
@@ -2539,10 +3007,15 @@ export async function syncVerificationStatus(userId?: string): Promise<ServiceRe
       }
     }
 
-    console.log(`[SYNC_STATUS] Manually syncing verification status for user ${targetUserId}`)
+    console.log(
+      `[SYNC_STATUS] Manually syncing verification status for user ${targetUserId}`
+    )
 
     // Use the existing callback handler to sync status
-    const syncResult = await handleVerificationCallback(targetUserId, profile.stripe_account_id)
+    const syncResult = await handleVerificationCallback(
+      targetUserId,
+      profile.stripe_account_id
+    )
 
     if (!syncResult.success) {
       return {
@@ -2555,7 +3028,9 @@ export async function syncVerificationStatus(userId?: string): Promise<ServiceRe
     }
 
     const syncedAt = new Date().toISOString()
-    console.log(`[SYNC_STATUS] ✅ Status sync completed for user ${targetUserId} at ${syncedAt}`)
+    console.log(
+      `[SYNC_STATUS] ✅ Status sync completed for user ${targetUserId} at ${syncedAt}`
+    )
 
     return {
       success: true,
@@ -2571,7 +3046,7 @@ export async function syncVerificationStatus(userId?: string): Promise<ServiceRe
   } catch (error) {
     console.error('[SYNC_STATUS] Error syncing verification status:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -2582,14 +3057,16 @@ export async function syncVerificationStatus(userId?: string): Promise<ServiceRe
 /**
  * Gets comprehensive verification status for a user with comprehensive error handling
  */
-export async function getWasherVerificationStatus(userId: string): Promise<ServiceResponse<{
-  hasStripeAccount: boolean
-  accountId?: string
-  status: StripeAccountStatus
-  canAccessFeatures: boolean
-  requirements?: StripeAccountDetails['requirements']
-  nextSteps: string[]
-}>> {
+export async function getWasherVerificationStatus(userId: string): Promise<
+  ServiceResponse<{
+    hasStripeAccount: boolean
+    accountId?: string
+    status: StripeAccountStatus
+    canAccessFeatures: boolean
+    requirements?: StripeAccountDetails['requirements']
+    nextSteps: string[]
+  }>
+> {
   try {
     // Input validation
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
@@ -2656,7 +3133,10 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
           hasStripeAccount: false,
           status: 'incomplete',
           canAccessFeatures: false,
-          nextSteps: ['Create Stripe Connect account', 'Complete identity verification'],
+          nextSteps: [
+            'Create Stripe Connect account',
+            'Complete identity verification',
+          ],
         },
       }
     }
@@ -2665,12 +3145,16 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
     const statusResult = await getStripeAccountStatus(profile.stripe_account_id)
 
     if (!statusResult.success) {
-      console.warn('Failed to get current Stripe status, falling back to cached status')
-      
+      console.warn(
+        'Failed to get current Stripe status, falling back to cached status'
+      )
+
       // Fall back to cached status
-      const cachedStatus = (profile.stripe_account_status as StripeAccountStatus) || 'incomplete'
-      const nextSteps = cachedStatus === 'complete' ? [] : ['Complete verification process']
-      
+      const cachedStatus =
+        (profile.stripe_account_status as StripeAccountStatus) || 'incomplete'
+      const nextSteps =
+        cachedStatus === 'complete' ? [] : ['Complete verification process']
+
       return {
         success: true,
         data: {
@@ -2702,14 +3186,14 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
         if (accountDetails.requirements?.currently_due?.length) {
           nextSteps.push('Provide additional required information')
           // Add specific requirements if available
-          accountDetails.requirements.currently_due.forEach(req => {
+          accountDetails.requirements.currently_due.forEach((req) => {
             nextSteps.push(`Complete: ${req.replace(/_/g, ' ')}`)
           })
         }
         if (accountDetails.requirements?.past_due?.length) {
           nextSteps.push('Complete overdue verification requirements')
           // Add specific overdue requirements
-          accountDetails.requirements.past_due.forEach(req => {
+          accountDetails.requirements.past_due.forEach((req) => {
             nextSteps.push(`Overdue: ${req.replace(/_/g, ' ')}`)
           })
         }
@@ -2717,7 +3201,9 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
       case 'rejected':
         nextSteps.push('Contact support for verification assistance')
         if (accountDetails.requirements?.disabled_reason) {
-          nextSteps.push(`Reason: ${accountDetails.requirements.disabled_reason}`)
+          nextSteps.push(
+            `Reason: ${accountDetails.requirements.disabled_reason}`
+          )
         }
         break
       case 'complete':
@@ -2737,7 +3223,9 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
           console.error('Failed to update cached status:', updateError)
           // Continue execution - this is not a critical failure
         } else {
-          console.log(`Updated cached status for user ${userId}: ${profile.stripe_account_status} -> ${accountDetails.status}`)
+          console.log(
+            `Updated cached status for user ${userId}: ${profile.stripe_account_status} -> ${accountDetails.status}`
+          )
         }
       } catch (updateError) {
         console.error('Exception updating cached status:', updateError)
@@ -2745,7 +3233,9 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
       }
     }
 
-    console.log(`Verification status retrieved for user ${userId}: ${accountDetails.status}`)
+    console.log(
+      `Verification status retrieved for user ${userId}: ${accountDetails.status}`
+    )
 
     return {
       success: true,
@@ -2761,7 +3251,7 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
   } catch (error) {
     console.error('Error getting washer verification status:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -2773,11 +3263,13 @@ export async function getWasherVerificationStatus(userId: string): Promise<Servi
  * Processes the onboarding fee payment for washers
  * Creates a Payment Intent for the £15 onboarding fee
  */
-export async function processOnboardingPayment(userId: string): Promise<ServiceResponse<{
-  clientSecret: string
-  paymentIntentId: string
-  amount: number
-}>> {
+export async function processOnboardingPayment(userId: string): Promise<
+  ServiceResponse<{
+    clientSecret: string
+    paymentIntentId: string
+    amount: number
+  }>
+> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -2857,7 +3349,9 @@ export async function processOnboardingPayment(userId: string): Promise<ServiceR
       }
     }
 
-    console.log(`[ONBOARDING_PAYMENT] ✅ Payment Intent created for user ${userId}: ${paymentIntent.id}`)
+    console.log(
+      `[ONBOARDING_PAYMENT] ✅ Payment Intent created for user ${userId}: ${paymentIntent.id}`
+    )
 
     return {
       success: true,
@@ -2871,7 +3365,7 @@ export async function processOnboardingPayment(userId: string): Promise<ServiceR
   } catch (error) {
     console.error('[ONBOARDING_PAYMENT] Error processing payment:', error)
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
@@ -2883,7 +3377,10 @@ export async function processOnboardingPayment(userId: string): Promise<ServiceR
  * Confirms the onboarding fee payment and updates the user's profile
  * This is typically called after the payment is successful
  */
-export async function confirmOnboardingPayment(userId: string, paymentIntentId: string): Promise<ServiceResponse<{ completed: boolean }>> {
+export async function confirmOnboardingPayment(
+  userId: string,
+  paymentIntentId: string
+): Promise<ServiceResponse<{ completed: boolean }>> {
   try {
     if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
       return {
@@ -2895,7 +3392,11 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
       }
     }
 
-    if (!paymentIntentId || typeof paymentIntentId !== 'string' || paymentIntentId.trim().length === 0) {
+    if (
+      !paymentIntentId ||
+      typeof paymentIntentId !== 'string' ||
+      paymentIntentId.trim().length === 0
+    ) {
       return {
         success: false,
         error: {
@@ -2905,7 +3406,9 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
       }
     }
 
-    console.log(`[ONBOARDING_PAYMENT_CONFIRM] Confirming payment for user: ${userId}, payment: ${paymentIntentId}`)
+    console.log(
+      `[ONBOARDING_PAYMENT_CONFIRM] Confirming payment for user: ${userId}, payment: ${paymentIntentId}`
+    )
 
     // Verify the payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
@@ -2939,7 +3442,10 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
       .eq('id', userId)
 
     if (updateError) {
-      console.error('[ONBOARDING_PAYMENT_CONFIRM] Error updating profile:', updateError)
+      console.error(
+        '[ONBOARDING_PAYMENT_CONFIRM] Error updating profile:',
+        updateError
+      )
       return {
         success: false,
         error: {
@@ -2950,7 +3456,9 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
       }
     }
 
-    console.log(`[ONBOARDING_PAYMENT_CONFIRM] ✅ Payment confirmed for user ${userId}`)
+    console.log(
+      `[ONBOARDING_PAYMENT_CONFIRM] ✅ Payment confirmed for user ${userId}`
+    )
 
     return {
       success: true,
@@ -2958,14 +3466,15 @@ export async function confirmOnboardingPayment(userId: string, paymentIntentId: 
       message: 'Onboarding payment confirmed successfully',
     }
   } catch (error) {
-    console.error('[ONBOARDING_PAYMENT_CONFIRM] Error confirming payment:', error)
+    console.error(
+      '[ONBOARDING_PAYMENT_CONFIRM] Error confirming payment:',
+      error
+    )
     const stripeError = createStripeError(error)
-    
+
     return {
       success: false,
       error: stripeError,
     }
   }
 }
-
-

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent, ChangeEvent, useEffect } from 'react'
+import { useState, FormEvent, ChangeEvent, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 import PasswordInput from '@/components/ui/PasswordInput'
 
-export default function SignInPage() {
+function SignInForm() {
   const searchParams = useSearchParams() // Get search params
   const [email, setEmail] = useState('')
   // const [password, setPassword] = useState('') // Removed unused password state
@@ -191,5 +191,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   )
 }

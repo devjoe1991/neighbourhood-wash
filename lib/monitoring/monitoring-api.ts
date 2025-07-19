@@ -1,5 +1,11 @@
-import { verificationAnalytics, VerificationMetrics } from './verification-analytics'
-import { verificationDashboard, DashboardMetrics } from './verification-dashboard'
+import {
+  verificationAnalytics,
+  VerificationMetrics,
+} from './verification-analytics'
+import {
+  verificationDashboard,
+  DashboardMetrics,
+} from './verification-dashboard'
 import { alertingSystem, Alert } from './alerting-system'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
@@ -32,7 +38,12 @@ export interface SystemHealthStatus {
 
 export interface RecentActivity {
   timestamp: string
-  type: 'verification_started' | 'verification_completed' | 'verification_failed' | 'alert_triggered' | 'performance_issue'
+  type:
+    | 'verification_started'
+    | 'verification_completed'
+    | 'verification_failed'
+    | 'alert_triggered'
+    | 'performance_issue'
   user_id?: string
   message: string
   metadata?: Record<string, unknown>
@@ -100,24 +111,28 @@ export class MonitoringAPI {
       console.log('[MONITORING_API] Fetching monitoring overview')
 
       // Fetch all monitoring data in parallel
-      const [metrics, dashboard, alerts, systemHealth, recentActivity] = await Promise.all([
-        verificationAnalytics.getVerificationMetrics(startDate, endDate),
-        verificationDashboard.getDashboardMetrics(startDate, endDate),
-        alertingSystem.getActiveAlerts(),
-        this.getSystemHealth(),
-        this.getRecentActivity(50)
-      ])
+      const [metrics, dashboard, alerts, systemHealth, recentActivity] =
+        await Promise.all([
+          verificationAnalytics.getVerificationMetrics(startDate, endDate),
+          verificationDashboard.getDashboardMetrics(startDate, endDate),
+          alertingSystem.getActiveAlerts(),
+          this.getSystemHealth(),
+          this.getRecentActivity(50),
+        ])
 
       return {
         metrics,
         dashboard,
         alerts,
         system_health: systemHealth,
-        recent_activity: recentActivity
+        recent_activity: recentActivity,
       }
     } catch (error) {
-      console.error('[MONITORING_API] Error fetching monitoring overview:', error)
-      
+      console.error(
+        '[MONITORING_API] Error fetching monitoring overview:',
+        error
+      )
+
       // Return minimal data structure on error
       return {
         metrics: null,
@@ -130,12 +145,12 @@ export class MonitoringAPI {
             stripe_api_connectivity: false,
             error_rate_acceptable: false,
             performance_acceptable: false,
-            alert_system_functional: false
+            alert_system_functional: false,
           },
           last_check: new Date().toISOString(),
-          issues: ['Failed to fetch monitoring data']
+          issues: ['Failed to fetch monitoring data'],
         },
-        recent_activity: []
+        recent_activity: [],
       }
     }
   }
@@ -149,7 +164,7 @@ export class MonitoringAPI {
       stripe_api_connectivity: false,
       error_rate_acceptable: false,
       performance_acceptable: false,
-      alert_system_functional: false
+      alert_system_functional: false,
     }
     const issues: string[] = []
 
@@ -159,7 +174,7 @@ export class MonitoringAPI {
         .from('verification_events')
         .select('id')
         .limit(1)
-      
+
       checks.database_connectivity = dbTest !== null
       if (!checks.database_connectivity) {
         issues.push('Database connectivity issues detected')
@@ -174,9 +189,12 @@ export class MonitoringAPI {
 
       if (recentEvents) {
         const totalEvents = recentEvents.length
-        const errorEvents = recentEvents.filter(e => e.event_type === 'verification_failed').length
-        const errorRate = totalEvents > 0 ? (errorEvents / totalEvents) * 100 : 0
-        
+        const errorEvents = recentEvents.filter(
+          (e) => e.event_type === 'verification_failed'
+        ).length
+        const errorRate =
+          totalEvents > 0 ? (errorEvents / totalEvents) * 100 : 0
+
         checks.error_rate_acceptable = errorRate < 20 // Less than 20% error rate
         if (!checks.error_rate_acceptable) {
           issues.push(`High error rate: ${Math.round(errorRate)}%`)
@@ -191,10 +209,14 @@ export class MonitoringAPI {
         .gte('timestamp', oneHourAgo.toISOString())
 
       if (apiCalls && apiCalls.length > 0) {
-        const avgDuration = apiCalls.reduce((sum, call) => sum + (call.duration_ms || 0), 0) / apiCalls.length
+        const avgDuration =
+          apiCalls.reduce((sum, call) => sum + (call.duration_ms || 0), 0) /
+          apiCalls.length
         checks.performance_acceptable = avgDuration < 5000 // Less than 5 seconds average
         if (!checks.performance_acceptable) {
-          issues.push(`Slow API performance: ${Math.round(avgDuration)}ms average`)
+          issues.push(
+            `Slow API performance: ${Math.round(avgDuration)}ms average`
+          )
         }
       } else {
         checks.performance_acceptable = true // No data means no performance issues
@@ -204,21 +226,25 @@ export class MonitoringAPI {
       try {
         const activeAlerts = await alertingSystem.getActiveAlerts()
         checks.alert_system_functional = true
-        
+
         // Check for critical alerts
-        const criticalAlerts = activeAlerts.filter(a => a.severity === 'critical')
+        const criticalAlerts = activeAlerts.filter(
+          (a) => a.severity === 'critical'
+        )
         if (criticalAlerts.length > 0) {
           issues.push(`${criticalAlerts.length} critical alerts active`)
         }
-      } catch (error) {
+      } catch (_error) {
         checks.alert_system_functional = false
         issues.push('Alert system not responding')
       }
 
       // Determine overall status
-      const criticalIssues = !checks.database_connectivity || !checks.alert_system_functional
-      const majorIssues = !checks.error_rate_acceptable || !checks.performance_acceptable
-      
+      const criticalIssues =
+        !checks.database_connectivity || !checks.alert_system_functional
+      const majorIssues =
+        !checks.error_rate_acceptable || !checks.performance_acceptable
+
       let status: SystemHealthStatus['status'] = 'healthy'
       if (criticalIssues) {
         status = 'critical'
@@ -230,16 +256,15 @@ export class MonitoringAPI {
         status,
         checks,
         last_check: new Date().toISOString(),
-        issues
+        issues,
       }
-
     } catch (_error) {
       console.error('[MONITORING_API] Error checking system health:', _error)
       return {
         status: 'critical',
         checks,
         last_check: new Date().toISOString(),
-        issues: [...issues, 'System health check failed']
+        issues: [...issues, 'System health check failed'],
       }
     }
   }
@@ -257,7 +282,7 @@ export class MonitoringAPI {
 
       if (!events) return []
 
-      return events.map(event => {
+      return events.map((event) => {
         let message = ''
         let type: RecentActivity['type'] = 'verification_started'
 
@@ -295,8 +320,8 @@ export class MonitoringAPI {
           metadata: {
             event_type: event.event_type,
             event_data: event.event_data,
-            error_details: event.error_details
-          }
+            error_details: event.error_details,
+          },
         }
       })
     } catch (error) {
@@ -313,7 +338,9 @@ export class MonitoringAPI {
     endDate: string
   ): Promise<PerformanceReport> {
     try {
-      console.log(`[MONITORING_API] Generating performance report for ${startDate} to ${endDate}`)
+      console.log(
+        `[MONITORING_API] Generating performance report for ${startDate} to ${endDate}`
+      )
 
       // Get API performance data
       const { data: apiEvents } = await this.supabase
@@ -334,7 +361,9 @@ export class MonitoringAPI {
         .lte('started_at', endDate)
 
       // Process user journey analysis
-      const userJourneyAnalysis = this.processUserJourneyAnalysis(journeys || [])
+      const userJourneyAnalysis = this.processUserJourneyAnalysis(
+        journeys || []
+      )
 
       // Get error data
       const { data: errorEvents } = await this.supabase
@@ -350,14 +379,17 @@ export class MonitoringAPI {
       return {
         period: {
           start: startDate,
-          end: endDate
+          end: endDate,
         },
         api_performance: apiPerformance,
         user_journey_analysis: userJourneyAnalysis,
-        error_analysis: errorAnalysis
+        error_analysis: errorAnalysis,
       }
     } catch (error) {
-      console.error('[MONITORING_API] Error generating performance report:', error)
+      console.error(
+        '[MONITORING_API] Error generating performance report:',
+        error
+      )
       throw error
     }
   }
@@ -365,17 +397,29 @@ export class MonitoringAPI {
   /**
    * Process API performance data
    */
-  private processApiPerformance(events: unknown[]): PerformanceReport['api_performance'] {
-    const operationStats = new Map<string, {
-      durations: number[]
-      successes: number
-      total: number
-    }>()
+  private processApiPerformance(
+    events: unknown[]
+  ): PerformanceReport['api_performance'] {
+    interface DatabaseEvent {
+      event_data?: { operation?: string }
+      duration_ms?: number
+      error_details?: unknown
+    }
 
-    events.forEach(event => {
-      const operation = event.event_data?.operation || 'unknown'
-      const duration = event.duration_ms || 0
-      const success = !event.error_details
+    const operationStats = new Map<
+      string,
+      {
+        durations: number[]
+        successes: number
+        total: number
+      }
+    >()
+
+    events.forEach((event) => {
+      const eventData = event as DatabaseEvent
+      const operation = eventData.event_data?.operation || 'unknown'
+      const duration = eventData.duration_ms || 0
+      const success = !eventData.error_details
 
       if (!operationStats.has(operation)) {
         operationStats.set(operation, { durations: [], successes: 0, total: 0 })
@@ -387,11 +431,14 @@ export class MonitoringAPI {
       if (success) stats.successes++
     })
 
-    const stripeOperations: PerformanceReport['api_performance']['stripe_operations'] = []
-    const databaseOperations: PerformanceReport['api_performance']['database_operations'] = []
+    const stripeOperations: PerformanceReport['api_performance']['stripe_operations'] =
+      []
+    const databaseOperations: PerformanceReport['api_performance']['database_operations'] =
+      []
 
     operationStats.forEach((stats, operation) => {
-      const avgDuration = stats.durations.reduce((sum, d) => sum + d, 0) / stats.durations.length
+      const avgDuration =
+        stats.durations.reduce((sum, d) => sum + d, 0) / stats.durations.length
       const sortedDurations = stats.durations.sort((a, b) => a - b)
       const p95Index = Math.floor(sortedDurations.length * 0.95)
       const p95Duration = sortedDurations[p95Index] || 0
@@ -402,7 +449,7 @@ export class MonitoringAPI {
         avg_duration_ms: Math.round(avgDuration),
         p95_duration_ms: p95Duration,
         success_rate: Math.round(successRate * 100) / 100,
-        total_calls: stats.total
+        total_calls: stats.total,
       }
 
       if (operation.startsWith('stripe_')) {
@@ -413,36 +460,61 @@ export class MonitoringAPI {
     })
 
     return {
-      stripe_operations: stripeOperations.sort((a, b) => b.total_calls - a.total_calls),
-      database_operations: databaseOperations.sort((a, b) => b.total_calls - a.total_calls)
+      stripe_operations: stripeOperations.sort(
+        (a, b) => b.total_calls - a.total_calls
+      ),
+      database_operations: databaseOperations.sort(
+        (a, b) => b.total_calls - a.total_calls
+      ),
     }
   }
 
   /**
    * Process user journey analysis
    */
-  private processUserJourneyAnalysis(journeys: unknown[]): PerformanceReport['user_journey_analysis'] {
-    const completedJourneys = journeys.filter(j => j.completion_status === 'completed')
-    const avgCompletionTime = completedJourneys.length > 0
-      ? completedJourneys.reduce((sum, j) => sum + (j.total_duration_ms || 0), 0) / completedJourneys.length
-      : 0
+  private processUserJourneyAnalysis(
+    journeys: unknown[]
+  ): PerformanceReport['user_journey_analysis'] {
+    interface UserJourney {
+      completion_status?: string
+      total_duration_ms?: number
+      abandonment_point?: string
+      current_step?: string
+    }
 
-    const completionRate = journeys.length > 0
-      ? (completedJourneys.length / journeys.length) * 100
-      : 0
+    const journeyData = journeys as UserJourney[]
+    const completedJourneys = journeyData.filter(
+      (j) => j.completion_status === 'completed'
+    )
+    const avgCompletionTime =
+      completedJourneys.length > 0
+        ? completedJourneys.reduce(
+            (sum, j) => sum + (j.total_duration_ms || 0),
+            0
+          ) / completedJourneys.length
+        : 0
+
+    const completionRate =
+      journeyData.length > 0
+        ? (completedJourneys.length / journeyData.length) * 100
+        : 0
 
     // Analyze drop-off points
     const dropOffCounts = new Map<string, number>()
-    journeys.filter(j => j.completion_status === 'abandoned').forEach(j => {
-      const step = j.abandonment_point || j.current_step || 'unknown'
-      dropOffCounts.set(step, (dropOffCounts.get(step) || 0) + 1)
-    })
+    journeyData
+      .filter((j) => j.completion_status === 'abandoned')
+      .forEach((j) => {
+        const step = j.abandonment_point || j.current_step || 'unknown'
+        dropOffCounts.set(step, (dropOffCounts.get(step) || 0) + 1)
+      })
 
-    const totalAbandoned = journeys.filter(j => j.completion_status === 'abandoned').length
+    const totalAbandoned = journeyData.filter(
+      (j) => j.completion_status === 'abandoned'
+    ).length
     const commonDropOffPoints = Array.from(dropOffCounts.entries())
       .map(([step, count]) => ({
         step,
-        drop_off_rate: totalAbandoned > 0 ? (count / totalAbandoned) * 100 : 0
+        drop_off_rate: totalAbandoned > 0 ? (count / totalAbandoned) * 100 : 0,
       }))
       .sort((a, b) => b.drop_off_rate - a.drop_off_rate)
       .slice(0, 5)
@@ -450,19 +522,26 @@ export class MonitoringAPI {
     return {
       avg_completion_time_ms: Math.round(avgCompletionTime),
       completion_rate: Math.round(completionRate * 100) / 100,
-      common_drop_off_points: commonDropOffPoints
+      common_drop_off_points: commonDropOffPoints,
     }
   }
 
   /**
    * Process error analysis
    */
-  private processErrorAnalysis(errorEvents: unknown[]): PerformanceReport['error_analysis'] {
+  private processErrorAnalysis(
+    errorEvents: unknown[]
+  ): PerformanceReport['error_analysis'] {
+    interface ErrorEvent {
+      error_details?: { type?: string }
+    }
+
     const totalErrors = errorEvents.length
     const errorCounts = new Map<string, number>()
 
-    errorEvents.forEach(event => {
-      const errorType = event.error_details?.type || 'unknown_error'
+    errorEvents.forEach((event) => {
+      const eventData = event as ErrorEvent
+      const errorType = eventData.error_details?.type || 'unknown_error'
       errorCounts.set(errorType, (errorCounts.get(errorType) || 0) + 1)
     })
 
@@ -470,14 +549,14 @@ export class MonitoringAPI {
       .map(([error_type, count]) => ({
         error_type,
         count,
-        percentage: totalErrors > 0 ? (count / totalErrors) * 100 : 0
+        percentage: totalErrors > 0 ? (count / totalErrors) * 100 : 0,
       }))
       .sort((a, b) => b.count - a.count)
 
     return {
       total_errors: totalErrors,
       error_rate: 0, // This would need to be calculated against total events
-      error_breakdown: errorBreakdown
+      error_breakdown: errorBreakdown,
     }
   }
 
@@ -493,15 +572,17 @@ export class MonitoringAPI {
 
       // Run alert checks
       const triggeredAlerts = await alertingSystem.checkAlertRules()
-      
+
       // Get system health
       const systemHealth = await this.getSystemHealth()
 
-      console.log(`[MONITORING_API] Monitoring checks complete: ${triggeredAlerts.length} alerts triggered, system status: ${systemHealth.status}`)
+      console.log(
+        `[MONITORING_API] Monitoring checks complete: ${triggeredAlerts.length} alerts triggered, system status: ${systemHealth.status}`
+      )
 
       return {
         alerts_triggered: triggeredAlerts.length,
-        system_health: systemHealth
+        system_health: systemHealth,
       }
     } catch (error) {
       console.error('[MONITORING_API] Error running monitoring checks:', error)
@@ -517,11 +598,9 @@ export const monitoringAPI = MonitoringAPI.getInstance()
 export const getMonitoringOverview = (startDate?: string, endDate?: string) =>
   monitoringAPI.getMonitoringOverview(startDate, endDate)
 
-export const getSystemHealth = () =>
-  monitoringAPI.getSystemHealth()
+export const getSystemHealth = () => monitoringAPI.getSystemHealth()
 
 export const generatePerformanceReport = (startDate: string, endDate: string) =>
   monitoringAPI.generatePerformanceReport(startDate, endDate)
 
-export const runMonitoringChecks = () =>
-  monitoringAPI.runMonitoringChecks()
+export const runMonitoringChecks = () => monitoringAPI.runMonitoringChecks()
