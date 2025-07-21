@@ -1,83 +1,49 @@
 'use server'
 
 import { headers } from 'next/headers'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { AuthService } from '@/lib/auth/auth-service'
+import type { UserRole } from '@/lib/types'
 
 export async function signup(formData: FormData) {
-  const h = await headers()
-  const origin = h.get('origin')
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const referralCode = formData.get('referral_code') as string
-  const role = (formData.get('role') as string) || 'user'
-  const supabase = createSupabaseServerClient()
+  const role = (formData.get('role') as string) || 'customer'
+  const fullName = formData.get('full_name') as string
+  const phoneNumber = formData.get('phone_number') as string
 
-  // Prepare metadata
-  const metadata: {
-    selected_role: string
-    submitted_referral_code?: string
-  } = {
-    selected_role: role,
+  // Validate role
+  const validRoles: UserRole[] = ['customer', 'washer', 'admin']
+  const userRole: UserRole = validRoles.includes(role as UserRole) ? role as UserRole : 'customer'
+
+  // Prepare additional data
+  const additionalData = {
+    fullName: fullName || undefined,
+    phoneNumber: phoneNumber || undefined,
+    referralCode: referralCode?.trim() || undefined
   }
 
-  if (referralCode && referralCode.trim() !== '') {
-    metadata.submitted_referral_code = referralCode.trim().toUpperCase()
+  // Use the new AuthService
+  const result = await AuthService.signUp(email, password, userRole, additionalData)
+
+  if (!result.success) {
+    console.error('Sign up error:', result.error)
+    const errorMessage = result.error?.message || 'Could not authenticate user'
+    return redirect(`/signup?message=${encodeURIComponent(errorMessage)}`)
   }
 
-  // Sign up the user
-  const { data, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: metadata,
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  })
-
-  if (signUpError) {
-    console.error('Sign up error:', signUpError)
-    return redirect('/signup?message=Could not authenticate user')
-  }
-
-  if (!data.user) {
-    return redirect('/signup?message=Could not authenticate user')
-  }
-
-  const user = data.user
-
-  // Process referral code if provided
-  if (metadata.submitted_referral_code) {
+  // Process referral code if provided (legacy support)
+  if (additionalData.referralCode) {
     try {
-      // Find the referrer
-      const { data: referrerData, error: referrerError } = await supabase
-        .from('referrals')
-        .select('user_id, referral_code')
-        .eq('referral_code', metadata.submitted_referral_code)
-        .single()
-
-      if (!referrerError && referrerData && referrerData.user_id !== user.id) {
-        // Create referral event
-        const { error: referralEventError } = await supabase
-          .from('referral_events')
-          .insert({
-            referrer_user_id: referrerData.user_id,
-            referred_user_id: user.id,
-            referral_code_used: metadata.submitted_referral_code,
-            status: 'pending_first_action',
-          })
-
-        if (referralEventError && referralEventError.code !== '23505') {
-          // Log error but don't fail signup for referral issues
-          console.error('Error creating referral event:', referralEventError)
-        }
-      }
+      // This is handled in the AuthService, but we can add additional processing here if needed
+      console.log('Referral code processed:', additionalData.referralCode)
     } catch (error) {
       // Log error but don't fail signup for referral issues
       console.error('Error processing referral:', error)
     }
   }
 
-  // Success! Redirect to the confirmation page.
-  return redirect('/auth/confirm-email')
+  // Success! Redirect to the confirmation page or specified redirect
+  return redirect(result.redirectTo || '/auth/confirm-email')
 }

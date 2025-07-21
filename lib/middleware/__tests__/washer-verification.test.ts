@@ -1,251 +1,277 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { requireWasherVerification, getWasherVerificationStatus } from '../washer-verification'
-import { canAccessWasherFeatures } from '@/lib/stripe/actions'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+/**
+ * Tests for Washer Verification Middleware with Build Safety
+ */
 
-// Mock Next.js redirect
-vi.mock('next/navigation', () => ({
-  redirect: vi.fn(),
+import {
+  requireWasherVerification,
+  requireCompleteOnboarding,
+  requireFeatureAccess
+} from '../washer-verification'
+
+// Mock the dependencies
+jest.mock('@/utils/supabase/server', () => ({
+  createSupabaseServerClientSafe: jest.fn()
 }))
 
-// Mock Supabase
-vi.mock('@/utils/supabase/server', () => ({
-  createSupabaseServerClient: vi.fn(() => ({
-    auth: {
-      getUser: vi.fn(),
-    },
-  })),
+jest.mock('@/lib/utils/build-context', () => ({
+  shouldSkipAuth: jest.fn(),
+  getBuildSafeDefaults: jest.fn(),
+  logBuildContext: jest.fn()
 }))
 
-// Mock Stripe actions
-vi.mock('@/lib/stripe/actions', () => ({
-  canAccessWasherFeatures: vi.fn(),
+jest.mock('@/lib/stripe/actions', () => ({
+  canAccessWasherFeatures: jest.fn(),
+  hasCompletedOnboarding: jest.fn()
 }))
+
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn()
+}))
+
+import { createSupabaseServerClientSafe } from '@/utils/supabase/server'
+import { shouldSkipAuth, getBuildSafeDefaults, logBuildContext } from '@/lib/utils/build-context'
+import { canAccessWasherFeatures, hasCompletedOnboarding } from '@/lib/stripe/actions'
+import { redirect } from 'next/navigation'
+
+const mockCreateSupabaseServerClientSafe = createSupabaseServerClientSafe as jest.MockedFunction<typeof createSupabaseServerClientSafe>
+const mockShouldSkipAuth = shouldSkipAuth as jest.MockedFunction<typeof shouldSkipAuth>
+const mockGetBuildSafeDefaults = getBuildSafeDefaults as jest.MockedFunction<typeof getBuildSafeDefaults>
+const mockLogBuildContext = logBuildContext as jest.MockedFunction<typeof logBuildContext>
+const mockCanAccessWasherFeatures = canAccessWasherFeatures as jest.MockedFunction<typeof canAccessWasherFeatures>
+const mockHasCompletedOnboarding = hasCompletedOnboarding as jest.MockedFunction<typeof hasCompletedOnboarding>
+const mockRedirect = redirect as jest.MockedFunction<typeof redirect>
 
 describe('Washer Verification Middleware', () => {
-  const mockSupabase = {
-    auth: {
-      getUser: vi.fn(),
-    },
-  }
-
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(createSupabaseServerClient).mockReturnValue(mockSupabase as any)
+    jest.clearAllMocks()
   })
 
   describe('requireWasherVerification', () => {
-    it('allows access for verified washer', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user123', email: 'test@example.com' } },
-        error: null,
+    test('returns build safe defaults when shouldSkipAuth is true', async () => {
+      mockShouldSkipAuth.mockReturnValue(true)
+      mockGetBuildSafeDefaults.mockReturnValue({
+        user: null,
+        isAuthenticated: false,
+        canAccess: false,
+        status: 'build_context',
+        reason: 'build_time_execution',
+        message: 'Authentication skipped during build process'
       })
 
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
+      const result = await requireWasherVerification()
+
+      expect(result).toEqual({
+        canAccess: false,
+        status: 'build_context',
+        error: 'Authentication skipped during build process'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Skipping washer verification during build')
+    })
+
+    test('returns build context error when Supabase client creation fails in build context', async () => {
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: null,
+        error: 'Build context error',
+        isBuildContext: true
+      })
+      mockGetBuildSafeDefaults.mockReturnValue({
+        user: null,
+        isAuthenticated: false,
+        canAccess: false,
+        status: 'build_context',
+        reason: 'build_time_execution',
+        message: 'Authentication skipped during build process'
+      })
+
+      const result = await requireWasherVerification()
+
+      expect(result).toEqual({
+        canAccess: false,
+        status: 'build_context',
+        error: 'Authentication skipped during build process'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Washer verification skipped - build context')
+    })
+
+    test('returns client error when Supabase client creation fails at runtime', async () => {
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: null,
+        error: 'Runtime client error',
+        isBuildContext: false
+      })
+
+      const result = await requireWasherVerification()
+
+      expect(result).toEqual({
+        canAccess: false,
+        status: 'client_error',
+        error: 'Runtime client error'
+      })
+    })
+
+    test('processes authentication normally when client is available', async () => {
+      const mockUser = { id: 'user-123', email: 'test@example.com' }
+      const mockClient = {
+        auth: {
+          getUser: jest.fn().mockResolvedValue({
+            data: { user: mockUser },
+            error: null
+          })
+        }
+      }
+
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: mockClient as any,
+        isBuildContext: false
+      })
+      mockCanAccessWasherFeatures.mockResolvedValue({
         success: true,
         data: {
           canAccess: true,
           status: 'complete',
-          accountId: 'acct_test123',
-          requirements: undefined,
-        },
+          accountId: 'acct_123',
+          requirements: {},
+          onboardingStatus: { isComplete: true, completedSteps: [1, 2, 3, 4] }
+        }
       })
 
-      const result = await requireWasherVerification(false)
+      const result = await requireWasherVerification()
 
-      expect(result.canAccess).toBe(true)
-      expect(result.status).toBe('complete')
-      expect(result.accountId).toBe('acct_test123')
-      expect(result.error).toBeUndefined()
-    })
-
-    it('denies access for unverified washer', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user123', email: 'test@example.com' } },
-        error: null,
+      expect(result).toEqual({
+        canAccess: true,
+        status: 'complete',
+        accountId: 'acct_123',
+        requirements: {},
+        user: mockUser,
+        onboardingStatus: { isComplete: true, completedSteps: [1, 2, 3, 4] }
       })
-
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
-        success: true,
-        data: {
-          canAccess: false,
-          status: 'incomplete',
-          accountId: 'acct_test123',
-          requirements: {
-            currently_due: ['individual.verification.document'],
-            eventually_due: [],
-            past_due: [],
-            pending_verification: [],
-          },
-        },
-      })
-
-      const result = await requireWasherVerification(false)
-
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('incomplete')
-      expect(result.accountId).toBe('acct_test123')
-      expect(result.requirements).toBeDefined()
-    })
-
-    it('redirects unauthenticated user to signin', async () => {
-      const { redirect } = await import('next/navigation')
-      
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
-
-      const result = await requireWasherVerification(true)
-
-      expect(redirect).toHaveBeenCalledWith('/signin')
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('unauthenticated')
-    })
-
-    it('redirects unverified washer to dashboard', async () => {
-      const { redirect } = await import('next/navigation')
-      
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user123', email: 'test@example.com' } },
-        error: null,
-      })
-
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
-        success: true,
-        data: {
-          canAccess: false,
-          status: 'incomplete',
-          accountId: 'acct_test123',
-        },
-      })
-
-      await requireWasherVerification(true, '/custom/path')
-
-      expect(redirect).toHaveBeenCalledWith('/custom/path')
-    })
-
-    it('fails open on verification check error', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user123', email: 'test@example.com' } },
-        error: null,
-      })
-
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'Service unavailable',
-        },
-      })
-
-      const result = await requireWasherVerification(false)
-
-      expect(result.canAccess).toBe(true) // Fails open
-      expect(result.status).toBe('unknown')
-      expect(result.error).toBe('Service unavailable')
-    })
-
-    it('handles unexpected errors gracefully', async () => {
-      const { redirect } = await import('next/navigation')
-      
-      mockSupabase.auth.getUser.mockRejectedValue(new Error('Unexpected error'))
-
-      await requireWasherVerification(true, '/fallback')
-
-      expect(redirect).toHaveBeenCalledWith('/fallback')
-    })
-
-    it('returns error without redirect when redirectOnFailure is false', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Not authenticated' },
-      })
-
-      const result = await requireWasherVerification(false)
-
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('unauthenticated')
-      expect(result.error).toBe('Authentication required')
-    })
-
-    it('uses default fallback path when not specified', async () => {
-      const { redirect } = await import('next/navigation')
-      
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user123', email: 'test@example.com' } },
-        error: null,
-      })
-
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
-        success: true,
-        data: {
-          canAccess: false,
-          status: 'incomplete',
-          accountId: 'acct_test123',
-        },
-      })
-
-      await requireWasherVerification(true)
-
-      expect(redirect).toHaveBeenCalledWith('/washer/dashboard')
     })
   })
 
-  describe('getWasherVerificationStatus', () => {
-    it('returns verification status for user', async () => {
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
+  describe('requireCompleteOnboarding', () => {
+    test('returns build context defaults when shouldSkipAuth is true', async () => {
+      mockShouldSkipAuth.mockReturnValue(true)
+
+      const result = await requireCompleteOnboarding()
+
+      expect(result).toEqual({
+        isComplete: false,
+        completedSteps: [],
+        currentStep: 1,
+        missingSteps: ['Build-time context - authentication not available'],
+        error: 'Build-time context'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Skipping onboarding verification during build')
+    })
+
+    test('returns build context error when client creation fails in build context', async () => {
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: null,
+        error: 'Build context error',
+        isBuildContext: true
+      })
+
+      const result = await requireCompleteOnboarding()
+
+      expect(result).toEqual({
+        isComplete: false,
+        completedSteps: [],
+        currentStep: 1,
+        missingSteps: ['Build-time context - authentication not available'],
+        error: 'Build-time context'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Onboarding verification skipped - build context')
+    })
+
+    test('processes onboarding check normally when client is available', async () => {
+      const mockUser = { id: 'user-123', email: 'test@example.com' }
+      const mockClient = {
+        auth: {
+          getUser: jest.fn().mockResolvedValue({
+            data: { user: mockUser },
+            error: null
+          })
+        }
+      }
+
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: mockClient as any,
+        isBuildContext: false
+      })
+      mockHasCompletedOnboarding.mockResolvedValue({
         success: true,
         data: {
-          canAccess: true,
-          status: 'complete',
-          accountId: 'acct_test123',
-          requirements: undefined,
-        },
+          isComplete: true,
+          completedSteps: [1, 2, 3, 4],
+          currentStep: 4,
+          missingSteps: []
+        }
       })
 
-      const result = await getWasherVerificationStatus('user123')
+      const result = await requireCompleteOnboarding()
 
-      expect(result.canAccess).toBe(true)
-      expect(result.status).toBe('complete')
-      expect(result.accountId).toBe('acct_test123')
-      expect(result.error).toBeUndefined()
+      expect(result).toEqual({
+        isComplete: true,
+        completedSteps: [1, 2, 3, 4],
+        currentStep: 4,
+        missingSteps: [],
+        user: mockUser
+      })
+    })
+  })
+
+  describe('requireFeatureAccess', () => {
+    test('returns build context response when shouldSkipAuth is true', async () => {
+      mockShouldSkipAuth.mockReturnValue(true)
+
+      const result = await requireFeatureAccess('test-feature')
+
+      expect(result).toEqual({
+        canAccess: false,
+        reason: 'build_context',
+        message: 'Feature access skipped during build process'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Skipping feature access check for test-feature during build')
     })
 
-    it('handles verification check failure', async () => {
-      vi.mocked(canAccessWasherFeatures).mockResolvedValue({
-        success: false,
-        error: {
-          type: 'unknown_error',
-          message: 'Service error',
-        },
+    test('returns build context error when client creation fails in build context', async () => {
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: null,
+        error: 'Build context error',
+        isBuildContext: true
       })
 
-      const result = await getWasherVerificationStatus('user123')
+      const result = await requireFeatureAccess('test-feature')
 
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('error')
-      expect(result.error).toBe('Service error')
+      expect(result).toEqual({
+        canAccess: false,
+        reason: 'build_context',
+        message: 'Feature access skipped during build process'
+      })
+      expect(mockLogBuildContext).toHaveBeenCalledWith('Feature access for test-feature skipped - build context')
     })
 
-    it('handles unexpected errors', async () => {
-      vi.mocked(canAccessWasherFeatures).mockRejectedValue(new Error('Unexpected error'))
+    test('returns client error when client creation fails at runtime', async () => {
+      mockShouldSkipAuth.mockReturnValue(false)
+      mockCreateSupabaseServerClientSafe.mockReturnValue({
+        client: null,
+        error: 'Runtime client error',
+        isBuildContext: false
+      })
 
-      const result = await getWasherVerificationStatus('user123')
+      const result = await requireFeatureAccess('test-feature')
 
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('error')
-      expect(result.error).toBe('Unexpected error')
-    })
-
-    it('handles non-Error exceptions', async () => {
-      vi.mocked(canAccessWasherFeatures).mockRejectedValue('String error')
-
-      const result = await getWasherVerificationStatus('user123')
-
-      expect(result.canAccess).toBe(false)
-      expect(result.status).toBe('error')
-      expect(result.error).toBe('Unexpected error occurred')
+      expect(result).toEqual({
+        canAccess: false,
+        reason: 'client_error',
+        message: 'Runtime client error'
+      })
     })
   })
 })

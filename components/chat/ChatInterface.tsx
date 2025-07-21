@@ -98,7 +98,7 @@ export default function ChatInterface({
           table: 'messages',
           filter: `booking_id=eq.${bookingId}`,
         },
-        async (payload) => {
+        async (payload: any) => {
           // Fetch the sender profile for the new message
           const { data: profileData } = await supabase
             .from('profiles')

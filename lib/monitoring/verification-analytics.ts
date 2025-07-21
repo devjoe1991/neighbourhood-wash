@@ -549,9 +549,9 @@ class VerificationAnalytics {
         }
       }
 
-      const totalStarted = eventCounts.filter(e => e.event_type === 'verification_started').length
-      const totalCompleted = eventCounts.filter(e => e.event_type === 'verification_completed').length
-      const totalErrors = eventCounts.filter(e => e.event_type === 'verification_failed').length
+      const totalStarted = eventCounts.filter((e: any) => e.event_type === 'verification_started').length
+      const totalCompleted = eventCounts.filter((e: any) => e.event_type === 'verification_completed').length
+      const totalErrors = eventCounts.filter((e: any) => e.event_type === 'verification_failed').length
 
       // Get completion times
       const { data: journeys } = await this.supabase
@@ -560,9 +560,9 @@ class VerificationAnalytics {
         .filter('started_at', 'gte', startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .filter('started_at', 'lte', endDate || new Date().toISOString())
 
-      const completedJourneys = journeys?.filter(j => j.completion_status === 'completed') || []
+      const completedJourneys = journeys?.filter((j: any) => j.completion_status === 'completed') || []
       const avgCompletionTime = completedJourneys.length > 0
-        ? completedJourneys.reduce((sum, j) => sum + (j.total_duration_ms || 0), 0) / completedJourneys.length
+        ? completedJourneys.reduce((sum: number, j: any) => sum + (j.total_duration_ms || 0), 0) / completedJourneys.length
         : 0
 
       // Get error breakdown
@@ -574,7 +574,7 @@ class VerificationAnalytics {
         .filter('timestamp', 'lte', endDate || new Date().toISOString())
 
       const errorCounts = new Map<string, number>()
-      errors?.forEach(e => {
+      errors?.forEach((e: any) => {
         if (e.error_details?.type) {
           errorCounts.set(e.error_details.type, (errorCounts.get(e.error_details.type) || 0) + 1)
         }

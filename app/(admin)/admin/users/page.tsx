@@ -71,7 +71,7 @@ async function fetchUsers(): Promise<{
     }
 
     // Get user IDs to fetch profile data
-    const userIds = authUsers.map((user) => user.id)
+    const userIds = authUsers.map((user: any) => user.id)
 
     // Fetch profile data for all users
     const { data: profiles, error: profileError } = await supabase
@@ -86,7 +86,7 @@ async function fetchUsers(): Promise<{
     // Combine auth and profile data
     const combinedUsers: AdminPageUser[] = authUsers.map(
       (user: SupabaseUser) => {
-        const profile = profiles?.find((p) => p.id === user.id)
+        const profile = profiles?.find((p: any) => p.id === user.id)
         return {
           id: user.id,
           email: user.email,

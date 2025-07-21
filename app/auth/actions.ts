@@ -1,86 +1,62 @@
 'use server'
 
-import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { type SignInWithPasswordCredentials } from '@supabase/supabase-js'
+import { AuthService } from '@/lib/auth/auth-service'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export async function signOut() {
-  const supabase = createSupabaseServerClient()
+  const result = await AuthService.signOut()
 
-  const { error } = await supabase.auth.signOut()
-
-  if (error) {
-    console.error('Error signing out:', error)
-    return { error: { message: 'Failed to sign out. Please try again.' } }
+  if (!result.success) {
+    console.error('Error signing out:', result.error)
+    return { error: { message: result.error?.message || 'Failed to sign out. Please try again.' } }
   }
 
   revalidatePath('/', 'layout')
+  return { success: true }
 }
 
 export async function signInWithEmailPassword(
   credentials: SignInWithPasswordCredentials
 ) {
-  const supabase = createSupabaseServerClient()
+  // Extract email and password from credentials object
+  const email = 'email' in credentials ? credentials.email : ''
+  const password = credentials.password
+  
+  const result = await AuthService.signIn(email, password)
 
-  const { error: signInError } =
-    await supabase.auth.signInWithPassword(credentials)
-
-  if (signInError) {
+  if (!result.success) {
     return {
-      error: { message: signInError.message, type: 'CredentialsSignin' },
+      error: { 
+        message: result.error?.message || 'Authentication failed', 
+        type: result.error?.type || 'CredentialsSignin' 
+      },
     }
   }
 
-  // If signIn is successful, check user role for redirection
-  const {
-    data: { user },
-    error: getUserError,
-  } = await supabase.auth.getUser()
-
-  if (getUserError || !user) {
-    console.error(
-      'Error fetching user after sign in or user is null:',
-      getUserError
-    )
-    // Fallback redirect if user data can't be fetched, though this is unlikely after successful sign-in
-    return redirect('/user/dashboard')
+  // Redirect based on the result
+  if (result.redirectTo) {
+    console.log(`User authenticated, redirecting to ${result.redirectTo}`)
+    return redirect(result.redirectTo)
   }
 
-  // Check user profile for role (more reliable than metadata)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const userRole =
-    profile?.role || user.user_metadata?.role || user.app_metadata?.role
-
-  if (userRole === 'admin') {
-    console.log('Admin user identified, redirecting to /admin/dashboard')
-    return redirect('/admin/dashboard')
-  } else if (userRole === 'washer') {
-    console.log('Washer user identified, redirecting to /washer/dashboard')
-    return redirect('/washer/dashboard')
-  }
-
-  console.log('Regular user, redirecting to /user/dashboard')
+  // Fallback redirect (shouldn't happen with new service)
+  console.log('No redirect specified, falling back to user dashboard')
   return redirect('/user/dashboard')
 }
 
 export async function registerInterest(location: string) {
   'use server'
-  const supabase = createSupabaseServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await AuthService.getCurrentUser()
 
   if (!user) {
     return { error: { message: 'You must be logged in to do that.' } }
   }
 
+  // This function remains largely the same as it's not directly related to the new auth architecture
+  const supabase = createSupabaseServerClient()
   const { data, error } = await supabase
     .from('washer_interest_registrations')
     .insert([
@@ -120,15 +96,15 @@ interface WasherApplicationData {
 
 export async function applyToBeWasher(applicationData: WasherApplicationData) {
   'use server'
-  const supabase = createSupabaseServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await AuthService.getCurrentUser()
 
   if (!user) {
     return { error: { message: 'You must be logged in to apply.' } }
   }
+
+  // This function will need to be updated to work with the new washer profile system
+  // For now, we'll keep the legacy functionality but add a note
+  const supabase = createSupabaseServerClient()
 
   // Fetch the user's profile to get the profile_id
   const { data: profile, error: profileError } = await supabase
@@ -142,7 +118,7 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
     return { error: { message: 'Could not find your user profile.' } }
   }
 
-  // 1. Insert into washer_applications table
+  // 1. Insert into washer_applications table (legacy)
   const applicationInsert = {
     user_id: user.id,
     profile_id: profile.id,
@@ -162,24 +138,11 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
     return { error: { message: 'Failed to submit application.' } }
   }
 
-  // 2. Update the profile status
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      washer_status: 'pending_verification',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id)
-
-  if (updateError) {
-    // This is a bit tricky. The application was inserted, but status update failed.
-    // For now, we'll log it and the user will see a generic error.
-    // A more robust solution might involve a transaction or a cleanup job.
-    console.error(
-      'CRITICAL: Application inserted but profile status update failed:',
-      updateError
-    )
-    return { error: { message: 'Failed to update your application status.' } }
+  // 2. Assign washer role and create washer profile using new architecture
+  const roleResult = await AuthService.assignRole(user.id, 'washer')
+  if (!roleResult.success) {
+    console.error('Error assigning washer role:', roleResult.error)
+    return { error: { message: 'Failed to assign washer role.' } }
   }
 
   return { data: { message: 'Application submitted successfully!' } }
@@ -187,55 +150,38 @@ export async function applyToBeWasher(applicationData: WasherApplicationData) {
 
 export async function startWasherApplicationProcess() {
   'use server'
-  const supabase = createSupabaseServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await AuthService.getCurrentUser()
 
   if (!user) {
     return redirect('/signin')
   }
 
-  // First, check if they already have a profile that is in some washer state
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('washer_status')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError) {
-    console.error(
-      'Error fetching profile before starting application:',
-      profileError
-    )
-    return redirect('/user/dashboard/become-washer?error=profile_fetch_failed')
+  // Check if user already has washer role
+  const hasWasherRole = await AuthService.userHasRole(user.id, 'washer')
+  
+  if (hasWasherRole) {
+    // Get user with roles to check onboarding status
+    const userWithRoles = await AuthService.getUserWithRoles(user.id)
+    
+    if (userWithRoles?.washerProfile?.onboarding_status === 'completed') {
+      return redirect('/washer/dashboard')
+    } else {
+      return redirect('/washer/onboarding')
+    }
   }
 
-  // If they are already in the process, just redirect them
-  if (profile.washer_status) {
-    return redirect('/user/dashboard/become-washer')
-  }
-
-  // Update the user's profile to start the application process
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      role: 'washer',
-      washer_status: 'pending_application',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id)
-
-  if (updateError) {
-    console.error('Error updating profile to start application:', updateError)
-    return redirect('/user/dashboard/become-washer?error=profile_update_failed')
+  // Assign washer role and create profile
+  const roleResult = await AuthService.assignRole(user.id, 'washer')
+  
+  if (!roleResult.success) {
+    console.error('Error assigning washer role:', roleResult.error)
+    return redirect('/user/dashboard/become-washer?error=role_assignment_failed')
   }
 
   // Revalidate the paths to ensure the UI updates correctly after the redirect.
   revalidatePath('/user/dashboard/become-washer')
-  revalidatePath('/user/dashboard/washer-application')
+  revalidatePath('/washer/onboarding')
 
-  // On success, redirect to the application form
-  redirect('/user/dashboard/washer-application')
+  // Redirect to new onboarding flow
+  redirect('/washer/onboarding')
 }

@@ -234,7 +234,7 @@ export default function WasherApplicationForm({
     setIsSubmitting(true)
     setServerError(null)
 
-    const result = await applyToBeWasher(data)
+    const result = await applyToBeWasher(data as any)
 
     setIsSubmitting(false)
 

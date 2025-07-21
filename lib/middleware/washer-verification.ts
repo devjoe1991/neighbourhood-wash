@@ -1,10 +1,15 @@
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseServerClientSafe } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import {
   canAccessWasherFeatures,
   hasCompletedOnboarding,
 } from '@/lib/stripe/actions'
 import type { User } from '@supabase/supabase-js'
+import { 
+  shouldSkipAuth, 
+  getBuildSafeDefaults, 
+  logBuildContext 
+} from '@/lib/utils/build-context'
 
 /**
  * Middleware to check washer verification status and control access to washer-specific features
@@ -24,19 +29,36 @@ export async function requireWasherVerification(
   onboardingStatus?: unknown
 }> {
   try {
-    // Handle build-time context where Supabase might not be available
-    let supabase
-    try {
-      supabase = createSupabaseServerClient()
-    } catch (error) {
-      console.warn(
-        '[WASHER_VERIFICATION] Supabase client creation failed during build:',
-        error
-      )
+    // Check if we should skip authentication during build
+    if (shouldSkipAuth()) {
+      logBuildContext('Skipping washer verification during build')
+      const defaults = getBuildSafeDefaults()
       return {
-        canAccess: false,
-        status: 'build_context',
-        error: 'Build-time context - authentication not available',
+        canAccess: defaults.canAccess,
+        status: defaults.status,
+        error: defaults.message
+      }
+    }
+
+    // Create Supabase client safely
+    const supabaseResult = createSupabaseServerClientSafe()
+    
+    if (!supabaseResult.client) {
+      if (supabaseResult.isBuildContext) {
+        logBuildContext('Washer verification skipped - build context')
+        const defaults = getBuildSafeDefaults()
+        return {
+          canAccess: defaults.canAccess,
+          status: defaults.status,
+          error: defaults.message
+        }
+      } else {
+        console.error('[WASHER_VERIFICATION] Failed to create Supabase client:', supabaseResult.error)
+        return {
+          canAccess: false,
+          status: 'client_error',
+          error: supabaseResult.error || 'Failed to initialize authentication'
+        }
       }
     }
 
@@ -44,7 +66,7 @@ export async function requireWasherVerification(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabaseResult.client.auth.getUser()
 
     if (authError || !user) {
       if (redirectOnFailure) {
@@ -141,15 +163,9 @@ export async function requireCompleteOnboarding(
   error?: string
 }> {
   try {
-    // Handle build-time context where Supabase might not be available
-    let supabase
-    try {
-      supabase = createSupabaseServerClient()
-    } catch (error) {
-      console.warn(
-        '[ONBOARDING_VERIFICATION] Supabase client creation failed during build:',
-        error
-      )
+    // Check if we should skip authentication during build
+    if (shouldSkipAuth()) {
+      logBuildContext('Skipping onboarding verification during build')
       return {
         isComplete: false,
         completedSteps: [],
@@ -159,11 +175,36 @@ export async function requireCompleteOnboarding(
       }
     }
 
+    // Create Supabase client safely
+    const supabaseResult = createSupabaseServerClientSafe()
+    
+    if (!supabaseResult.client) {
+      if (supabaseResult.isBuildContext) {
+        logBuildContext('Onboarding verification skipped - build context')
+        return {
+          isComplete: false,
+          completedSteps: [],
+          currentStep: 1,
+          missingSteps: ['Build-time context - authentication not available'],
+          error: 'Build-time context',
+        }
+      } else {
+        console.error('[ONBOARDING_VERIFICATION] Failed to create Supabase client:', supabaseResult.error)
+        return {
+          isComplete: false,
+          completedSteps: [],
+          currentStep: 1,
+          missingSteps: ['Client initialization failed'],
+          error: supabaseResult.error || 'Failed to initialize authentication'
+        }
+      }
+    }
+
     // Get current user
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabaseResult.client.auth.getUser()
 
     if (authError || !user) {
       if (redirectOnFailure) {
@@ -283,13 +324,42 @@ export async function requireFeatureAccess(
   } = config
 
   try {
-    const supabase = createSupabaseServerClient()
+    // Check if we should skip authentication during build
+    if (shouldSkipAuth()) {
+      logBuildContext(`Skipping feature access check for ${featureName} during build`)
+      return {
+        canAccess: false,
+        reason: 'build_context',
+        message: 'Feature access skipped during build process',
+      }
+    }
+
+    // Create Supabase client safely
+    const supabaseResult = createSupabaseServerClientSafe()
+    
+    if (!supabaseResult.client) {
+      if (supabaseResult.isBuildContext) {
+        logBuildContext(`Feature access for ${featureName} skipped - build context`)
+        return {
+          canAccess: false,
+          reason: 'build_context',
+          message: 'Feature access skipped during build process',
+        }
+      } else {
+        console.error(`[FEATURE_ACCESS] Failed to create Supabase client for ${featureName}:`, supabaseResult.error)
+        return {
+          canAccess: false,
+          reason: 'client_error',
+          message: supabaseResult.error || 'Failed to initialize authentication'
+        }
+      }
+    }
 
     // Get current user
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabaseResult.client.auth.getUser()
 
     if (authError || !user) {
       if (redirectOnFailure) {

@@ -208,7 +208,7 @@ export class AlertingSystem {
       const slowCallCount = slowCalls?.length || 0
 
       if (slowCallCount > 5) { // More than 5 slow calls
-        const avgDuration = (slowCalls?.reduce((sum, call) => sum + (call.duration_ms || 0), 0) || 0) / slowCallCount
+        const avgDuration = (slowCalls?.reduce((sum: number, call: any) => sum + (call.duration_ms || 0), 0) || 0) / slowCallCount
 
         return {
           id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -249,7 +249,7 @@ export class AlertingSystem {
 
       if (!journeys || journeys.length === 0) return null
 
-      const abandonedCount = journeys.filter(j => j.completion_status === 'abandoned').length
+      const abandonedCount = journeys.filter((j: any) => j.completion_status === 'abandoned').length
       const abandonmentRate = (abandonedCount / journeys.length) * 100
 
       if (abandonmentRate > rule.threshold) {
@@ -294,8 +294,8 @@ export class AlertingSystem {
 
       if (!events || events.length === 0) return null
 
-      const startedCount = events.filter(e => e.event_type === 'verification_started').length
-      const failedCount = events.filter(e => e.event_type === 'verification_failed').length
+      const startedCount = events.filter((e: any) => e.event_type === 'verification_started').length
+      const failedCount = events.filter((e: any) => e.event_type === 'verification_failed').length
 
       if (startedCount === 0) return null
 
@@ -341,7 +341,7 @@ export class AlertingSystem {
         .gte('timestamp', startTime.toISOString())
         .lte('timestamp', endTime.toISOString())
 
-      const timeoutCount = timeouts?.filter(event => 
+      const timeoutCount = timeouts?.filter((event: any) => 
         event.error_details?.message?.includes('timeout') ||
         event.error_details?.message?.includes('ETIMEDOUT') ||
         event.error_details?.type === 'network_error'

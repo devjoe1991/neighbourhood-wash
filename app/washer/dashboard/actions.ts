@@ -93,7 +93,7 @@ export async function getAssignedBookings(): Promise<{
     }
 
     // Format the data
-    const formattedBookings: WasherBooking[] = bookings.map((booking) => {
+    const formattedBookings: WasherBooking[] = bookings.map((booking: any) => {
       const profile = Array.isArray(booking.profiles)
         ? booking.profiles[0]
         : booking.profiles
@@ -281,7 +281,7 @@ export async function getAvailableBookings(): Promise<{
       }
     }
 
-    const formattedData = data.map((booking) => ({
+    const formattedData = data.map((booking: any) => ({
       ...booking,
       user_profile: Array.isArray(booking.user_profile)
         ? (booking.user_profile[0] ?? null)

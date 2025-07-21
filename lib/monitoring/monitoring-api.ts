@@ -190,7 +190,7 @@ export class MonitoringAPI {
       if (recentEvents) {
         const totalEvents = recentEvents.length
         const errorEvents = recentEvents.filter(
-          (e) => e.event_type === 'verification_failed'
+          (e: any) => e.event_type === 'verification_failed'
         ).length
         const errorRate =
           totalEvents > 0 ? (errorEvents / totalEvents) * 100 : 0
@@ -210,7 +210,7 @@ export class MonitoringAPI {
 
       if (apiCalls && apiCalls.length > 0) {
         const avgDuration =
-          apiCalls.reduce((sum, call) => sum + (call.duration_ms || 0), 0) /
+          apiCalls.reduce((sum: number, call: any) => sum + (call.duration_ms || 0), 0) /
           apiCalls.length
         checks.performance_acceptable = avgDuration < 5000 // Less than 5 seconds average
         if (!checks.performance_acceptable) {
@@ -282,7 +282,7 @@ export class MonitoringAPI {
 
       if (!events) return []
 
-      return events.map((event) => {
+      return events.map((event: any) => {
         let message = ''
         let type: RecentActivity['type'] = 'verification_started'
 

@@ -132,7 +132,7 @@ export default function WasherApplicationForm({
     setIsSubmitting(true)
     setServerError(null)
 
-    const result = await applyToBeWasher(data)
+    const result = await applyToBeWasher(data as any)
 
     // MOCK DELAY & RESULT
     // await new Promise((resolve) => setTimeout(resolve, 2000))
